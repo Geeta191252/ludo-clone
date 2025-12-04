@@ -6,32 +6,32 @@
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
+    --background: 280 30% 15%;
     --foreground: 45 100% 96%;
 
-    --card: 222 47% 14%;
+    --card: 280 25% 20%;
     --card-foreground: 45 100% 96%;
 
-    --popover: 222 47% 14%;
+    --popover: 280 25% 20%;
     --popover-foreground: 45 100% 96%;
 
     --primary: 45 100% 51%;
-    --primary-foreground: 222 47% 11%;
+    --primary-foreground: 280 30% 15%;
 
-    --secondary: 222 47% 18%;
+    --secondary: 280 25% 25%;
     --secondary-foreground: 45 100% 96%;
 
-    --muted: 222 30% 20%;
-    --muted-foreground: 220 15% 60%;
+    --muted: 280 20% 25%;
+    --muted-foreground: 280 10% 60%;
 
-    --accent: 45 100% 51%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 0 75% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 222 30% 25%;
-    --input: 222 30% 25%;
+    --border: 280 20% 30%;
+    --input: 280 20% 30%;
     --ring: 45 100% 51%;
 
     --radius: 0.75rem;
@@ -44,39 +44,26 @@
     --ludo-green: 145 70% 45%;
     --ludo-yellow: 50 100% 50%;
     --ludo-blue: 210 90% 55%;
-    --dark-navy: 222 47% 8%;
-    --live-red: 0 100% 50%;
+    --notice-bg: 40 50% 92%;
+    --notice-text: 0 0% 15%;
+    --header-gradient-start: 330 50% 25%;
+    --header-gradient-end: 280 40% 20%;
+    --banner-red: 0 85% 45%;
+    --pink-accent: 340 80% 55%;
 
-    --sidebar-background: 222 47% 8%;
+    --sidebar-background: 280 30% 12%;
     --sidebar-foreground: 45 100% 96%;
     --sidebar-primary: 45 100% 51%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 47% 14%;
+    --sidebar-primary-foreground: 280 30% 15%;
+    --sidebar-accent: 280 25% 20%;
     --sidebar-accent-foreground: 45 100% 96%;
-    --sidebar-border: 222 30% 20%;
+    --sidebar-border: 280 20% 25%;
     --sidebar-ring: 45 100% 51%;
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 280 30% 15%;
     --foreground: 45 100% 96%;
-    --card: 222 47% 14%;
-    --card-foreground: 45 100% 96%;
-    --popover: 222 47% 14%;
-    --popover-foreground: 45 100% 96%;
-    --primary: 45 100% 51%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 222 47% 18%;
-    --secondary-foreground: 45 100% 96%;
-    --muted: 222 30% 20%;
-    --muted-foreground: 220 15% 60%;
-    --accent: 45 100% 51%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 222 30% 25%;
-    --input: 222 30% 25%;
-    --ring: 45 100% 51%;
   }
 }
 
@@ -92,58 +79,113 @@
 }
 
 @layer components {
+  .commission-banner {
+    background: linear-gradient(90deg, hsl(0 85% 45%), hsl(0 75% 50%));
+    @apply py-2 px-4 text-center text-sm font-medium text-white;
+  }
+
+  .header-gradient {
+    background: linear-gradient(180deg, hsl(330 50% 28%), hsl(280 40% 18%));
+  }
+
+  .wallet-badge {
+    @apply flex items-center gap-2 px-4 py-2 rounded-lg font-semibold;
+    background: linear-gradient(145deg, hsl(38 80% 45%), hsl(45 90% 55%));
+    color: hsl(280 30% 15%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .notice-box {
+    background: hsl(var(--notice-bg));
+    color: hsl(var(--notice-text));
+    @apply rounded-xl p-4 text-sm leading-relaxed;
+    border: 2px solid hsl(38 60% 75%);
+  }
+
+  .instant-text {
+    color: hsl(var(--pink-accent));
+    @apply text-center py-3 font-medium;
+  }
+
   .game-card {
-    @apply relative overflow-hidden rounded-xl transition-all duration-300;
-    background: linear-gradient(145deg, hsl(var(--gold-dark)), hsl(var(--gold)));
+    @apply relative overflow-hidden rounded-xl transition-all duration-300 cursor-pointer;
+    background: linear-gradient(145deg, hsl(35 50% 60%), hsl(40 45% 75%));
     box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      0 4px 15px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
   .game-card:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-2px) scale(1.02);
     box-shadow: 
-      0 8px 30px rgba(0, 0, 0, 0.5),
-      0 0 20px hsl(var(--gold) / 0.3);
+      0 8px 25px rgba(0, 0, 0, 0.5),
+      0 0 15px hsl(var(--gold) / 0.2);
   }
 
   .game-card-inner {
-    @apply relative p-1;
-    background: linear-gradient(145deg, hsl(38 90% 35%), hsl(45 100% 45%));
+    @apply relative p-1.5;
+    background: radial-gradient(ellipse at center, hsl(40 60% 85%) 0%, hsl(35 50% 70%) 100%);
     border-radius: inherit;
-  }
-
-  .game-card-content {
-    @apply flex items-center justify-center rounded-lg;
-    background: linear-gradient(180deg, hsl(45 80% 85%), hsl(40 70% 75%));
-    min-height: 100px;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .live-badge {
-    @apply absolute top-2 right-2 px-2 py-0.5 text-xs font-bold rounded;
-    background: hsl(var(--live-red));
-    color: white;
+    @apply absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 text-xs font-bold;
+    color: hsl(var(--pink-accent));
+  }
+
+  .live-badge::before {
+    content: '';
+    @apply w-2 h-2 rounded-full;
+    background: hsl(var(--pink-accent));
     animation: pulse-live 1.5s ease-in-out infinite;
   }
 
   @keyframes pulse-live {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
   }
 
-  .marquee-container {
-    @apply overflow-hidden bg-card rounded-xl p-3 my-4;
-    border: 1px solid hsl(var(--border));
+  .section-title {
+    color: hsl(var(--pink-accent));
+    @apply font-semibold text-base mb-4;
   }
 
-  .marquee-text {
-    @apply whitespace-nowrap;
-    animation: marquee 20s linear infinite;
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50;
+    background: linear-gradient(180deg, hsl(0 60% 35%), hsl(0 50% 25%));
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  @keyframes marquee {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
+  .bottom-nav-inner {
+    @apply flex items-end justify-around py-2 max-w-md mx-auto;
+  }
+
+  .nav-item {
+    @apply flex flex-col items-center gap-1 text-xs text-white/80 transition-colors;
+  }
+
+  .nav-item:hover, .nav-item.active {
+    @apply text-white;
+  }
+
+  .nav-item-icon {
+    @apply w-6 h-6;
+  }
+
+  .home-btn {
+    @apply -mt-6 w-14 h-14 rounded-full flex items-center justify-center;
+    background: linear-gradient(180deg, hsl(340 70% 45%), hsl(330 60% 35%));
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .whatsapp-btn {
+    @apply fixed right-4 bottom-24 w-14 h-14 rounded-full flex items-center justify-center z-40;
+    background: #25D366;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
   }
 
   .gold-text {
@@ -151,27 +193,5 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-  }
-
-  .btn-login {
-    @apply px-6 py-2 rounded-lg font-semibold transition-all duration-300;
-    background: linear-gradient(180deg, hsl(var(--gold-light)), hsl(var(--gold)));
-    color: hsl(var(--background));
-    box-shadow: 0 2px 10px hsl(var(--gold) / 0.3);
-  }
-
-  .btn-login:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px hsl(var(--gold) / 0.5);
-  }
-
-  .section-title {
-    @apply text-primary font-semibold text-sm uppercase tracking-wider mb-4;
-  }
-}
-
-@layer utilities {
-  .text-shadow-gold {
-    text-shadow: 0 2px 10px hsl(var(--gold) / 0.5);
   }
 }
