@@ -1,5 +1,4 @@
 import GameCard from "./GameCard";
-import TermsSection from "./TermsSection";
 
 const GamesSection = () => {
   return (
@@ -15,9 +14,14 @@ const GamesSection = () => {
         </div>
       </div>
       
-      {/* Terms Section */}
-      <div className="mt-6">
-        <TermsSection />
+      {/* Footer Links */}
+      <div className="mt-6 px-4 pt-4 border-t border-border">
+        <div className="flex gap-2 text-sm text-muted-foreground">
+          <span>.</span>
+          <span>Terms,</span>
+          <span>Privacy,</span>
+          <span>Support</span>
+        </div>
       </div>
     </section>
   );
