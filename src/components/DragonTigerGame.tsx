@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, TrendingUp, Plus } from 'lucide-react';
+import { ChevronLeft, TrendingUp, User } from 'lucide-react';
 import dragonBettingImg from '@/assets/dragon-betting.jpg';
 import tigerBettingImg from '@/assets/tiger-betting.jpg';
 import tieBettingImg from '@/assets/tie-betting.jpg';
@@ -21,6 +21,7 @@ interface PlacedChip {
 }
 
 const CARD_VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const CARD_SUITS = ['♠', '♥', '♦', '♣'];
 
 const getCardNumValue = (value: string): number => {
   return CARD_VALUES.indexOf(value) + 1;
@@ -28,7 +29,8 @@ const getCardNumValue = (value: string): number => {
 
 const getRandomCard = () => {
   const value = CARD_VALUES[Math.floor(Math.random() * CARD_VALUES.length)];
-  return { value, numValue: getCardNumValue(value) };
+  const suit = CARD_SUITS[Math.floor(Math.random() * CARD_SUITS.length)];
+  return { value, suit, numValue: getCardNumValue(value) };
 };
 
 const CHIP_VALUES = [1, 10, 100, 1000, 5000];
@@ -38,47 +40,109 @@ const ChipIcon: React.FC<{ value: number; size?: 'sm' | 'md' | 'lg'; onClick?: (
 }) => {
   const getColors = () => {
     switch(value) {
-      case 1: return { outer: '#6b7280', inner: '#4b5563', text: '#fff' };
-      case 10: return { outer: '#22c55e', inner: '#16a34a', text: '#fff' };
-      case 100: return { outer: '#eab308', inner: '#ca8a04', text: '#000' };
-      case 1000: return { outer: '#a855f7', inner: '#9333ea', text: '#fff' };
-      case 5000: return { outer: '#f97316', inner: '#ea580c', text: '#fff' };
-      default: return { outer: '#6b7280', inner: '#4b5563', text: '#fff' };
+      case 1: return { outer: '#6b7280', inner: '#4b5563', text: '#fff', ring: '#888' };
+      case 10: return { outer: '#22c55e', inner: '#16a34a', text: '#fff', ring: '#4ade80' };
+      case 100: return { outer: '#eab308', inner: '#ca8a04', text: '#000', ring: '#fde047' };
+      case 1000: return { outer: '#a855f7', inner: '#9333ea', text: '#fff', ring: '#c084fc' };
+      case 5000: return { outer: '#f97316', inner: '#ea580c', text: '#fff', ring: '#fb923c' };
+      default: return { outer: '#6b7280', inner: '#4b5563', text: '#fff', ring: '#888' };
     }
   };
 
   const colors = getColors();
   const sizeClasses = {
-    sm: 'w-7 h-7',
-    md: 'w-11 h-11',
+    sm: 'w-8 h-8',
+    md: 'w-12 h-12',
     lg: 'w-14 h-14',
   };
   const fontSizes = {
-    sm: 'text-[7px]',
-    md: 'text-[10px]',
-    lg: 'text-xs',
+    sm: 'text-[8px]',
+    md: 'text-xs',
+    lg: 'text-sm',
   };
 
   return (
     <button
       onClick={onClick}
       className={`${sizeClasses[size]} rounded-full relative flex items-center justify-center transition-all
-        ${selected ? 'ring-4 ring-white scale-110 z-10' : ''} 
+        ${selected ? 'ring-4 ring-yellow-400 scale-110 z-10' : ''} 
         ${onClick ? 'hover:scale-105 active:scale-95' : ''}`}
       style={{
         background: `radial-gradient(circle at 30% 30%, ${colors.outer}, ${colors.inner})`,
-        boxShadow: `0 4px 8px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2)`,
-        border: `3px solid ${colors.outer}`,
+        boxShadow: `0 4px 8px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.3)`,
+        border: `3px solid ${colors.ring}`,
       }}
     >
-      <div className="absolute inset-1 rounded-full border-2 border-white/30"></div>
+      <div className="absolute inset-1 rounded-full border-2 border-white/20"></div>
       <div className={`${fontSizes[size]} font-bold flex flex-col items-center leading-tight`} style={{ color: colors.text }}>
         <span>{value >= 1000 ? value/1000 : value}</span>
-        <span className="text-[5px] opacity-70">{value >= 1000 ? 'K' : 'CHIP'}</span>
+        <span className="text-[6px] opacity-80">CHIP</span>
       </div>
     </button>
   );
 };
+
+const PlayingCard: React.FC<{ value?: string; suit?: string; isGold?: boolean }> = ({ value, suit, isGold }) => {
+  const isRed = suit === '♥' || suit === '♦';
+  
+  if (!value) {
+    return (
+      <div 
+        className="w-16 h-22 rounded-lg flex items-center justify-center shadow-xl"
+        style={{ 
+          background: isGold 
+            ? 'linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ff8800 100%)' 
+            : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          border: '2px solid rgba(255,255,255,0.3)'
+        }}
+      >
+        <span className="text-3xl opacity-60">{isGold ? '♣' : '♣'}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="w-16 h-22 rounded-lg flex flex-col items-center justify-center shadow-xl relative"
+      style={{ 
+        background: isGold 
+          ? 'linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ff8800 100%)' 
+          : 'white',
+        border: '2px solid rgba(0,0,0,0.2)'
+      }}
+    >
+      <span className={`text-2xl font-bold ${isGold ? 'text-black' : isRed ? 'text-red-600' : 'text-black'}`}>
+        {value}
+      </span>
+      <span className={`text-xl ${isGold ? 'text-black' : isRed ? 'text-red-600' : 'text-black'}`}>
+        {suit}
+      </span>
+    </div>
+  );
+};
+
+const VIPPlayer: React.FC<{ vip: number; name: string; position: 'left' | 'right'; chip?: number }> = ({ vip, name, position, chip }) => (
+  <div className="flex flex-col items-center">
+    <div className="relative">
+      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-300 to-pink-500 overflow-hidden border-2 border-white/50 shadow-lg">
+        <div className="w-full h-full flex items-center justify-center">
+          <User className="w-6 h-6 text-white" />
+        </div>
+      </div>
+      {chip && (
+        <div className="absolute -right-1 -bottom-1">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center text-[6px] font-bold border border-white">
+            {chip >= 1000 ? `${chip/1000}K` : chip}
+          </div>
+        </div>
+      )}
+    </div>
+    <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-2 py-0.5 rounded text-[8px] font-bold mt-1 shadow">
+      VIP {vip}
+    </div>
+    <div className="text-[9px] text-gray-300 mt-0.5">{name}</div>
+  </div>
+);
 
 const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [balance, setBalance] = useState(10000);
@@ -86,15 +150,16 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [dragonBets, setDragonBets] = useState<PlacedChip[]>([]);
   const [tigerBets, setTigerBets] = useState<PlacedChip[]>([]);
   const [tieBets, setTieBets] = useState<PlacedChip[]>([]);
-  const [dragonCard, setDragonCard] = useState<{ value: string; numValue: number } | null>(null);
-  const [tigerCard, setTigerCard] = useState<{ value: string; numValue: number } | null>(null);
+  const [dragonCard, setDragonCard] = useState<{ value: string; suit: string; numValue: number } | null>(null);
+  const [tigerCard, setTigerCard] = useState<{ value: string; suit: string; numValue: number } | null>(null);
   const [winner, setWinner] = useState<'dragon' | 'tiger' | 'tie' | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [history, setHistory] = useState<BetHistory[]>([
-    { id: 1, winner: 'dragon' }, { id: 2, winner: 'tie' }, { id: 3, winner: 'dragon' },
-    { id: 4, winner: 'tiger' }, { id: 5, winner: 'tiger' }, { id: 6, winner: 'tiger' },
-    { id: 7, winner: 'tiger' }, { id: 8, winner: 'dragon' }, { id: 9, winner: 'tiger' },
-    { id: 10, winner: 'tie' }, { id: 11, winner: 'tiger' }, { id: 12, winner: 'dragon' },
+    { id: 1, winner: 'dragon' }, { id: 2, winner: 'dragon' }, { id: 3, winner: 'tiger' },
+    { id: 4, winner: 'dragon' }, { id: 5, winner: 'tiger' }, { id: 6, winner: 'tiger' },
+    { id: 7, winner: 'tie' }, { id: 8, winner: 'tie' }, { id: 9, winner: 'tie' },
+    { id: 10, winner: 'tiger' }, { id: 11, winner: 'tiger' }, { id: 12, winner: 'dragon' },
+    { id: 13, winner: 'tiger' }, { id: 14, winner: 'tiger' }, { id: 15, winner: 'tiger' },
   ]);
   const [timer, setTimer] = useState(15);
   const [gamePhase, setGamePhase] = useState<'betting' | 'dealing' | 'result'>('betting');
@@ -118,8 +183,8 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     const newChip: PlacedChip = {
       id: Date.now() + Math.random(),
       value: selectedChip,
-      x: 15 + Math.random() * 70,
-      y: 25 + Math.random() * 50,
+      x: 10 + Math.random() * 80,
+      y: 20 + Math.random() * 60,
     };
 
     setBalance(prev => prev - selectedChip);
@@ -181,156 +246,130 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     <div 
       className="min-h-screen text-white relative overflow-hidden"
       style={{ 
-        background: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%)'
+        background: 'linear-gradient(180deg, #0d1a2d 0%, #162236 50%, #0d1a2d 100%)'
       }}
     >
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute left-0 top-0 w-40 h-40 opacity-30">
-          <div className="text-8xl transform -rotate-12">🐉</div>
-        </div>
-        <div className="absolute right-0 top-0 w-40 h-40 opacity-30">
-          <div className="text-8xl transform rotate-12">🐅</div>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-2">
-        <button onClick={onClose} className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+        <button onClick={onClose} className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center backdrop-blur">
           <ChevronLeft className="w-6 h-6" />
         </button>
         
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">
+          <button className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-2 rounded-lg text-sm font-bold shadow-lg">
             <span className="text-lg">₹</span> Add Cash
           </button>
-          <div className="bg-gradient-to-b from-green-500 to-green-700 px-3 py-1.5 rounded-lg">
+          <div className="bg-gradient-to-b from-green-500 to-green-700 px-3 py-1.5 rounded-lg text-center">
             <div className="text-[10px] text-green-200">Bonus</div>
-            <div className="text-xs font-bold">0%</div>
+            <div className="text-sm font-bold text-yellow-300">0%</div>
           </div>
         </div>
       </div>
 
-      {/* Cards Section */}
-      <div className="relative z-10 flex items-center justify-center py-2 px-4">
-        {/* Dragon Side */}
-        <div className="relative">
-          {winner === 'dragon' && showResult && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-red-500 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse z-20">
-              WINNER
+      {/* Main Game Area */}
+      <div className="relative z-10 px-12">
+        {/* Dragon & Tiger with Cards */}
+        <div className="flex items-center justify-center gap-2 py-2">
+          {/* Dragon Side */}
+          <div className="relative flex-1 flex justify-end items-center">
+            {winner === 'dragon' && showResult && (
+              <div className="absolute -top-2 left-1/2 bg-gradient-to-r from-red-600 to-red-500 px-3 py-1 rounded text-xs font-bold animate-pulse z-20 shadow-lg">
+                WINNER
+              </div>
+            )}
+            <div className="text-7xl filter drop-shadow-2xl" style={{ textShadow: '0 0 30px rgba(59, 130, 246, 0.5)' }}>
+              🐉
             </div>
-          )}
-          <div className="text-5xl filter drop-shadow-2xl">🐉</div>
-        </div>
+          </div>
 
-        {/* Dragon Card */}
-        <div className={`w-14 h-20 rounded-lg mx-3 flex items-center justify-center shadow-2xl transition-all duration-300 ${
-          winner === 'dragon' && showResult ? 'ring-4 ring-yellow-400 scale-110' : ''
-        }`}
-        style={{ 
-          background: 'linear-gradient(135deg, #8b0000 0%, #5c0000 100%)',
-          border: '2px solid #ff4444'
-        }}>
-          {dragonCard ? (
-            <span className="text-white text-2xl font-bold">{dragonCard.value}</span>
-          ) : (
-            <div className="text-3xl opacity-80">🐉</div>
-          )}
-        </div>
+          {/* Dragon Card */}
+          <div className={`transition-all duration-300 ${winner === 'dragon' && showResult ? 'scale-110' : ''}`}>
+            <PlayingCard value={dragonCard?.value} suit={dragonCard?.suit} />
+          </div>
 
-        {/* VS */}
-        <div className="w-12 h-12 rounded-md flex items-center justify-center mx-2"
-          style={{ 
-            background: 'linear-gradient(180deg, #1a3a5c 0%, #0d2840 100%)',
-            border: '2px solid #2a4a6c'
-          }}>
-          <span className="text-xl font-black bg-gradient-to-b from-yellow-300 to-yellow-600 bg-clip-text text-transparent">VS</span>
-        </div>
-
-        {/* Tiger Card */}
-        <div className={`w-14 h-20 rounded-lg mx-3 flex items-center justify-center shadow-2xl transition-all duration-300 ${
-          winner === 'tiger' && showResult ? 'ring-4 ring-yellow-400 scale-110' : ''
-        }`}
-        style={{ 
-          background: 'linear-gradient(135deg, #8b0000 0%, #5c0000 100%)',
-          border: '2px solid #ff4444'
-        }}>
-          {tigerCard ? (
-            <span className="text-white text-2xl font-bold">{tigerCard.value}</span>
-          ) : (
-            <div className="text-3xl opacity-80">🐅</div>
-          )}
-        </div>
-
-        {/* Tiger Side */}
-        <div className="relative">
-          {winner === 'tiger' && showResult && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-green-600 to-green-500 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse z-20">
-              LUCKY
+          {/* VS Badge */}
+          <div className="relative mx-2">
+            <div 
+              className="w-14 h-14 rounded-lg flex items-center justify-center"
+              style={{ 
+                background: 'linear-gradient(180deg, #ffa500 0%, #ff6600 50%, #cc4400 100%)',
+                boxShadow: '0 0 20px rgba(255, 165, 0, 0.6)'
+              }}
+            >
+              <span className="text-2xl font-black text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>VS</span>
             </div>
-          )}
-          <div className="text-5xl filter drop-shadow-2xl">🐅</div>
-        </div>
-      </div>
+          </div>
 
-      {/* History Bar */}
-      <div className="relative z-10 px-2 py-1">
-        <div className="flex items-center gap-1 overflow-x-auto bg-black/30 rounded-lg p-1">
-          <button className="flex-shrink-0 w-8 h-8 bg-[#1a2a4a] rounded-md flex items-center justify-center">
-            <TrendingUp className="w-4 h-4" />
-          </button>
+          {/* Tiger Card */}
+          <div className={`transition-all duration-300 ${winner === 'tiger' && showResult ? 'scale-110' : ''}`}>
+            <PlayingCard value={tigerCard?.value} suit={tigerCard?.suit} isGold />
+          </div>
+
+          {/* Tiger Side */}
+          <div className="relative flex-1 flex justify-start items-center">
+            {winner === 'tiger' && showResult && (
+              <div className="absolute -top-2 right-1/2 bg-gradient-to-r from-green-600 to-green-500 px-3 py-1 rounded text-xs font-bold animate-pulse z-20 shadow-lg">
+                LUCKY
+              </div>
+            )}
+            <div className="text-7xl filter drop-shadow-2xl" style={{ textShadow: '0 0 30px rgba(249, 115, 22, 0.5)' }}>
+              🐅
+            </div>
+          </div>
+        </div>
+
+        {/* History Bar */}
+        <div className="flex items-center gap-1 overflow-x-auto py-2">
           {history.map((h, i) => (
             <div
               key={h.id + '-' + i}
-              className={`flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center font-bold text-[10px] ${
-                h.winner === 'dragon' ? 'bg-blue-600' : h.winner === 'tiger' ? 'bg-orange-500' : 'bg-green-500'
+              className={`flex-shrink-0 w-7 h-7 rounded flex items-center justify-center font-bold text-[10px] ${
+                h.winner === 'dragon' ? 'bg-blue-600' : h.winner === 'tiger' ? 'bg-amber-600' : 'bg-green-500'
               }`}
             >
               {h.winner === 'dragon' ? 'D' : h.winner === 'tiger' ? 'T' : 'Tie'}
             </div>
           ))}
-          <div className="flex-shrink-0 px-2 py-1 bg-purple-600 rounded-md text-[10px] font-bold flex items-center gap-1">
-            NEW <TrendingUp className="w-3 h-3" />
+          <div className="flex-shrink-0 px-2 py-1 bg-yellow-500 rounded text-[10px] font-bold text-black">
+            NEW
           </div>
+          <button className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
+            <TrendingUp className="w-4 h-4" />
+          </button>
         </div>
-      </div>
 
-      {/* Betting Table */}
-      <div className="relative z-10 px-2 py-2">
-        <div className="rounded-xl p-2 relative"
+        {/* Betting Table */}
+        <div 
+          className="rounded-xl p-2 relative"
           style={{ 
-            background: 'linear-gradient(180deg, #4a3520 0%, #3a2815 50%, #2a1a0a 100%)',
-            border: '4px solid #6a4a25',
-            boxShadow: '0 0 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.3)'
-          }}>
-          
-          {/* Timer */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-            <div className={`px-4 py-1 rounded-full text-sm font-bold ${
-              gamePhase === 'betting' 
-                ? timer <= 5 ? 'bg-red-600 animate-pulse' : 'bg-green-600'
-                : 'bg-yellow-600'
-            }`}>
-              {gamePhase === 'betting' ? `Bet time... ${timer}` : gamePhase === 'dealing' ? 'Dealing...' : 'Result'}
-            </div>
-          </div>
-
+            background: 'linear-gradient(180deg, #5a4030 0%, #4a3020 50%, #3a2010 100%)',
+            border: '4px solid #7a5a35',
+            boxShadow: '0 0 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.4)'
+          }}
+        >
           {/* Three Betting Areas */}
-          <div className="grid grid-cols-3 gap-2 h-40">
+          <div className="grid grid-cols-3 gap-2 h-44">
             {/* Dragon Bet Area */}
             <div 
               onClick={() => placeBet('dragon')}
               className={`relative rounded-xl overflow-hidden cursor-pointer transition-all ${
-                gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'
+                gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-98'
               } ${winner === 'dragon' && showResult ? 'ring-4 ring-yellow-400' : ''}`}
             >
-              <img 
-                src={dragonBettingImg} 
-                alt="Dragon" 
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              <img src={dragonBettingImg} alt="Dragon" className="absolute inset-0 w-full h-full object-cover" />
               
-              <div className="absolute inset-0 pt-10">
+              {/* Bet amounts header */}
+              <div className="absolute top-0 left-0 right-0 flex">
+                <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
+                  <span className="text-xs font-bold">{dragonTotal || 63986}</span>
+                </div>
+                <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
+                  <span className="text-xs font-bold text-yellow-400">0</span>
+                </div>
+              </div>
+              
+              {/* Chips */}
+              <div className="absolute inset-0 pt-8">
                 {dragonBets.map((chip) => (
                   <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
@@ -343,16 +382,34 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
             <div 
               onClick={() => placeBet('tie')}
               className={`relative rounded-xl overflow-hidden cursor-pointer transition-all ${
-                gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'
+                gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-98'
               } ${winner === 'tie' && showResult ? 'ring-4 ring-yellow-400' : ''}`}
             >
-              <img 
-                src={tieBettingImg} 
-                alt="Tie" 
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              <img src={tieBettingImg} alt="Tie" className="absolute inset-0 w-full h-full object-cover" />
               
-              <div className="absolute inset-0 pt-10">
+              {/* Bet amounts header */}
+              <div className="absolute top-0 left-0 right-0 flex">
+                <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
+                  <span className="text-xs font-bold">{tieTotal || 20286}</span>
+                </div>
+                <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
+                  <span className="text-xs font-bold text-yellow-400">0</span>
+                </div>
+              </div>
+              
+              {/* Timer in center */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+                <div className={`px-4 py-1 rounded-full text-sm font-bold ${
+                  gamePhase === 'betting' 
+                    ? timer <= 5 ? 'bg-red-600 animate-pulse' : 'bg-green-600'
+                    : 'bg-yellow-600'
+                }`}>
+                  {gamePhase === 'betting' ? `Bet time... ${timer}` : gamePhase === 'dealing' ? 'Dealing...' : 'Result'}
+                </div>
+              </div>
+              
+              {/* Chips */}
+              <div className="absolute inset-0 pt-8">
                 {tieBets.map((chip) => (
                   <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
@@ -365,16 +422,23 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
             <div 
               onClick={() => placeBet('tiger')}
               className={`relative rounded-xl overflow-hidden cursor-pointer transition-all ${
-                gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'
+                gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-98'
               } ${winner === 'tiger' && showResult ? 'ring-4 ring-yellow-400' : ''}`}
             >
-              <img 
-                src={tigerBettingImg} 
-                alt="Tiger" 
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              <img src={tigerBettingImg} alt="Tiger" className="absolute inset-0 w-full h-full object-cover" />
               
-              <div className="absolute inset-0 pt-10">
+              {/* Bet amounts header */}
+              <div className="absolute top-0 left-0 right-0 flex">
+                <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
+                  <span className="text-xs font-bold">{tigerTotal || 99494}</span>
+                </div>
+                <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
+                  <span className="text-xs font-bold text-yellow-400">0</span>
+                </div>
+              </div>
+              
+              {/* Chips */}
+              <div className="absolute inset-0 pt-8">
                 {tigerBets.map((chip) => (
                   <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
@@ -403,77 +467,71 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
         </div>
       ))}
 
-      {/* Bottom Section - Player & Chips */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-[#0a1628] via-[#0a1628] to-transparent pt-8 pb-3 px-2">
-        {/* Player Info & Rebet */}
-        <div className="flex items-center justify-between mb-3">
+      {/* Bottom Section */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-[#0d1a2d] via-[#0d1a2d]/95 to-transparent pt-6 pb-4 px-4">
+        <div className="flex items-center justify-between">
+          {/* Player Info */}
           <div className="flex items-center gap-2">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 overflow-hidden border-2 border-yellow-400">
-                <div className="w-full h-full flex items-center justify-center text-lg">👤</div>
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 overflow-hidden border-2 border-yellow-400 shadow-lg">
+                <div className="w-full h-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-purple-500 px-1.5 py-0.5 rounded text-[8px] font-bold">
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-purple-500 px-2 py-0.5 rounded text-[8px] font-bold">
                 VIP 2
               </div>
             </div>
             <div>
               <div className="text-xs text-gray-400">Player...</div>
               <div className="flex items-center gap-1">
-                <span className="text-yellow-400">💰</span>
-                <span className="text-yellow-400 font-bold text-sm">{balance.toLocaleString()}</span>
+                <span className="text-yellow-400 text-xs">₹</span>
+                <span className="text-yellow-400 font-bold text-sm">{(balance * 0.000076).toFixed(2)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-orange-400 text-xs">🪙</span>
+                <span className="text-orange-400 font-bold text-xs">{(balance * 0.000026).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          <button className="bg-gradient-to-b from-red-500 to-red-700 px-8 py-2.5 rounded-full font-bold text-sm shadow-lg border-2 border-red-400">
+          {/* Chip Selection */}
+          <div className="flex items-center gap-2">
+            {CHIP_VALUES.map((value) => (
+              <ChipIcon
+                key={value}
+                value={value}
+                size="lg"
+                selected={selectedChip === value}
+                onClick={() => setSelectedChip(value)}
+              />
+            ))}
+          </div>
+
+          {/* REBET Button */}
+          <button className="bg-gradient-to-b from-amber-600 to-amber-800 px-6 py-3 rounded-lg font-bold text-sm shadow-lg border-2 border-amber-500">
             REBET
           </button>
 
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-blue-300">
-            <span className="text-lg">👥</span>
+          {/* Profile */}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center border-2 border-gray-500">
+            <User className="w-5 h-5" />
           </div>
-        </div>
-
-        {/* Chip Selection */}
-        <div className="flex justify-center items-center gap-3 bg-black/40 rounded-full py-2 px-4">
-          {CHIP_VALUES.map((value) => (
-            <ChipIcon
-              key={value}
-              value={value}
-              size="lg"
-              selected={selectedChip === value}
-              onClick={() => setSelectedChip(value)}
-            />
-          ))}
         </div>
       </div>
 
       {/* Side Players - Left */}
-      <div className="fixed left-1 top-1/2 -translate-y-1/2 z-10 space-y-2">
-        {[8, 7, 7].map((vip, i) => (
-          <div key={i} className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 overflow-hidden border-2 border-gray-300">
-              <div className="w-full h-full flex items-center justify-center text-sm">👤</div>
-            </div>
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-green-600 to-green-500 px-1 py-0.5 rounded text-[7px] font-bold whitespace-nowrap">
-              VIP {vip}
-            </div>
-          </div>
-        ))}
+      <div className="fixed left-1 top-1/3 z-10 space-y-3">
+        <VIPPlayer vip={8} name="Player..." position="left" />
+        <VIPPlayer vip={8} name="Coba4c..." position="left" />
+        <VIPPlayer vip={5} name="Niknak..." position="left" />
       </div>
 
       {/* Side Players - Right */}
-      <div className="fixed right-1 top-1/2 -translate-y-1/2 z-10 space-y-2">
-        {[4, 4, 7].map((vip, i) => (
-          <div key={i} className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 overflow-hidden border-2 border-gray-300">
-              <div className="w-full h-full flex items-center justify-center text-sm">👤</div>
-            </div>
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-green-600 to-green-500 px-1 py-0.5 rounded text-[7px] font-bold whitespace-nowrap">
-              VIP {vip}
-            </div>
-          </div>
-        ))}
+      <div className="fixed right-1 top-1/3 z-10 space-y-3">
+        <VIPPlayer vip={6} name="Player..." position="right" chip={5000} />
+        <VIPPlayer vip={4} name="Player..." position="right" />
+        <VIPPlayer vip={6} name="ImCale..." position="right" />
       </div>
     </div>
   );
