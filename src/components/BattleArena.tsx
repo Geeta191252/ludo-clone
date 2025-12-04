@@ -74,7 +74,7 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
             creatorId: generateRandomName(),
             creatorName: generateRandomName(),
             entryFee,
-            prize: Math.floor(entryFee * 2 * 0.97),
+            prize: Math.floor(entryFee * 2 * 0.95), // 5% commission
           };
           setOpenBattles(prev => [newBattle, ...prev.slice(0, 9)]);
         }
@@ -113,7 +113,7 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
       return;
     }
 
-    const prize = Math.floor(entryFee * 2 * 0.97);
+    const prize = Math.floor(entryFee * 2 * 0.95); // 5% commission
     const newBattle: OpenBattle = {
       id: `battle_${Date.now()}`,
       creatorId: "YOU",
