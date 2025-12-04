@@ -47,12 +47,10 @@ const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: Game
           <GameCard 
             gameType="dragon-tiger" 
             isLive={true}
-            onClick={() => setSelectedGame('dragon-tiger')}
           />
           <GameCard 
             gameType="aviator" 
             isLive={true}
-            onClick={() => setSelectedGame('aviator')}
           />
         </div>
       </div>
