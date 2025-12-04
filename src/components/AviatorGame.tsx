@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, HelpCircle, Minus, Plus, History, Volume2, VolumeX, Plane, TrendingUp, Users, Zap, Trophy, Sparkles, Target } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, HelpCircle, Minus, Plus, History, Plane, TrendingUp, Users, Trophy, Sparkles, Target } from 'lucide-react';
 
 interface AviatorGameProps {
   onClose: () => void;
@@ -22,113 +22,6 @@ interface WinPopup {
   visible: boolean;
 }
 
-const useSound = () => {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const flyingOscRef = useRef<OscillatorNode | null>(null);
-  const flyingGainRef = useRef<GainNode | null>(null);
-
-  const getAudioContext = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    return audioContextRef.current;
-  };
-
-  const playBetSound = useCallback(() => {
-    const ctx = getAudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(800, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.1);
-  }, []);
-
-  const playCashOutSound = useCallback(() => {
-    const ctx = getAudioContext();
-    for (let i = 0; i < 3; i++) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime([523, 659, 784][i], ctx.currentTime + i * 0.08);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.08 + 0.15);
-      osc.start(ctx.currentTime + i * 0.08);
-      osc.stop(ctx.currentTime + i * 0.08 + 0.15);
-    }
-  }, []);
-
-  const playCrashSound = useCallback(() => {
-    const ctx = getAudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(400, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
-  }, []);
-
-  const startFlyingSound = useCallback(() => {
-    const ctx = getAudioContext();
-    if (flyingOscRef.current) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(80, ctx.currentTime);
-    gain.gain.setValueAtTime(0.06, ctx.currentTime);
-    osc.start(ctx.currentTime);
-    flyingOscRef.current = osc;
-    flyingGainRef.current = gain;
-  }, []);
-
-  const stopFlyingSound = useCallback(() => {
-    if (flyingOscRef.current && flyingGainRef.current) {
-      const ctx = getAudioContext();
-      flyingGainRef.current.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-      flyingOscRef.current.stop(ctx.currentTime + 0.1);
-      flyingOscRef.current = null;
-      flyingGainRef.current = null;
-    }
-  }, []);
-
-  const updateFlyingPitch = useCallback((multiplier: number) => {
-    if (flyingOscRef.current) {
-      const ctx = getAudioContext();
-      const pitch = 80 + (multiplier - 1) * 15;
-      flyingOscRef.current.frequency.setValueAtTime(Math.min(pitch, 180), ctx.currentTime);
-    }
-  }, []);
-
-  const playTakeoffSound = useCallback(() => {
-    const ctx = getAudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(200, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.3);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.3);
-  }, []);
-
-  return { playBetSound, playCashOutSound, playCrashSound, startFlyingSound, stopFlyingSound, updateFlyingPitch, playTakeoffSound };
-};
 
 const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
   const [balance, setBalance] = useState(3000);
@@ -144,7 +37,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
   const [planePosition, setPlanePosition] = useState({ x: 5, y: 85 });
   const [planeRotation, setPlaneRotation] = useState(-25);
   const [pathPoints, setPathPoints] = useState<{x: number, y: number}[]>([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [stars, setStars] = useState<{x: number, y: number, size: number, speed: number, twinkle: number}[]>([]);
   const [countDown, setCountDown] = useState(5);
@@ -155,8 +47,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
-  
-  const { playBetSound, playCashOutSound, playCrashSound, startFlyingSound, stopFlyingSound, updateFlyingPitch, playTakeoffSound } = useSound();
 
   // Initialize stars with twinkle
   useEffect(() => {
@@ -267,10 +157,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
         setPathPoints([{ x: 5, y: 85 }]);
         setPlanePosition({ x: 5, y: 85 });
         setShowExplosion(false);
-        if (soundEnabled) {
-          playTakeoffSound();
-          startFlyingSound();
-        }
       }, 5500);
       return () => clearTimeout(timeout);
     }
@@ -281,18 +167,11 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
           const increment = Math.random() * 0.04 + 0.02;
           const newMultiplier = prev + increment;
           
-          if (soundEnabled) {
-            updateFlyingPitch(newMultiplier);
-          }
           
           const crashChance = (newMultiplier - 1) * 0.012;
           if (Math.random() < crashChance || newMultiplier > 20) {
             setGamePhase('crashed');
             setShowExplosion(true);
-            if (soundEnabled) {
-              stopFlyingSound();
-              playCrashSound();
-            }
             setHistory(h => [parseFloat(newMultiplier.toFixed(2)), ...h.slice(0, 12)]);
             
             setTimeout(() => {
@@ -325,7 +204,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [gamePhase, soundEnabled, playTakeoffSound, startFlyingSound, updateFlyingPitch, stopFlyingSound, playCrashSound]);
+  }, [gamePhase]);
 
   // Canvas rendering with glow effects
   useEffect(() => {
@@ -397,8 +276,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     if (gamePhase !== 'waiting') return;
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     if (balance < amount) return;
-    
-    if (soundEnabled) playBetSound();
     setBalance(prev => prev - amount);
     if (betNum === 1) setBet1Active(true);
     else setBet2Active(true);
@@ -411,8 +288,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     const isCashedOut = betNum === 1 ? bet1CashedOut : bet2CashedOut;
     
     if (!isActive || isCashedOut) return;
-    
-    if (soundEnabled) playCashOutSound();
     const winnings = amount * multiplier;
     setBalance(prev => prev + winnings);
     
@@ -486,12 +361,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`p-2.5 rounded-xl transition-all ${soundEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'}`}
-          >
-            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-          </button>
           <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-all">
             <HelpCircle className="w-4 h-4" />
           </button>
