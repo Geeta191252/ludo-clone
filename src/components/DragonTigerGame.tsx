@@ -150,6 +150,9 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [dragonBets, setDragonBets] = useState<PlacedChip[]>([]);
   const [tigerBets, setTigerBets] = useState<PlacedChip[]>([]);
   const [tieBets, setTieBets] = useState<PlacedChip[]>([]);
+  const [botDragonBets, setBotDragonBets] = useState<PlacedChip[]>([]);
+  const [botTigerBets, setBotTigerBets] = useState<PlacedChip[]>([]);
+  const [botTieBets, setBotTieBets] = useState<PlacedChip[]>([]);
   const [dragonCard, setDragonCard] = useState<{ value: string; suit: string; numValue: number } | null>(null);
   const [tigerCard, setTigerCard] = useState<{ value: string; suit: string; numValue: number } | null>(null);
   const [winner, setWinner] = useState<'dragon' | 'tiger' | 'tie' | null>(null);
@@ -167,6 +170,38 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const dragonTotal = dragonBets.reduce((sum, chip) => sum + chip.value, 0);
   const tigerTotal = tigerBets.reduce((sum, chip) => sum + chip.value, 0);
   const tieTotal = tieBets.reduce((sum, chip) => sum + chip.value, 0);
+  
+  const botDragonTotal = botDragonBets.reduce((sum, chip) => sum + chip.value, 0);
+  const botTigerTotal = botTigerBets.reduce((sum, chip) => sum + chip.value, 0);
+  const botTieTotal = botTieBets.reduce((sum, chip) => sum + chip.value, 0);
+
+  // Generate random bot chip
+  const generateBotChip = (): PlacedChip => ({
+    id: Date.now() + Math.random(),
+    value: CHIP_VALUES[Math.floor(Math.random() * CHIP_VALUES.length)],
+    x: 5 + Math.random() * 90,
+    y: 15 + Math.random() * 70,
+  });
+
+  // Bot betting effect - bots place bets during betting phase
+  useEffect(() => {
+    if (gamePhase === 'betting' && timer > 0) {
+      const botInterval = setInterval(() => {
+        const random = Math.random();
+        if (random < 0.4) {
+          // 40% chance bot bets on dragon
+          setBotDragonBets(prev => [...prev, generateBotChip()]);
+        } else if (random < 0.8) {
+          // 40% chance bot bets on tiger
+          setBotTigerBets(prev => [...prev, generateBotChip()]);
+        } else {
+          // 20% chance bot bets on tie
+          setBotTieBets(prev => [...prev, generateBotChip()]);
+        }
+      }, 300 + Math.random() * 500);
+      return () => clearInterval(botInterval);
+    }
+  }, [gamePhase, timer]);
 
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
@@ -232,6 +267,9 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
             setDragonBets([]);
             setTigerBets([]);
             setTieBets([]);
+            setBotDragonBets([]);
+            setBotTigerBets([]);
+            setBotTieBets([]);
             setShowResult(false);
             setWinner(null);
             setTimer(15);
@@ -361,17 +399,26 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               {/* Bet amounts header */}
               <div className="absolute top-0 left-0 right-0 flex">
                 <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
-                  <span className="text-xs font-bold">{dragonTotal || 63986}</span>
+                  <span className="text-xs font-bold">{(dragonTotal + botDragonTotal) || 63986}</span>
                 </div>
                 <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
-                  <span className="text-xs font-bold text-yellow-400">0</span>
+                  <span className="text-xs font-bold text-yellow-400">{dragonTotal || 0}</span>
                 </div>
               </div>
               
-              {/* Chips */}
-              <div className="absolute inset-0 pt-8">
+              {/* Bot Chips */}
+              <div className="absolute inset-0 pt-8 pointer-events-none">
+                {botDragonBets.map((chip) => (
+                  <div key={chip.id} className="absolute opacity-90" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
+                    <ChipIcon value={chip.value} size="sm" />
+                  </div>
+                ))}
+              </div>
+              
+              {/* User Chips */}
+              <div className="absolute inset-0 pt-8 pointer-events-none">
                 {dragonBets.map((chip) => (
-                  <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
+                  <div key={chip.id} className="absolute z-10" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
                   </div>
                 ))}
@@ -390,15 +437,15 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               {/* Bet amounts header */}
               <div className="absolute top-0 left-0 right-0 flex">
                 <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
-                  <span className="text-xs font-bold">{tieTotal || 20286}</span>
+                  <span className="text-xs font-bold">{(tieTotal + botTieTotal) || 20286}</span>
                 </div>
                 <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
-                  <span className="text-xs font-bold text-yellow-400">0</span>
+                  <span className="text-xs font-bold text-yellow-400">{tieTotal || 0}</span>
                 </div>
               </div>
               
               {/* Timer in center */}
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20">
                 <div className={`px-4 py-1 rounded-full text-sm font-bold ${
                   gamePhase === 'betting' 
                     ? timer <= 5 ? 'bg-red-600 animate-pulse' : 'bg-green-600'
@@ -408,10 +455,19 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
                 </div>
               </div>
               
-              {/* Chips */}
-              <div className="absolute inset-0 pt-8">
+              {/* Bot Chips */}
+              <div className="absolute inset-0 pt-8 pointer-events-none">
+                {botTieBets.map((chip) => (
+                  <div key={chip.id} className="absolute opacity-90" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
+                    <ChipIcon value={chip.value} size="sm" />
+                  </div>
+                ))}
+              </div>
+              
+              {/* User Chips */}
+              <div className="absolute inset-0 pt-8 pointer-events-none">
                 {tieBets.map((chip) => (
-                  <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
+                  <div key={chip.id} className="absolute z-10" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
                   </div>
                 ))}
@@ -430,17 +486,26 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               {/* Bet amounts header */}
               <div className="absolute top-0 left-0 right-0 flex">
                 <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
-                  <span className="text-xs font-bold">{tigerTotal || 99494}</span>
+                  <span className="text-xs font-bold">{(tigerTotal + botTigerTotal) || 99494}</span>
                 </div>
                 <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
-                  <span className="text-xs font-bold text-yellow-400">0</span>
+                  <span className="text-xs font-bold text-yellow-400">{tigerTotal || 0}</span>
                 </div>
               </div>
               
-              {/* Chips */}
-              <div className="absolute inset-0 pt-8">
+              {/* Bot Chips */}
+              <div className="absolute inset-0 pt-8 pointer-events-none">
+                {botTigerBets.map((chip) => (
+                  <div key={chip.id} className="absolute opacity-90" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
+                    <ChipIcon value={chip.value} size="sm" />
+                  </div>
+                ))}
+              </div>
+              
+              {/* User Chips */}
+              <div className="absolute inset-0 pt-8 pointer-events-none">
                 {tigerBets.map((chip) => (
-                  <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
+                  <div key={chip.id} className="absolute z-10" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
                   </div>
                 ))}
