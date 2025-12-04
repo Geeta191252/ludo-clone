@@ -1,9 +1,133 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, HelpCircle, Minus, Plus, History } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronLeft, HelpCircle, Minus, Plus, History, Volume2, VolumeX } from 'lucide-react';
 
 interface AviatorGameProps {
   onClose: () => void;
 }
+
+// Sound effects using Web Audio API
+const useSound = () => {
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const flyingOscRef = useRef<OscillatorNode | null>(null);
+  const flyingGainRef = useRef<GainNode | null>(null);
+
+  const getAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return audioContextRef.current;
+  };
+
+  const playBetSound = useCallback(() => {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  }, []);
+
+  const playCashOutSound = useCallback(() => {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523, ctx.currentTime);
+    osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  }, []);
+
+  const playCrashSound = useCallback(() => {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const noise = ctx.createOscillator();
+    const noiseGain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(400, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    
+    noise.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.type = 'square';
+    noise.frequency.setValueAtTime(100, ctx.currentTime);
+    noiseGain.gain.setValueAtTime(0.2, ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+    noise.start(ctx.currentTime);
+    noise.stop(ctx.currentTime + 0.3);
+  }, []);
+
+  const startFlyingSound = useCallback(() => {
+    const ctx = getAudioContext();
+    if (flyingOscRef.current) return;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, ctx.currentTime);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    osc.start(ctx.currentTime);
+    
+    flyingOscRef.current = osc;
+    flyingGainRef.current = gain;
+  }, []);
+
+  const stopFlyingSound = useCallback(() => {
+    if (flyingOscRef.current && flyingGainRef.current) {
+      const ctx = getAudioContext();
+      flyingGainRef.current.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      flyingOscRef.current.stop(ctx.currentTime + 0.1);
+      flyingOscRef.current = null;
+      flyingGainRef.current = null;
+    }
+  }, []);
+
+  const updateFlyingPitch = useCallback((multiplier: number) => {
+    if (flyingOscRef.current) {
+      const ctx = getAudioContext();
+      const pitch = 80 + (multiplier - 1) * 20;
+      flyingOscRef.current.frequency.setValueAtTime(Math.min(pitch, 200), ctx.currentTime);
+    }
+  }, []);
+
+  const playTakeoffSound = useCallback(() => {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  }, []);
+
+  return { playBetSound, playCashOutSound, playCrashSound, startFlyingSound, stopFlyingSound, updateFlyingPitch, playTakeoffSound };
+};
 
 const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
   const [balance, setBalance] = useState(3000);
@@ -18,7 +142,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
   const [history, setHistory] = useState<number[]>([2.94, 2.60, 5.60, 9.49, 1.99, 1.32, 3.21, 1.12, 1.00, 1.35, 1.79, 1.01, 1.11]);
   const [planePosition, setPlanePosition] = useState({ x: 0, y: 100 });
   const [pathPoints, setPathPoints] = useState<{x: number, y: number}[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  const { playBetSound, playCashOutSound, playCrashSound, startFlyingSound, stopFlyingSound, updateFlyingPitch, playTakeoffSound } = useSound();
 
   // Game loop
   useEffect(() => {
@@ -31,6 +158,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
         setMultiplier(1.00);
         setPathPoints([]);
         setPlanePosition({ x: 0, y: 100 });
+        if (soundEnabled) {
+          playTakeoffSound();
+          startFlyingSound();
+        }
       }, 3000);
       return () => clearTimeout(timeout);
     }
@@ -40,10 +171,18 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
         setMultiplier(prev => {
           const newMultiplier = prev + (Math.random() * 0.05 + 0.01);
           
+          if (soundEnabled) {
+            updateFlyingPitch(newMultiplier);
+          }
+          
           // Random crash - higher multiplier = higher crash chance
           const crashChance = (newMultiplier - 1) * 0.02;
           if (Math.random() < crashChance || newMultiplier > 10) {
             setGamePhase('crashed');
+            if (soundEnabled) {
+              stopFlyingSound();
+              playCrashSound();
+            }
             // Add to history
             setHistory(h => [parseFloat(newMultiplier.toFixed(2)), ...h.slice(0, 12)]);
             
@@ -137,6 +276,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     if (balance < amount) return;
     
+    if (soundEnabled) playBetSound();
     setBalance(prev => prev - amount);
     if (betNum === 1) setBet1Active(true);
     else setBet2Active(true);
@@ -150,6 +290,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     
     if (!isActive || isCashedOut) return;
     
+    if (soundEnabled) playCashOutSound();
     const winnings = amount * multiplier;
     setBalance(prev => prev + winnings);
     
@@ -174,6 +315,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
           <div className="text-red-500 font-bold text-xl italic">Aviator</div>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="p-2 bg-[#2a2a3e] rounded-full"
+          >
+            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-gray-500" />}
+          </button>
           <button className="flex items-center gap-2 bg-[#2a2a3e] px-4 py-2 rounded-full">
             <HelpCircle className="w-4 h-4" />
             <span className="text-sm">How to play?</span>
