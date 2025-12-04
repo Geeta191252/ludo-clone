@@ -97,23 +97,12 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="flex items-center justify-between p-4">
-          <button onClick={onClose} className="text-foreground">
-            <X className="w-6 h-6" />
-          </button>
-          <h1 className="font-semibold text-lg">{gameName}</h1>
-          <div className="w-6" />
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-white">
       {/* Create Battle Section */}
-      <div className="p-4 bg-card">
+      <div className="p-4 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-center flex-1">CREATE A BATTLE!!</h2>
-          <button className="flex items-center gap-1 text-sm text-muted-foreground">
+          <h2 className="font-semibold text-center flex-1 text-gray-900">CREATE A BATTLE!!</h2>
+          <button className="flex items-center gap-1 text-sm text-gray-500">
             RULES <Info className="w-4 h-4" />
           </button>
         </div>
@@ -123,7 +112,7 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
             placeholder="Amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="flex-1 bg-background border-border"
+            className="flex-1 bg-white border-gray-300 text-gray-900"
           />
           <Button 
             onClick={handleCreateBattle}
@@ -135,24 +124,24 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
       </div>
 
       {/* Open Battles */}
-      <div className="p-4">
+      <div className="p-4 bg-white">
         <div className="flex items-center gap-2 mb-4">
-          <X className="w-5 h-5 text-destructive" />
-          <h3 className="font-semibold text-green-500">Open Battles</h3>
+          <X className="w-5 h-5 text-red-500" />
+          <h3 className="font-semibold text-green-600">Open Battles</h3>
         </div>
         
         <div className="space-y-3">
           {openBattles.map((battle) => (
-            <div key={battle.id} className="bg-card rounded-lg p-3">
+            <div key={battle.id} className="bg-gray-100 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">
-                  CHALLENGE FROM <span className="text-green-500 font-medium">{battle.creatorName}</span>
+                <span className="text-sm text-gray-700">
+                  CHALLENGE FROM <span className="text-green-600 font-medium">{battle.creatorName}</span>
                 </span>
                 {battle.creatorId !== "YOU" && (
                   <Button 
                     size="sm" 
                     onClick={() => handlePlayBattle(battle)}
-                    className="bg-secondary hover:bg-secondary/80 text-foreground"
+                    className="bg-gray-600 hover:bg-gray-700 text-white"
                   >
                     PLAY
                   </Button>
@@ -163,14 +152,14 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
                   <span className="text-pink-500 text-xs">ENTRY FEE</span>
                   <div className="flex items-center gap-1">
                     <RupeeIcon className="w-5 h-4" />
-                    <span className="text-muted-foreground">{battle.entryFee}</span>
+                    <span className="text-gray-600">{battle.entryFee}</span>
                   </div>
                 </div>
                 <div>
                   <span className="text-pink-500 text-xs">PRIZE</span>
                   <div className="flex items-center gap-1">
                     <RupeeIcon className="w-5 h-4" />
-                    <span className="text-muted-foreground">{battle.prize}</span>
+                    <span className="text-gray-600">{battle.prize}</span>
                   </div>
                 </div>
               </div>
@@ -180,35 +169,35 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
       </div>
 
       {/* Running Battles */}
-      <div className="p-4 pb-32">
+      <div className="p-4 pb-32 bg-white">
         <div className="flex items-center gap-2 mb-4">
-          <X className="w-5 h-5 text-destructive" />
-          <h3 className="font-semibold text-green-500">Running Battles</h3>
+          <X className="w-5 h-5 text-red-500" />
+          <h3 className="font-semibold text-green-600">Running Battles</h3>
         </div>
         
         <div className="space-y-3">
           {runningBattles.map((battle) => (
-            <div key={battle.id} className="bg-pink-100 dark:bg-pink-900/20 rounded-lg p-4">
+            <div key={battle.id} className="bg-pink-100 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3 text-sm">
                 <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">PLAYING FOR</span>
+                  <span className="text-gray-600">PLAYING FOR</span>
                   <RupeeIcon className="w-5 h-4" />
-                  <span className="font-medium">{battle.entryFee}</span>
+                  <span className="font-medium text-gray-800">{battle.entryFee}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">PRIZE</span>
+                  <span className="text-gray-600">PRIZE</span>
                   <RupeeIcon className="w-5 h-4" />
-                  <span className="font-medium">{battle.prize}</span>
+                  <span className="font-medium text-gray-800">{battle.prize}</span>
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
                 {/* Player 1 */}
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-pink-200 dark:bg-pink-800 flex items-center justify-center mb-1">
+                  <div className="w-12 h-12 rounded-full bg-pink-200 flex items-center justify-center mb-1">
                     <span className="text-2xl">👤</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{battle.player1.name}</span>
+                  <span className="text-xs text-gray-500">{battle.player1.name}</span>
                 </div>
                 
                 {/* VS */}
@@ -218,10 +207,10 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
                 
                 {/* Player 2 */}
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-pink-200 dark:bg-pink-800 flex items-center justify-center mb-1">
+                  <div className="w-12 h-12 rounded-full bg-pink-200 flex items-center justify-center mb-1">
                     <span className="text-2xl">👤</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{battle.player2.name}</span>
+                  <span className="text-xs text-gray-500">{battle.player2.name}</span>
                 </div>
               </div>
             </div>
