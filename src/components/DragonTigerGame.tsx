@@ -451,7 +451,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               {/* Bet amounts header */}
               <div className="absolute top-0 left-0 right-0 flex">
                 <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
-                  <span className="text-xs font-bold">{(dragonTotal + botDragonTotal) || 63986}</span>
+                  <span className="text-xs font-bold">{(dragonTotal + botDragonTotal) || 0}</span>
                 </div>
                 <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
                   <span className="text-xs font-bold text-yellow-400">{dragonTotal || 0}</span>
@@ -511,7 +511,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               {/* Bet amounts header */}
               <div className="absolute top-0 left-0 right-0 flex">
                 <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
-                  <span className="text-xs font-bold">{(tieTotal + botTieTotal) || 20286}</span>
+                  <span className="text-xs font-bold">{(tieTotal + botTieTotal) || 0}</span>
                 </div>
                 <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
                   <span className="text-xs font-bold text-yellow-400">{tieTotal || 0}</span>
@@ -582,7 +582,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               {/* Bet amounts header */}
               <div className="absolute top-0 left-0 right-0 flex">
                 <div className="flex-1 bg-black/70 text-center py-1 rounded-tl-lg">
-                  <span className="text-xs font-bold">{(tigerTotal + botTigerTotal) || 99494}</span>
+                  <span className="text-xs font-bold">{(tigerTotal + botTigerTotal) || 0}</span>
                 </div>
                 <div className="w-10 bg-black/50 text-center py-1 rounded-tr-lg">
                   <span className="text-xs font-bold text-yellow-400">{tigerTotal || 0}</span>
