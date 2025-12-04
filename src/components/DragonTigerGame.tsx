@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, TrendingUp, Plus } from 'lucide-react';
+import dragonBettingImg from '@/assets/dragon-betting.jpg';
+import tigerBettingImg from '@/assets/tiger-betting.jpg';
+import tieBettingImg from '@/assets/tie-betting.jpg';
 
 interface DragonTigerGameProps {
   onClose: () => void;
@@ -320,12 +323,13 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               className={`relative rounded-xl overflow-hidden cursor-pointer transition-all ${
                 gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'
               } ${winner === 'dragon' && showResult ? 'ring-4 ring-yellow-400' : ''}`}
-              style={{ background: 'linear-gradient(180deg, #5a6a9a 0%, #4a5a8a 50%, #3a4a7a 100%)' }}
             >
-              <div className="absolute top-2 left-2 right-2 flex justify-between">
-                <span className="bg-black/60 px-2 py-0.5 rounded text-xs font-bold">{dragonTotal || 34074}</span>
-                <span className="bg-black/60 px-2 py-0.5 rounded text-xs font-bold">0</span>
-              </div>
+              <img 
+                src={dragonBettingImg} 
+                alt="Dragon" 
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/20"></div>
               
               <div className="absolute inset-0 pt-8">
                 {dragonBets.map((chip) => (
@@ -342,12 +346,13 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               className={`relative rounded-xl overflow-hidden cursor-pointer transition-all ${
                 gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'
               } ${winner === 'tie' && showResult ? 'ring-4 ring-yellow-400' : ''}`}
-              style={{ background: 'linear-gradient(180deg, #3a8a4a 0%, #2a7a3a 50%, #1a6a2a 100%)' }}
             >
-              <div className="absolute top-2 left-2 right-2 flex justify-between">
-                <span className="bg-black/60 px-2 py-0.5 rounded text-xs font-bold">{tieTotal || 11533}</span>
-                <span className="bg-black/60 px-2 py-0.5 rounded text-xs font-bold">0</span>
-              </div>
+              <img 
+                src={tieBettingImg} 
+                alt="Tie" 
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/20"></div>
               
               <div className="absolute inset-0 pt-8">
                 {tieBets.map((chip) => (
@@ -364,12 +369,13 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               className={`relative rounded-xl overflow-hidden cursor-pointer transition-all ${
                 gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'
               } ${winner === 'tiger' && showResult ? 'ring-4 ring-yellow-400' : ''}`}
-              style={{ background: 'linear-gradient(180deg, #9a6a4a 0%, #8a5a3a 50%, #7a4a2a 100%)' }}
             >
-              <div className="absolute top-2 left-2 right-2 flex justify-between">
-                <span className="bg-black/60 px-2 py-0.5 rounded text-xs font-bold">{tigerTotal || 54738}</span>
-                <span className="bg-black/60 px-2 py-0.5 rounded text-xs font-bold">0</span>
-              </div>
+              <img 
+                src={tigerBettingImg} 
+                alt="Tiger" 
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/20"></div>
               
               <div className="absolute inset-0 pt-8">
                 {tigerBets.map((chip) => (
