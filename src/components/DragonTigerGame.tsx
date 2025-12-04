@@ -316,7 +316,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
           </div>
 
           {/* Three Betting Areas */}
-          <div className="grid grid-cols-3 gap-2 h-56">
+          <div className="grid grid-cols-3 gap-2 h-40">
             {/* Dragon Bet Area */}
             <div 
               onClick={() => placeBet('dragon')}
@@ -327,7 +327,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <img 
                 src={dragonBettingImg} 
                 alt="Dragon" 
-                className="absolute inset-0 w-full h-full object-contain"
+                className="absolute inset-0 w-full h-full object-cover"
               />
               
               <div className="absolute inset-0 pt-10">
@@ -349,7 +349,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <img 
                 src={tieBettingImg} 
                 alt="Tie" 
-                className="absolute inset-0 w-full h-full object-contain"
+                className="absolute inset-0 w-full h-full object-cover"
               />
               
               <div className="absolute inset-0 pt-10">
@@ -371,7 +371,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <img 
                 src={tigerBettingImg} 
                 alt="Tiger" 
-                className="absolute inset-0 w-full h-full object-contain"
+                className="absolute inset-0 w-full h-full object-cover"
               />
               
               <div className="absolute inset-0 pt-10">
