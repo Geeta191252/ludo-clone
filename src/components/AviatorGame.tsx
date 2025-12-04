@@ -211,7 +211,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
       </div>
 
       {/* Game Area */}
-      <div className="relative flex-1 mx-3 rounded-xl overflow-hidden" style={{ minHeight: '300px' }}>
+      <div className="relative flex-1 mx-3 rounded-xl overflow-hidden" style={{ minHeight: '200px', maxHeight: '250px' }}>
         {/* Sunburst Background */}
         <div className="absolute inset-0 bg-[#1a1a1a]">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -320,7 +320,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
       </div>
 
       {/* Betting Panels */}
-      <div className="p-3 space-y-3">
+      <div className="p-2 space-y-2">
         {[1, 2].map((panelNum) => {
           const betAmount = panelNum === 1 ? betAmount1 : betAmount2;
           const setBetAmount = panelNum === 1 ? setBetAmount1 : setBetAmount2;
@@ -328,36 +328,36 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
           const betCashedOut = panelNum === 1 ? bet1CashedOut : bet2CashedOut;
 
           return (
-            <div key={panelNum} className="bg-[#252525] rounded-2xl p-4">
-              <div className="flex gap-3">
+            <div key={panelNum} className="bg-[#252525] rounded-xl p-2">
+              <div className="flex gap-2">
                 {/* Bet Amount Section */}
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-1.5">
                   {/* Amount with +/- */}
-                  <div className="flex items-center bg-[#1a1a1a] rounded-full px-4 py-2">
-                    <span className="text-xl font-bold flex-1">{betAmount.toFixed(2)}</span>
-                    <div className="flex gap-2">
+                  <div className="flex items-center bg-[#1a1a1a] rounded-full px-3 py-1.5">
+                    <span className="text-base font-bold flex-1">{betAmount.toFixed(2)}</span>
+                    <div className="flex gap-1">
                       <button 
                         onClick={() => setBetAmount(Math.max(10, betAmount - 10))}
-                        className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center"
+                        className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center"
                       >
-                        <Minus className="w-4 h-4" />
+                        <Minus className="w-3 h-3" />
                       </button>
                       <button 
                         onClick={() => setBetAmount(betAmount + 10)}
-                        className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center"
+                        className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
                   
                   {/* Preset amounts */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-1">
                     {[100, 200, 500, 1000].map(amount => (
                       <button 
                         key={amount}
                         onClick={() => setBetAmount(amount)}
-                        className="py-2 rounded-full bg-[#1a1a1a] border border-gray-700 text-gray-400 font-medium text-sm"
+                        className="py-1 rounded-full bg-[#1a1a1a] border border-gray-700 text-gray-400 font-medium text-xs"
                       >
                         {amount}₹
                       </button>
@@ -374,7 +374,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
                       placeBet(panelNum as 1 | 2);
                     }
                   }}
-                  className={`w-36 rounded-2xl font-bold text-xl transition-all ${
+                  className={`w-24 rounded-xl font-bold text-base transition-all ${
                     betActive && gamePhase === 'flying' && !betCashedOut
                       ? 'bg-orange-500 text-white'
                       : betCashedOut
