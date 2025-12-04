@@ -181,6 +181,9 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const botDragonTotal = botDragonBets.reduce((sum, chip) => sum + chip.value, 0);
   const botTigerTotal = botTigerBets.reduce((sum, chip) => sum + chip.value, 0);
   const botTieTotal = botTieBets.reduce((sum, chip) => sum + chip.value, 0);
+  
+  // Check if user has placed any bet
+  const userHasBet = dragonBets.length > 0 || tigerBets.length > 0 || tieBets.length > 0;
 
   // Generate random bot chip with player name
   const generateBotChip = (): PlacedChip => ({
@@ -191,9 +194,9 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     playerName: PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)],
   });
 
-  // Bot betting effect - bots place bets during betting phase
+  // Bot betting effect - bots place bets only AFTER user places first bet
   useEffect(() => {
-    if (gamePhase === 'betting' && timer > 0) {
+    if (gamePhase === 'betting' && timer > 0 && userHasBet) {
       const botInterval = setInterval(() => {
         const random = Math.random();
         if (random < 0.4) {
@@ -209,7 +212,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       }, 300 + Math.random() * 500);
       return () => clearInterval(botInterval);
     }
-  }, [gamePhase, timer]);
+  }, [gamePhase, timer, userHasBet]);
 
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
