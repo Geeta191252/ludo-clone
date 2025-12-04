@@ -1,10 +1,12 @@
 import { useState } from "react";
+import CommissionBanner from "@/components/CommissionBanner";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import Marquee from "@/components/Marquee";
+import NoticeBox from "@/components/NoticeBox";
 import InstantWithdrawal from "@/components/InstantWithdrawal";
 import GamesSection from "@/components/GamesSection";
-import Footer from "@/components/Footer";
+import BottomNav from "@/components/BottomNav";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,20 +16,18 @@ const Index = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="max-w-md mx-auto">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <CommissionBanner />
+        <Header onMenuClick={() => setSidebarOpen(true)} walletBalance={100} />
         
         <main>
-          <div className="px-4">
-            <Marquee />
-          </div>
-          
+          <NoticeBox />
           <InstantWithdrawal />
-          
           <GamesSection />
         </main>
-        
-        <Footer />
       </div>
+      
+      <WhatsAppButton />
+      <BottomNav />
     </div>
   );
 };
