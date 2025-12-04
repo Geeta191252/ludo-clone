@@ -18,7 +18,14 @@ interface PlacedChip {
   value: number;
   x: number;
   y: number;
+  playerName?: string;
 }
+
+const PLAYER_NAMES = [
+  'Rahul', 'Priya', 'Amit', 'Neha', 'Vijay', 'Pooja', 'Raj', 'Simran',
+  'Arjun', 'Anita', 'Deepak', 'Kavita', 'Suresh', 'Meena', 'Rohit', 'Sunita',
+  'Lucky7', 'Winner99', 'GoldKing', 'RichBoy', 'ProPlayer', 'BetMaster'
+];
 
 const CARD_VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const CARD_SUITS = ['♠', '♥', '♦', '♣'];
@@ -175,12 +182,13 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const botTigerTotal = botTigerBets.reduce((sum, chip) => sum + chip.value, 0);
   const botTieTotal = botTieBets.reduce((sum, chip) => sum + chip.value, 0);
 
-  // Generate random bot chip
+  // Generate random bot chip with player name
   const generateBotChip = (): PlacedChip => ({
     id: Date.now() + Math.random(),
     value: CHIP_VALUES[Math.floor(Math.random() * CHIP_VALUES.length)],
-    x: 5 + Math.random() * 90,
-    y: 15 + Math.random() * 70,
+    x: 10 + Math.random() * 80,
+    y: 25 + Math.random() * 55,
+    playerName: PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)],
   });
 
   // Bot betting effect - bots place bets during betting phase
@@ -450,11 +458,26 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
                 </div>
               </div>
               
-              {/* Bot Chips */}
+              {/* Bot Chips with player names */}
               <div className="absolute inset-0 pt-8 pointer-events-none">
-                {botDragonBets.map((chip) => (
-                  <div key={chip.id} className="absolute opacity-90" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
-                    <ChipIcon value={chip.value} size="sm" />
+                {botDragonBets.slice(-8).map((chip, idx) => (
+                  <div 
+                    key={chip.id} 
+                    className="absolute animate-pulse" 
+                    style={{ 
+                      left: `${chip.x}%`, 
+                      top: `${chip.y}%`,
+                      animationDelay: `${idx * 0.1}s`
+                    }}
+                  >
+                    <div className="relative">
+                      <ChipIcon value={chip.value} size="sm" />
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="text-[8px] bg-black/80 px-1 rounded text-cyan-400 font-bold">
+                          {chip.playerName}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -463,7 +486,14 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <div className="absolute inset-0 pt-8 pointer-events-none">
                 {dragonBets.map((chip) => (
                   <div key={chip.id} className="absolute z-10" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
-                    <ChipIcon value={chip.value} size="sm" />
+                    <div className="relative">
+                      <ChipIcon value={chip.value} size="sm" />
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="text-[8px] bg-yellow-500/90 px-1 rounded text-black font-bold">
+                          You
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -499,11 +529,26 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
                 </div>
               </div>
               
-              {/* Bot Chips */}
+              {/* Bot Chips with player names */}
               <div className="absolute inset-0 pt-8 pointer-events-none">
-                {botTieBets.map((chip) => (
-                  <div key={chip.id} className="absolute opacity-90" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
-                    <ChipIcon value={chip.value} size="sm" />
+                {botTieBets.slice(-6).map((chip, idx) => (
+                  <div 
+                    key={chip.id} 
+                    className="absolute animate-pulse" 
+                    style={{ 
+                      left: `${chip.x}%`, 
+                      top: `${chip.y}%`,
+                      animationDelay: `${idx * 0.1}s`
+                    }}
+                  >
+                    <div className="relative">
+                      <ChipIcon value={chip.value} size="sm" />
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="text-[8px] bg-black/80 px-1 rounded text-cyan-400 font-bold">
+                          {chip.playerName}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -512,7 +557,14 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <div className="absolute inset-0 pt-8 pointer-events-none">
                 {tieBets.map((chip) => (
                   <div key={chip.id} className="absolute z-10" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
-                    <ChipIcon value={chip.value} size="sm" />
+                    <div className="relative">
+                      <ChipIcon value={chip.value} size="sm" />
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="text-[8px] bg-yellow-500/90 px-1 rounded text-black font-bold">
+                          You
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -537,11 +589,26 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
                 </div>
               </div>
               
-              {/* Bot Chips */}
+              {/* Bot Chips with player names */}
               <div className="absolute inset-0 pt-8 pointer-events-none">
-                {botTigerBets.map((chip) => (
-                  <div key={chip.id} className="absolute opacity-90" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
-                    <ChipIcon value={chip.value} size="sm" />
+                {botTigerBets.slice(-8).map((chip, idx) => (
+                  <div 
+                    key={chip.id} 
+                    className="absolute animate-pulse" 
+                    style={{ 
+                      left: `${chip.x}%`, 
+                      top: `${chip.y}%`,
+                      animationDelay: `${idx * 0.1}s`
+                    }}
+                  >
+                    <div className="relative">
+                      <ChipIcon value={chip.value} size="sm" />
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="text-[8px] bg-black/80 px-1 rounded text-cyan-400 font-bold">
+                          {chip.playerName}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -550,7 +617,14 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <div className="absolute inset-0 pt-8 pointer-events-none">
                 {tigerBets.map((chip) => (
                   <div key={chip.id} className="absolute z-10" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
-                    <ChipIcon value={chip.value} size="sm" />
+                    <div className="relative">
+                      <ChipIcon value={chip.value} size="sm" />
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="text-[8px] bg-yellow-500/90 px-1 rounded text-black font-bold">
+                          You
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
