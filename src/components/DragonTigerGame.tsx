@@ -235,20 +235,64 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     setShowResult(false);
     setWinner(null);
 
+    // Calculate total bets for each area (user + bot)
+    const totalDragonBets = dragonTotal + botDragonTotal;
+    const totalTigerBets = tigerTotal + botTigerTotal;
+    const totalTieBets = tieTotal + botTieTotal;
+
+    // Determine winner - area with LEAST bets wins
+    let gameWinner: 'dragon' | 'tiger' | 'tie';
+    
+    if (totalTieBets <= totalDragonBets && totalTieBets <= totalTigerBets) {
+      gameWinner = 'tie';
+    } else if (totalDragonBets <= totalTigerBets) {
+      gameWinner = 'dragon';
+    } else {
+      gameWinner = 'tiger';
+    }
+
+    // Generate cards that match the winner
+    const generateMatchingCards = () => {
+      let dragonCardValue: number;
+      let tigerCardValue: number;
+      
+      if (gameWinner === 'dragon') {
+        // Dragon wins - dragon card should be higher
+        dragonCardValue = 7 + Math.floor(Math.random() * 6); // 7-12 (8 to K)
+        tigerCardValue = Math.floor(Math.random() * dragonCardValue); // 0 to dragonCard-1
+      } else if (gameWinner === 'tiger') {
+        // Tiger wins - tiger card should be higher
+        tigerCardValue = 7 + Math.floor(Math.random() * 6); // 7-12 (8 to K)
+        dragonCardValue = Math.floor(Math.random() * tigerCardValue); // 0 to tigerCard-1
+      } else {
+        // Tie - same value
+        dragonCardValue = Math.floor(Math.random() * 13);
+        tigerCardValue = dragonCardValue;
+      }
+      
+      return {
+        dragon: {
+          value: CARD_VALUES[dragonCardValue],
+          suit: CARD_SUITS[Math.floor(Math.random() * 4)],
+          numValue: dragonCardValue + 1
+        },
+        tiger: {
+          value: CARD_VALUES[tigerCardValue],
+          suit: CARD_SUITS[Math.floor(Math.random() * 4)],
+          numValue: tigerCardValue + 1
+        }
+      };
+    };
+
+    const cards = generateMatchingCards();
+
     setTimeout(() => {
-      const dragon = getRandomCard();
-      setDragonCard(dragon);
+      setDragonCard(cards.dragon);
 
       setTimeout(() => {
-        const tiger = getRandomCard();
-        setTigerCard(tiger);
+        setTigerCard(cards.tiger);
 
         setTimeout(() => {
-          let gameWinner: 'dragon' | 'tiger' | 'tie';
-          if (dragon.numValue > tiger.numValue) gameWinner = 'dragon';
-          else if (tiger.numValue > dragon.numValue) gameWinner = 'tiger';
-          else gameWinner = 'tie';
-
           setWinner(gameWinner);
           setShowResult(true);
           setGamePhase('result');
