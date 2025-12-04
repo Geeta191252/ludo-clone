@@ -153,6 +153,12 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
       {/* Create Battle Section */}
       <div className="p-4 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
+          <button 
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6 text-gray-600" />
+          </button>
           <h2 className="font-semibold text-center flex-1 text-gray-900">CREATE A BATTLE!!</h2>
           <button className="flex items-center gap-1 text-sm text-gray-500">
             RULES <Info className="w-4 h-4" />
