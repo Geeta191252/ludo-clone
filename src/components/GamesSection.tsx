@@ -5,39 +5,11 @@ const GamesSection = () => {
     <section className="px-4 pb-28">
       <h2 className="section-title">Our Games</h2>
       <div className="grid grid-cols-2 gap-4">
-        <GameCard
-          title="LUDO"
-          subtitle="CLASSIC"
-          isLive={true}
-          gameType="ludo-classic"
-        />
-        <GameCard
-          title="LUDO"
-          subtitle="POPULAR"
-          isLive={true}
-          gameType="ludo-popular"
-        />
-        <GameCard
-          title="SNAKE"
-          subtitle="& LADDERS"
-          isLive={true}
-          gameType="snake"
-        />
-        <GameCard
-          title="DRAGON"
-          subtitle="TIGER"
-          isLive={true}
-          gameType="dragon-tiger"
-        />
-      </div>
-      
-      {/* Aviator - Full Width */}
-      <div className="mt-4">
-        <GameCard
-          title="AVIATOR"
-          isLive={true}
-          gameType="aviator"
-        />
+        <GameCard gameType="ludo-classic" isLive={true} />
+        <GameCard gameType="ludo-popular" isLive={true} />
+        <GameCard gameType="snake" isLive={true} />
+        <GameCard gameType="dragon-tiger" isLive={true} />
+        <GameCard gameType="aviator" isLive={true} />
       </div>
       
       {/* Footer Links */}
