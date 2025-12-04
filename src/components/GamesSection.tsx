@@ -4,8 +4,16 @@ import BattleArena from "./BattleArena";
 
 type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
 
-const GamesSection = () => {
-  const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
+interface GamesSectionProps {
+  onGameSelect?: (game: GameType | null) => void;
+  selectedGame?: GameType | null;
+}
+
+const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: GamesSectionProps) => {
+  const [internalSelectedGame, setInternalSelectedGame] = useState<GameType | null>(null);
+  
+  const selectedGame = externalSelectedGame !== undefined ? externalSelectedGame : internalSelectedGame;
+  const setSelectedGame = onGameSelect || setInternalSelectedGame;
 
   if (selectedGame) {
     return (
