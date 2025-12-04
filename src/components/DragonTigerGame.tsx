@@ -194,25 +194,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     playerName: PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)],
   });
 
-  // Bot betting effect - bots place bets only AFTER user places first bet
-  useEffect(() => {
-    if (gamePhase === 'betting' && timer > 0 && userHasBet) {
-      const botInterval = setInterval(() => {
-        const random = Math.random();
-        if (random < 0.4) {
-          // 40% chance bot bets on dragon
-          setBotDragonBets(prev => [...prev, generateBotChip()]);
-        } else if (random < 0.8) {
-          // 40% chance bot bets on tiger
-          setBotTigerBets(prev => [...prev, generateBotChip()]);
-        } else {
-          // 20% chance bot bets on tie
-          setBotTieBets(prev => [...prev, generateBotChip()]);
-        }
-      }, 300 + Math.random() * 500);
-      return () => clearInterval(botInterval);
-    }
-  }, [gamePhase, timer, userHasBet]);
+  // Bot betting disabled - only real user bets will show
 
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
