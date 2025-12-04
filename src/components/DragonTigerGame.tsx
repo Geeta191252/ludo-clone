@@ -628,20 +628,6 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
           </div>
         </div>
       </div>
-
-      {/* Side Players - Left */}
-      <div className="fixed left-1 top-1/3 z-10 space-y-3">
-        <VIPPlayer vip={8} name="Player..." position="left" />
-        <VIPPlayer vip={8} name="Coba4c..." position="left" />
-        <VIPPlayer vip={5} name="Niknak..." position="left" />
-      </div>
-
-      {/* Side Players - Right */}
-      <div className="fixed right-1 top-1/3 z-10 space-y-3">
-        <VIPPlayer vip={6} name="Player..." position="right" chip={5000} />
-        <VIPPlayer vip={4} name="Player..." position="right" />
-        <VIPPlayer vip={6} name="ImCale..." position="right" />
-      </div>
     </div>
   );
 };
