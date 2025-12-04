@@ -1,16 +1,51 @@
-import GameCard from "./GameCard";
+import { useState } from "react";
+import GameCard, { gameNames } from "./GameCard";
+import BattleArena from "./BattleArena";
+
+type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
 
 const GamesSection = () => {
+  const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
+
+  if (selectedGame) {
+    return (
+      <BattleArena 
+        gameName={gameNames[selectedGame]} 
+        onClose={() => setSelectedGame(null)} 
+      />
+    );
+  }
+
   return (
     <section className="pb-28">
       <div className="px-4">
         <h2 className="section-title">Our Games</h2>
         <div className="grid grid-cols-2 gap-4">
-          <GameCard gameType="ludo-classic" isLive={true} />
-          <GameCard gameType="ludo-popular" isLive={true} />
-          <GameCard gameType="snake" isLive={true} />
-          <GameCard gameType="dragon-tiger" isLive={true} />
-          <GameCard gameType="aviator" isLive={true} />
+          <GameCard 
+            gameType="ludo-classic" 
+            isLive={true} 
+            onClick={() => setSelectedGame('ludo-classic')}
+          />
+          <GameCard 
+            gameType="ludo-popular" 
+            isLive={true}
+            onClick={() => setSelectedGame('ludo-popular')}
+          />
+          <GameCard 
+            gameType="snake" 
+            isLive={true}
+            onClick={() => setSelectedGame('snake')}
+          />
+          <GameCard 
+            gameType="dragon-tiger" 
+            isLive={true}
+            onClick={() => setSelectedGame('dragon-tiger')}
+          />
+          <GameCard 
+            gameType="aviator" 
+            isLive={true}
+            onClick={() => setSelectedGame('aviator')}
+          />
         </div>
       </div>
       

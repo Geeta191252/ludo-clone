@@ -18,6 +18,14 @@ const gameImages = {
   'aviator': aviator,
 };
 
+const gameNames = {
+  'ludo-classic': 'Ludo Classic',
+  'ludo-popular': 'Ludo Popular',
+  'snake': 'Snake & Ladders',
+  'dragon-tiger': 'Dragon Tiger',
+  'aviator': 'Aviator',
+};
+
 const GameCard = ({ gameType, isLive = true, onClick }: GameCardProps) => {
   const isAviator = gameType === 'aviator';
   
@@ -33,7 +41,7 @@ const GameCard = ({ gameType, isLive = true, onClick }: GameCardProps) => {
       )}
       <img 
         src={gameImages[gameType]} 
-        alt={gameType}
+        alt={gameNames[gameType]}
         className="w-full h-full object-cover"
         style={{ minHeight: isAviator ? '180px' : '160px' }}
       />
@@ -41,4 +49,5 @@ const GameCard = ({ gameType, isLive = true, onClick }: GameCardProps) => {
   );
 };
 
+export { gameNames };
 export default GameCard;
