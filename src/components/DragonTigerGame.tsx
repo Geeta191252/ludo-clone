@@ -40,7 +40,7 @@ const getRandomCard = () => {
   return { value, suit, numValue: getCardNumValue(value) };
 };
 
-const CHIP_VALUES = [1, 10, 100, 1000, 5000];
+const CHIP_VALUES = [1, 10, 20, 50, 100, 500];
 
 const ChipIcon: React.FC<{ value: number; size?: 'sm' | 'md' | 'lg'; onClick?: () => void; selected?: boolean }> = ({ 
   value, size = 'md', onClick, selected 
@@ -49,9 +49,10 @@ const ChipIcon: React.FC<{ value: number; size?: 'sm' | 'md' | 'lg'; onClick?: (
     switch(value) {
       case 1: return { outer: '#6b7280', inner: '#4b5563', text: '#fff', ring: '#888' };
       case 10: return { outer: '#22c55e', inner: '#16a34a', text: '#fff', ring: '#4ade80' };
+      case 20: return { outer: '#3b82f6', inner: '#2563eb', text: '#fff', ring: '#60a5fa' };
+      case 50: return { outer: '#ec4899', inner: '#db2777', text: '#fff', ring: '#f472b6' };
       case 100: return { outer: '#eab308', inner: '#ca8a04', text: '#000', ring: '#fde047' };
-      case 1000: return { outer: '#a855f7', inner: '#9333ea', text: '#fff', ring: '#c084fc' };
-      case 5000: return { outer: '#f97316', inner: '#ea580c', text: '#fff', ring: '#fb923c' };
+      case 500: return { outer: '#f97316', inner: '#ea580c', text: '#fff', ring: '#fb923c' };
       default: return { outer: '#6b7280', inner: '#4b5563', text: '#fff', ring: '#888' };
     }
   };
