@@ -1,6 +1,7 @@
 import { useState } from "react";
 import GameCard, { gameNames } from "./GameCard";
 import BattleArena from "./BattleArena";
+import DragonTigerGame from "./DragonTigerGame";
 
 type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
 
@@ -15,7 +16,13 @@ const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: Game
   const selectedGame = externalSelectedGame !== undefined ? externalSelectedGame : internalSelectedGame;
   const setSelectedGame = onGameSelect || setInternalSelectedGame;
 
-  if (selectedGame) {
+  // Show Dragon Tiger game
+  if (selectedGame === 'dragon-tiger') {
+    return <DragonTigerGame onClose={() => setSelectedGame(null)} />;
+  }
+
+  // Show Battle Arena for other games (excluding aviator for now)
+  if (selectedGame && selectedGame !== 'aviator') {
     return (
       <BattleArena 
         gameName={gameNames[selectedGame]} 
@@ -47,6 +54,7 @@ const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: Game
           <GameCard 
             gameType="dragon-tiger" 
             isLive={true}
+            onClick={() => setSelectedGame('dragon-tiger')}
           />
           <GameCard 
             gameType="aviator" 
