@@ -316,7 +316,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
           </div>
 
           {/* Three Betting Areas */}
-          <div className="grid grid-cols-3 gap-2 h-44">
+          <div className="grid grid-cols-3 gap-2 h-56">
             {/* Dragon Bet Area */}
             <div 
               onClick={() => placeBet('dragon')}
@@ -327,11 +327,10 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <img 
                 src={dragonBettingImg} 
                 alt="Dragon" 
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain"
               />
-              <div className="absolute inset-0 bg-black/20"></div>
               
-              <div className="absolute inset-0 pt-8">
+              <div className="absolute inset-0 pt-10">
                 {dragonBets.map((chip) => (
                   <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
@@ -350,11 +349,10 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <img 
                 src={tieBettingImg} 
                 alt="Tie" 
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain"
               />
-              <div className="absolute inset-0 bg-black/20"></div>
               
-              <div className="absolute inset-0 pt-8">
+              <div className="absolute inset-0 pt-10">
                 {tieBets.map((chip) => (
                   <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
@@ -373,11 +371,10 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <img 
                 src={tigerBettingImg} 
                 alt="Tiger" 
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain"
               />
-              <div className="absolute inset-0 bg-black/20"></div>
               
-              <div className="absolute inset-0 pt-8">
+              <div className="absolute inset-0 pt-10">
                 {tigerBets.map((chip) => (
                   <div key={chip.id} className="absolute" style={{ left: `${chip.x}%`, top: `${chip.y}%` }}>
                     <ChipIcon value={chip.value} size="sm" />
