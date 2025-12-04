@@ -229,34 +229,31 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     setShowResult(false);
     setWinner(null);
 
-    // 50% user wins, 50% house wins logic
+    // Winner logic: Area with LEAST bets wins (house edge)
+    // This ensures user wins less - if they bet more on one side, other side wins
     let gameWinner: 'dragon' | 'tiger' | 'tie';
     
-    // Find where user has placed bets
-    const userBetAreas: ('dragon' | 'tiger' | 'tie')[] = [];
-    if (dragonTotal > 0) userBetAreas.push('dragon');
-    if (tigerTotal > 0) userBetAreas.push('tiger');
-    if (tieTotal > 0) userBetAreas.push('tie');
-    
-    // Areas where user didn't bet
-    const allAreas: ('dragon' | 'tiger' | 'tie')[] = ['dragon', 'tiger', 'tie'];
-    const noUserBetAreas = allAreas.filter(area => !userBetAreas.includes(area));
-    
-    // 50% chance user wins, 50% house wins
-    const userWins = Math.random() < 0.5;
-    
-    if (userBetAreas.length === 0) {
-      // No bets placed - random winner
+    // If no bets at all, random winner
+    if (dragonTotal === 0 && tigerTotal === 0 && tieTotal === 0) {
+      const allAreas: ('dragon' | 'tiger' | 'tie')[] = ['dragon', 'tiger', 'tie'];
       gameWinner = allAreas[Math.floor(Math.random() * 3)];
-    } else if (userWins && userBetAreas.length > 0) {
-      // User wins - pick from areas where user bet
-      gameWinner = userBetAreas[Math.floor(Math.random() * userBetAreas.length)];
-    } else if (noUserBetAreas.length > 0) {
-      // House wins - pick from areas where user didn't bet
-      gameWinner = noUserBetAreas[Math.floor(Math.random() * noUserBetAreas.length)];
     } else {
-      // User bet on all areas - random (rare case)
-      gameWinner = allAreas[Math.floor(Math.random() * 3)];
+      // Find area with least user bets - that area wins
+      // This gives house ~50% edge as user typically bets on one side
+      const bets = [
+        { area: 'dragon' as const, amount: dragonTotal },
+        { area: 'tiger' as const, amount: tigerTotal },
+        { area: 'tie' as const, amount: tieTotal }
+      ];
+      
+      // Sort by amount ascending (least first)
+      bets.sort((a, b) => a.amount - b.amount);
+      
+      // Winner is the area with least bets
+      // If tie in amounts, randomly pick among the lowest
+      const lowestAmount = bets[0].amount;
+      const lowestBets = bets.filter(b => b.amount === lowestAmount);
+      gameWinner = lowestBets[Math.floor(Math.random() * lowestBets.length)].area;
     }
 
     // Generate cards that match the winner
