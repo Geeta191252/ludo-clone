@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Info, X, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Info, X, Zap, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -30,9 +30,20 @@ const RupeeIcon = ({ className = "w-5 h-4" }: { className?: string }) => (
   <img src={rupeeIcon} alt="₹" className={className} />
 );
 
+// Random name generator
+const generateRandomName = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [openBattles, setOpenBattles] = useState<OpenBattle[]>([
     { id: "1", creatorId: "2FD2O376", creatorName: "2FD2O376", entryFee: 100, prize: 197 },
     { id: "2", creatorId: "U8TPK996", creatorName: "U8TPK996", entryFee: 2300, prize: 4531 },
@@ -45,9 +56,51 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
     { id: "r1", player1: { id: "HJALD17N", name: "HJALD17N" }, player2: { id: "AKYEFUV9", name: "AKYEFUV9" }, entryFee: 500, prize: 985 },
     { id: "r2", player1: { id: "70N7K5Q0", name: "70N7K5Q0" }, player2: { id: "634IR8ZU", name: "634IR8ZU" }, entryFee: 250, prize: 492 },
     { id: "r3", player1: { id: "S10XRUBJ", name: "S10XRUBJ" }, player2: { id: "TRTXBKFF", name: "TRTXBKFF" }, entryFee: 100, prize: 197 },
-    { id: "r4", player1: { id: "ET7S7AZF", name: "ET7S7AZF" }, player2: { id: "MWEUDQR9", name: "MWEUDQR9" }, entryFee: 600, prize: 1184 },
-    { id: "r5", player1: { id: "GJAXZMF4", name: "GJAXZMF4" }, player2: { id: "V0C57L21", name: "V0C57L21" }, entryFee: 150, prize: 291 },
   ]);
+
+  // Auto-refresh every 5 seconds to simulate real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsRefreshing(true);
+      
+      // Simulate new battles being added
+      setTimeout(() => {
+        // Randomly add a new open battle
+        if (Math.random() > 0.5 && openBattles.length < 10) {
+          const amounts = [50, 100, 150, 200, 250, 300, 500, 1000];
+          const entryFee = amounts[Math.floor(Math.random() * amounts.length)];
+          const newBattle: OpenBattle = {
+            id: `battle_${Date.now()}`,
+            creatorId: generateRandomName(),
+            creatorName: generateRandomName(),
+            entryFee,
+            prize: Math.floor(entryFee * 2 * 0.97),
+          };
+          setOpenBattles(prev => [newBattle, ...prev.slice(0, 9)]);
+        }
+        
+        // Randomly move an open battle to running
+        if (Math.random() > 0.7 && openBattles.length > 3) {
+          const battleToMove = openBattles[Math.floor(Math.random() * Math.min(3, openBattles.length))];
+          if (battleToMove && battleToMove.creatorId !== "YOU") {
+            setOpenBattles(prev => prev.filter(b => b.id !== battleToMove.id));
+            const newRunning: RunningBattle = {
+              id: `running_${Date.now()}`,
+              player1: { id: battleToMove.creatorId, name: battleToMove.creatorName },
+              player2: { id: generateRandomName(), name: generateRandomName() },
+              entryFee: battleToMove.entryFee,
+              prize: battleToMove.prize,
+            };
+            setRunningBattles(prev => [newRunning, ...prev.slice(0, 9)]);
+          }
+        }
+        
+        setIsRefreshing(false);
+      }, 500);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [openBattles]);
 
   const handleCreateBattle = () => {
     const entryFee = parseInt(amount);
@@ -60,7 +113,7 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
       return;
     }
 
-    const prize = Math.floor(entryFee * 2 * 0.97); // 3% commission
+    const prize = Math.floor(entryFee * 2 * 0.97);
     const newBattle: OpenBattle = {
       id: `battle_${Date.now()}`,
       creatorId: "YOU",
@@ -78,7 +131,6 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
   };
 
   const handlePlayBattle = (battle: OpenBattle) => {
-    // Move from open to running
     setOpenBattles(openBattles.filter(b => b.id !== battle.id));
     
     const newRunning: RunningBattle = {
@@ -125,14 +177,23 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
 
       {/* Open Battles */}
       <div className="p-4 bg-white">
-        <div className="flex items-center gap-2 mb-4">
-          <X className="w-5 h-5 text-red-500" />
-          <h3 className="font-semibold text-green-600">Open Battles</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <X className="w-5 h-5 text-red-500" />
+            <h3 className="font-semibold text-green-600">Open Battles</h3>
+          </div>
+          <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
         </div>
         
         <div className="space-y-3">
-          {openBattles.map((battle) => (
-            <div key={battle.id} className="bg-gray-100 rounded-lg p-3">
+          {openBattles.map((battle, index) => (
+            <div 
+              key={battle.id} 
+              className="bg-gray-100 rounded-lg p-3 transition-all duration-300"
+              style={{ 
+                animation: index === 0 && isRefreshing ? 'slideIn 0.3s ease-out' : 'none'
+              }}
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-700">
                   CHALLENGE FROM <span className="text-green-600 font-medium">{battle.creatorName}</span>
@@ -170,14 +231,23 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
 
       {/* Running Battles */}
       <div className="p-4 pb-32 bg-white">
-        <div className="flex items-center gap-2 mb-4">
-          <X className="w-5 h-5 text-red-500" />
-          <h3 className="font-semibold text-green-600">Running Battles</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <X className="w-5 h-5 text-red-500" />
+            <h3 className="font-semibold text-green-600">Running Battles</h3>
+          </div>
+          <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
         </div>
         
         <div className="space-y-3">
-          {runningBattles.map((battle) => (
-            <div key={battle.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          {runningBattles.map((battle, index) => (
+            <div 
+              key={battle.id} 
+              className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all duration-300"
+              style={{ 
+                animation: index === 0 && isRefreshing ? 'slideIn 0.3s ease-out' : 'none'
+              }}
+            >
               <div className="flex items-center justify-between mb-3 text-sm">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600">PLAYING FOR</span>
@@ -217,6 +287,19 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
           ))}
         </div>
       </div>
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };
