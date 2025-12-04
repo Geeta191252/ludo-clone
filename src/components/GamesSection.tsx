@@ -2,6 +2,7 @@ import { useState } from "react";
 import GameCard, { gameNames } from "./GameCard";
 import BattleArena from "./BattleArena";
 import DragonTigerGame from "./DragonTigerGame";
+import AviatorGame from "./AviatorGame";
 
 type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
 
@@ -21,8 +22,13 @@ const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: Game
     return <DragonTigerGame onClose={() => setSelectedGame(null)} />;
   }
 
-  // Show Battle Arena for other games (excluding aviator for now)
-  if (selectedGame && selectedGame !== 'aviator') {
+  // Show Aviator game
+  if (selectedGame === 'aviator') {
+    return <AviatorGame onClose={() => setSelectedGame(null)} />;
+  }
+
+  // Show Battle Arena for other games
+  if (selectedGame) {
     return (
       <BattleArena 
         gameName={gameNames[selectedGame]} 
@@ -59,6 +65,7 @@ const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: Game
           <GameCard 
             gameType="aviator" 
             isLive={true}
+            onClick={() => setSelectedGame('aviator')}
           />
         </div>
       </div>
