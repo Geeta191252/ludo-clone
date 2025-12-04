@@ -228,20 +228,34 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     setShowResult(false);
     setWinner(null);
 
-    // Calculate total bets for each area (user + bot)
-    const totalDragonBets = dragonTotal + botDragonTotal;
-    const totalTigerBets = tigerTotal + botTigerTotal;
-    const totalTieBets = tieTotal + botTieTotal;
-
-    // Determine winner - area with LEAST bets wins
+    // 50% user wins, 50% house wins logic
     let gameWinner: 'dragon' | 'tiger' | 'tie';
     
-    if (totalTieBets <= totalDragonBets && totalTieBets <= totalTigerBets) {
-      gameWinner = 'tie';
-    } else if (totalDragonBets <= totalTigerBets) {
-      gameWinner = 'dragon';
+    // Find where user has placed bets
+    const userBetAreas: ('dragon' | 'tiger' | 'tie')[] = [];
+    if (dragonTotal > 0) userBetAreas.push('dragon');
+    if (tigerTotal > 0) userBetAreas.push('tiger');
+    if (tieTotal > 0) userBetAreas.push('tie');
+    
+    // Areas where user didn't bet
+    const allAreas: ('dragon' | 'tiger' | 'tie')[] = ['dragon', 'tiger', 'tie'];
+    const noUserBetAreas = allAreas.filter(area => !userBetAreas.includes(area));
+    
+    // 50% chance user wins, 50% house wins
+    const userWins = Math.random() < 0.5;
+    
+    if (userBetAreas.length === 0) {
+      // No bets placed - random winner
+      gameWinner = allAreas[Math.floor(Math.random() * 3)];
+    } else if (userWins && userBetAreas.length > 0) {
+      // User wins - pick from areas where user bet
+      gameWinner = userBetAreas[Math.floor(Math.random() * userBetAreas.length)];
+    } else if (noUserBetAreas.length > 0) {
+      // House wins - pick from areas where user didn't bet
+      gameWinner = noUserBetAreas[Math.floor(Math.random() * noUserBetAreas.length)];
     } else {
-      gameWinner = 'tiger';
+      // User bet on all areas - random (rare case)
+      gameWinner = allAreas[Math.floor(Math.random() * 3)];
     }
 
     // Generate cards that match the winner
