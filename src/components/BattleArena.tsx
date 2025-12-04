@@ -177,7 +177,7 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
         
         <div className="space-y-3">
           {runningBattles.map((battle) => (
-            <div key={battle.id} className="bg-pink-100 rounded-lg p-4">
+            <div key={battle.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3 text-sm">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600">PLAYING FOR</span>
