@@ -3,6 +3,7 @@ import { Info, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import rupeeIcon from "@/assets/rupee-icon.png";
 
 interface OpenBattle {
   id: string;
@@ -24,6 +25,10 @@ interface BattleArenaProps {
   gameName: string;
   onClose: () => void;
 }
+
+const RupeeIcon = ({ className = "w-5 h-4" }: { className?: string }) => (
+  <img src={rupeeIcon} alt="₹" className={className} />
+);
 
 const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
   const { toast } = useToast();
@@ -157,14 +162,14 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
                 <div>
                   <span className="text-pink-500 text-xs">ENTRY FEE</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-yellow-500">🪙</span>
+                    <RupeeIcon className="w-5 h-4" />
                     <span className="text-muted-foreground">{battle.entryFee}</span>
                   </div>
                 </div>
                 <div>
                   <span className="text-pink-500 text-xs">PRIZE</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-yellow-500">🪙</span>
+                    <RupeeIcon className="w-5 h-4" />
                     <span className="text-muted-foreground">{battle.prize}</span>
                   </div>
                 </div>
@@ -185,15 +190,15 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
           {runningBattles.map((battle) => (
             <div key={battle.id} className="bg-pink-100 dark:bg-pink-900/20 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">PLAYING FOR </span>
-                  <span className="text-yellow-600">🪙</span>
-                  <span className="font-medium ml-1">{battle.entryFee}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">PLAYING FOR</span>
+                  <RupeeIcon className="w-5 h-4" />
+                  <span className="font-medium">{battle.entryFee}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">PRIZE </span>
-                  <span className="text-yellow-600">🪙</span>
-                  <span className="font-medium ml-1">{battle.prize}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">PRIZE</span>
+                  <RupeeIcon className="w-5 h-4" />
+                  <span className="font-medium">{battle.prize}</span>
                 </div>
               </div>
               
