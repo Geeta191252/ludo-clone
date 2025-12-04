@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, HelpCircle, Minus, Plus, History, Volume2, VolumeX, Plane, TrendingUp, Users, Zap } from 'lucide-react';
+import { ChevronLeft, HelpCircle, Minus, Plus, History, Volume2, VolumeX, Plane, TrendingUp, Users, Zap, Trophy, Sparkles, Target } from 'lucide-react';
 
 interface AviatorGameProps {
   onClose: () => void;
 }
 
-// Particle type for trail effect
 interface Particle {
   x: number;
   y: number;
@@ -17,7 +16,12 @@ interface Particle {
   color: string;
 }
 
-// Sound effects using Web Audio API
+interface WinPopup {
+  amount: number;
+  mult: number;
+  visible: boolean;
+}
+
 const useSound = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const flyingOscRef = useRef<OscillatorNode | null>(null);
@@ -46,27 +50,24 @@ const useSound = () => {
 
   const playCashOutSound = useCallback(() => {
     const ctx = getAudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(523, ctx.currentTime);
-    osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
-    osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.3);
+    for (let i = 0; i < 3; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime([523, 659, 784][i], ctx.currentTime + i * 0.08);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.08 + 0.15);
+      osc.start(ctx.currentTime + i * 0.08);
+      osc.stop(ctx.currentTime + i * 0.08 + 0.15);
+    }
   }, []);
 
   const playCrashSound = useCallback(() => {
     const ctx = getAudioContext();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    const noise = ctx.createOscillator();
-    const noiseGain = ctx.createGain();
-    
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.type = 'sawtooth';
@@ -74,33 +75,21 @@ const useSound = () => {
     osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.5);
     gain.gain.setValueAtTime(0.5, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-    
-    noise.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noise.type = 'square';
-    noise.frequency.setValueAtTime(100, ctx.currentTime);
-    noiseGain.gain.setValueAtTime(0.2, ctx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-    
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.5);
-    noise.start(ctx.currentTime);
-    noise.stop(ctx.currentTime + 0.3);
   }, []);
 
   const startFlyingSound = useCallback(() => {
     const ctx = getAudioContext();
     if (flyingOscRef.current) return;
-    
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(80, ctx.currentTime);
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
     osc.start(ctx.currentTime);
-    
     flyingOscRef.current = osc;
     flyingGainRef.current = gain;
   }, []);
@@ -118,8 +107,8 @@ const useSound = () => {
   const updateFlyingPitch = useCallback((multiplier: number) => {
     if (flyingOscRef.current) {
       const ctx = getAudioContext();
-      const pitch = 80 + (multiplier - 1) * 20;
-      flyingOscRef.current.frequency.setValueAtTime(Math.min(pitch, 200), ctx.currentTime);
+      const pitch = 80 + (multiplier - 1) * 15;
+      flyingOscRef.current.frequency.setValueAtTime(Math.min(pitch, 180), ctx.currentTime);
     }
   }, []);
 
@@ -157,37 +146,40 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
   const [pathPoints, setPathPoints] = useState<{x: number, y: number}[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [particles, setParticles] = useState<Particle[]>([]);
-  const [stars, setStars] = useState<{x: number, y: number, size: number, speed: number}[]>([]);
-  const [countDown, setCountDown] = useState(3);
-  const [liveBets, setLiveBets] = useState([
-    { user: 'Player***123', bet: 50, mult: null },
-    { user: 'Lucky***789', bet: 100, mult: 2.45 },
-    { user: 'Win***456', bet: 25, mult: null },
-  ]);
+  const [stars, setStars] = useState<{x: number, y: number, size: number, speed: number, twinkle: number}[]>([]);
+  const [countDown, setCountDown] = useState(5);
+  const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
+  const [autoCashout1, setAutoCashout1] = useState<number | null>(null);
+  const [autoCashout2, setAutoCashout2] = useState<number | null>(null);
+  const [showExplosion, setShowExplosion] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   
   const { playBetSound, playCashOutSound, playCrashSound, startFlyingSound, stopFlyingSound, updateFlyingPitch, playTakeoffSound } = useSound();
 
-  // Initialize stars
+  // Initialize stars with twinkle
   useEffect(() => {
-    const newStars = Array.from({ length: 80 }, () => ({
+    const newStars = Array.from({ length: 100 }, () => ({
       x: Math.random() * 100,
       y: Math.random() * 100,
-      size: Math.random() * 2 + 0.5,
-      speed: Math.random() * 0.3 + 0.1
+      size: Math.random() * 2.5 + 0.5,
+      speed: Math.random() * 0.4 + 0.1,
+      twinkle: Math.random() * Math.PI * 2
     }));
     setStars(newStars);
   }, []);
 
-  // Animate stars
+  // Animate stars with twinkle
   useEffect(() => {
+    let frameCount = 0;
     const animate = () => {
+      frameCount++;
       setStars(prev => prev.map(star => ({
         ...star,
         x: star.x - star.speed,
-        ...(star.x < 0 ? { x: 100, y: Math.random() * 100 } : {})
+        twinkle: star.twinkle + 0.1,
+        ...(star.x < -2 ? { x: 102, y: Math.random() * 100 } : {})
       })));
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -197,7 +189,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     };
   }, []);
 
-  // Update particles
+  // Particle system
   useEffect(() => {
     if (gamePhase !== 'flying') {
       setParticles([]);
@@ -206,39 +198,39 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
 
     const interval = setInterval(() => {
       setParticles(prev => {
-        // Add new particles
-        const newParticles: Particle[] = Array.from({ length: 3 }, () => ({
-          x: planePosition.x,
-          y: planePosition.y,
-          vx: -Math.random() * 2 - 1,
+        const colors = ['#ff6b35', '#ffd700', '#ff4444', '#ffaa00', '#ffffff'];
+        const newParticles: Particle[] = Array.from({ length: 4 }, () => ({
+          x: planePosition.x - 2,
+          y: planePosition.y + (Math.random() - 0.5) * 3,
+          vx: -Math.random() * 3 - 2,
           vy: (Math.random() - 0.5) * 2,
           life: 1,
           maxLife: 1,
-          size: Math.random() * 4 + 2,
-          color: Math.random() > 0.5 ? '#ff6b35' : '#ffd700'
+          size: Math.random() * 6 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)]
         }));
         
-        // Update existing particles
         const updated = [...prev, ...newParticles]
           .map(p => ({
             ...p,
-            x: p.x + p.vx * 0.3,
-            y: p.y + p.vy * 0.3,
-            life: p.life - 0.05
+            x: p.x + p.vx * 0.25,
+            y: p.y + p.vy * 0.25,
+            life: p.life - 0.04,
+            size: p.size * 0.97
           }))
           .filter(p => p.life > 0);
         
-        return updated.slice(-50);
+        return updated.slice(-80);
       });
-    }, 50);
+    }, 40);
 
     return () => clearInterval(interval);
   }, [gamePhase, planePosition]);
 
-  // Countdown timer
+  // Countdown timer with animation
   useEffect(() => {
     if (gamePhase === 'waiting') {
-      setCountDown(3);
+      setCountDown(5);
       const interval = setInterval(() => {
         setCountDown(prev => {
           if (prev <= 1) {
@@ -252,6 +244,18 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     }
   }, [gamePhase]);
 
+  // Auto cashout check
+  useEffect(() => {
+    if (gamePhase === 'flying') {
+      if (autoCashout1 && bet1Active && !bet1CashedOut && multiplier >= autoCashout1) {
+        cashOut(1);
+      }
+      if (autoCashout2 && bet2Active && !bet2CashedOut && multiplier >= autoCashout2) {
+        cashOut(2);
+      }
+    }
+  }, [multiplier, gamePhase, autoCashout1, autoCashout2, bet1Active, bet2Active, bet1CashedOut, bet2CashedOut]);
+
   // Game loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -262,26 +266,29 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
         setMultiplier(1.00);
         setPathPoints([{ x: 5, y: 85 }]);
         setPlanePosition({ x: 5, y: 85 });
+        setShowExplosion(false);
         if (soundEnabled) {
           playTakeoffSound();
           startFlyingSound();
         }
-      }, 3500);
+      }, 5500);
       return () => clearTimeout(timeout);
     }
     
     if (gamePhase === 'flying') {
       interval = setInterval(() => {
         setMultiplier(prev => {
-          const newMultiplier = prev + (Math.random() * 0.05 + 0.02);
+          const increment = Math.random() * 0.04 + 0.02;
+          const newMultiplier = prev + increment;
           
           if (soundEnabled) {
             updateFlyingPitch(newMultiplier);
           }
           
-          const crashChance = (newMultiplier - 1) * 0.015;
-          if (Math.random() < crashChance || newMultiplier > 15) {
+          const crashChance = (newMultiplier - 1) * 0.012;
+          if (Math.random() < crashChance || newMultiplier > 20) {
             setGamePhase('crashed');
+            setShowExplosion(true);
             if (soundEnabled) {
               stopFlyingSound();
               playCrashSound();
@@ -294,24 +301,25 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
               setBet1CashedOut(false);
               setBet2CashedOut(false);
               setGamePhase('waiting');
-            }, 2500);
+              setShowExplosion(false);
+            }, 3000);
             
             return newMultiplier;
           }
           
-          const progress = Math.min((newMultiplier - 1) / 8, 1);
-          const curve = Math.pow(progress, 0.7);
-          const newX = 5 + curve * 75;
-          const newY = 85 - curve * 70 - Math.sin(progress * Math.PI * 0.8) * 10;
+          const progress = Math.min((newMultiplier - 1) / 10, 1);
+          const curve = Math.pow(progress, 0.6);
+          const newX = 5 + curve * 80;
+          const newY = 85 - curve * 72 - Math.sin(progress * Math.PI * 0.7) * 8;
           
           setPlanePosition({ x: newX, y: newY });
-          setPlaneRotation(-25 + curve * 15);
+          setPlaneRotation(-30 + curve * 20);
           
           setPathPoints(prev => [...prev, { x: newX, y: newY }]);
           
           return newMultiplier;
         });
-      }, 80);
+      }, 70);
     }
     
     return () => {
@@ -319,7 +327,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     };
   }, [gamePhase, soundEnabled, playTakeoffSound, startFlyingSound, updateFlyingPitch, stopFlyingSound, playCrashSound]);
 
-  // Draw curve on canvas
+  // Canvas rendering with glow effects
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -339,14 +347,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     
-    // Draw gradient fill under curve
+    // Gradient fill
     ctx.beginPath();
     ctx.moveTo((pathPoints[0].x / 100) * w, h);
     
     pathPoints.forEach((point) => {
-      const x = (point.x / 100) * w;
-      const y = (point.y / 100) * h;
-      ctx.lineTo(x, y);
+      ctx.lineTo((point.x / 100) * w, (point.y / 100) * h);
     });
     
     const lastPoint = pathPoints[pathPoints.length - 1];
@@ -354,31 +360,33 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     ctx.closePath();
     
     const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, 'rgba(255, 107, 53, 0.4)');
-    gradient.addColorStop(0.5, 'rgba(255, 107, 53, 0.15)');
+    gradient.addColorStop(0, 'rgba(255, 107, 53, 0.5)');
+    gradient.addColorStop(0.3, 'rgba(255, 107, 53, 0.2)');
     gradient.addColorStop(1, 'rgba(255, 107, 53, 0)');
     ctx.fillStyle = gradient;
     ctx.fill();
     
-    // Draw glowing line
+    // Outer glow
     ctx.beginPath();
     ctx.moveTo((pathPoints[0].x / 100) * w, (pathPoints[0].y / 100) * h);
-    
     for (let i = 1; i < pathPoints.length; i++) {
-      const point = pathPoints[i];
-      ctx.lineTo((point.x / 100) * w, (point.y / 100) * h);
+      ctx.lineTo((pathPoints[i].x / 100) * w, (pathPoints[i].y / 100) * h);
     }
-    
-    // Glow effect
     ctx.shadowColor = '#ff6b35';
-    ctx.shadowBlur = 15;
-    ctx.strokeStyle = '#ff6b35';
-    ctx.lineWidth = 4;
+    ctx.shadowBlur = 25;
+    ctx.strokeStyle = 'rgba(255, 107, 53, 0.6)';
+    ctx.lineWidth = 8;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
     
-    // Core line
+    // Main line
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#ff6b35';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    
+    // Core bright line
     ctx.shadowBlur = 0;
     ctx.strokeStyle = '#ffd700';
     ctx.lineWidth = 2;
@@ -408,35 +416,71 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
     const winnings = amount * multiplier;
     setBalance(prev => prev + winnings);
     
+    // Show win popup
+    setWinPopup({ amount: winnings, mult: multiplier, visible: true });
+    setTimeout(() => setWinPopup(prev => ({ ...prev, visible: false })), 2000);
+    
     if (betNum === 1) setBet1CashedOut(true);
     else setBet2CashedOut(true);
   };
 
   const getMultiplierColor = (mult: number) => {
-    if (mult >= 10) return 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black';
+    if (mult >= 10) return 'bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500 text-black font-black';
     if (mult >= 5) return 'bg-gradient-to-r from-purple-500 to-pink-500';
-    if (mult >= 2) return 'bg-gradient-to-r from-blue-500 to-cyan-400';
-    return 'bg-slate-600';
+    if (mult >= 2) return 'bg-gradient-to-r from-cyan-500 to-blue-500';
+    return 'bg-slate-600/80';
+  };
+
+  const getMultiplierSize = () => {
+    const scale = Math.min(1 + (multiplier - 1) * 0.015, 1.3);
+    return { transform: `scale(${scale})` };
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0a1a] via-[#0d1025] to-[#0a0a1a] text-white overflow-hidden">
+    <div className="min-h-screen bg-[#050510] text-white overflow-hidden relative">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a20] via-[#050515] to-[#020208] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(100,50,150,0.15)_0%,_transparent_60%)] pointer-events-none" />
+      
+      {/* Win Popup */}
+      {winPopup.visible && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="animate-bounce">
+            <div className="bg-gradient-to-r from-green-500 via-emerald-400 to-green-500 text-white px-8 py-6 rounded-2xl shadow-2xl border-2 border-green-300/50"
+                 style={{ boxShadow: '0 0 60px rgba(34, 197, 94, 0.5)' }}>
+              <div className="flex items-center gap-3 justify-center mb-2">
+                <Trophy className="w-8 h-8 text-yellow-300" />
+                <span className="text-3xl font-black">YOU WON!</span>
+                <Trophy className="w-8 h-8 text-yellow-300" />
+              </div>
+              <div className="text-4xl font-black text-center">${winPopup.amount.toFixed(2)}</div>
+              <div className="text-lg text-center text-green-100">at {winPopup.mult.toFixed(2)}x</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-[#1a1a3a] to-[#0d1025] border-b border-white/5">
+      <div className="relative flex items-center justify-between p-3 bg-gradient-to-r from-[#1a1a3a]/90 to-[#0d1025]/90 backdrop-blur-sm border-b border-white/5 z-10">
         <div className="flex items-center gap-3">
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/30">
-              <Plane className="w-5 h-5 -rotate-45" />
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 flex items-center justify-center shadow-lg"
+                   style={{ boxShadow: '0 0 20px rgba(255, 107, 53, 0.4)' }}>
+                <Plane className="w-6 h-6 text-white -rotate-45" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse" />
             </div>
             <div>
-              <div className="text-lg font-bold bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+              <div className="text-xl font-black tracking-wider bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
                 AVIATOR
               </div>
-              <div className="text-xs text-gray-400 flex items-center gap-1">
-                <Users className="w-3 h-3" /> 2,847 online
+              <div className="text-xs text-gray-400 flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <Users className="w-3 h-3" /> 3,847 playing
               </div>
             </div>
           </div>
@@ -444,67 +488,70 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-all"
+            className={`p-2.5 rounded-xl transition-all ${soundEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'}`}
           >
-            {soundEnabled ? <Volume2 className="w-5 h-5 text-green-400" /> : <VolumeX className="w-5 h-5 text-gray-500" />}
+            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </button>
-          <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-full transition-all">
+          <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-all">
             <HelpCircle className="w-4 h-4" />
-            <span className="text-sm hidden sm:inline">How to play?</span>
           </button>
-          <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 px-4 py-2 rounded-full">
-            <span className="text-xl font-bold text-yellow-400">${balance.toFixed(2)}</span>
+          <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 px-4 py-2 rounded-xl">
+            <Sparkles className="w-4 h-4 text-yellow-400" />
+            <span className="text-xl font-black text-yellow-400">${balance.toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* History Bar */}
-      <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto bg-black/20 scrollbar-hide">
-        <div className="flex items-center gap-1 text-gray-400 text-sm mr-2">
+      <div className="relative flex items-center gap-2 px-3 py-2.5 overflow-x-auto bg-black/30 backdrop-blur-sm z-10 scrollbar-hide">
+        <div className="flex items-center gap-1.5 text-gray-400 text-sm mr-2 flex-shrink-0">
           <TrendingUp className="w-4 h-4" />
-          <span>History</span>
+          <span className="font-medium">History</span>
         </div>
         {history.map((mult, i) => (
           <div
             key={i}
-            className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-bold ${getMultiplierColor(mult)} shadow-lg`}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-bold ${getMultiplierColor(mult)} shadow-lg transition-all hover:scale-105`}
           >
             {mult.toFixed(2)}x
           </div>
         ))}
-        <button className="flex-shrink-0 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-all ml-auto">
+        <button className="flex-shrink-0 p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-all ml-auto">
           <History className="w-4 h-4" />
         </button>
       </div>
 
       {/* Game Area */}
-      <div className="relative h-[42vh] mx-2 my-2 rounded-2xl overflow-hidden bg-gradient-to-b from-[#0d1530] to-[#0a0a1a] border border-white/5">
-        {/* Animated Stars Background */}
+      <div className="relative h-[40vh] mx-2 my-2 rounded-2xl overflow-hidden border border-white/5 z-10"
+           style={{ background: 'linear-gradient(180deg, rgba(10, 10, 30, 0.9) 0%, rgba(5, 5, 20, 0.95) 100%)' }}>
+        
+        {/* Animated Stars */}
         <div className="absolute inset-0 overflow-hidden">
           {stars.map((star, i) => (
             <div
               key={i}
-              className="absolute rounded-full bg-white"
+              className="absolute rounded-full"
               style={{
                 left: `${star.x}%`,
                 top: `${star.y}%`,
                 width: `${star.size}px`,
                 height: `${star.size}px`,
-                opacity: Math.random() * 0.5 + 0.3,
-                boxShadow: star.size > 1.5 ? '0 0 4px rgba(255,255,255,0.5)' : 'none'
+                backgroundColor: 'white',
+                opacity: 0.3 + Math.sin(star.twinkle) * 0.3,
+                boxShadow: star.size > 1.5 ? `0 0 ${star.size * 2}px rgba(255,255,255,0.5)` : 'none'
               }}
             />
           ))}
         </div>
         
-        {/* Grid lines */}
-        <div className="absolute inset-0 opacity-10">
+        {/* Grid */}
+        <div className="absolute inset-0 opacity-5">
           <svg className="w-full h-full">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <line key={`v${i}`} x1={`${i * 10}%`} y1="0" x2={`${i * 10}%`} y2="100%" stroke="white" strokeWidth="1" />
+            {Array.from({ length: 12 }).map((_, i) => (
+              <line key={`v${i}`} x1={`${i * 8.33}%`} y1="0" x2={`${i * 8.33}%`} y2="100%" stroke="white" strokeWidth="1" />
             ))}
-            {Array.from({ length: 6 }).map((_, i) => (
-              <line key={`h${i}`} x1="0" y1={`${i * 20}%`} x2="100%" y2={`${i * 20}%`} stroke="white" strokeWidth="1" />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <line key={`h${i}`} x1="0" y1={`${i * 14.28}%`} x2="100%" y2={`${i * 14.28}%`} stroke="white" strokeWidth="1" />
             ))}
           </svg>
         </div>
@@ -520,53 +567,77 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
         {particles.map((particle, i) => (
           <div
             key={i}
-            className="absolute rounded-full"
+            className="absolute rounded-full pointer-events-none"
             style={{
               left: `${particle.x}%`,
               top: `${particle.y}%`,
               width: `${particle.size}px`,
               height: `${particle.size}px`,
               backgroundColor: particle.color,
-              opacity: particle.life,
-              boxShadow: `0 0 ${particle.size * 2}px ${particle.color}`,
+              opacity: particle.life * 0.8,
+              boxShadow: `0 0 ${particle.size}px ${particle.color}`,
               transform: 'translate(-50%, -50%)'
             }}
           />
         ))}
 
+        {/* Explosion effect */}
+        {showExplosion && (
+          <div 
+            className="absolute pointer-events-none animate-ping"
+            style={{
+              left: `${planePosition.x}%`,
+              top: `${planePosition.y}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div className="w-32 h-32 rounded-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 opacity-60" 
+                 style={{ boxShadow: '0 0 60px rgba(255, 100, 50, 0.8)' }} />
+          </div>
+        )}
+
         {/* Multiplier Display */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {gamePhase === 'waiting' ? (
             <div className="text-center">
-              <div className="text-7xl font-black text-white/20 mb-2">{countDown > 0 ? countDown : '...'}</div>
-              <div className="text-xl font-bold text-gray-400 animate-pulse">
+              <div className="relative mb-4">
+                <div className="text-8xl font-black text-white/10">{countDown > 0 ? countDown : '•'}</div>
+                {countDown > 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-24 h-24 border-4 border-orange-500/50 rounded-full animate-ping" />
+                  </div>
+                )}
+              </div>
+              <div className="text-2xl font-bold text-gray-300 animate-pulse tracking-widest">
                 WAITING FOR TAKEOFF
               </div>
               <div className="flex items-center justify-center gap-2 mt-4">
-                <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />
-                <span className="text-sm text-gray-500">Place your bets now!</span>
+                <Target className="w-5 h-5 text-orange-400" />
+                <span className="text-gray-400">Place your bets now!</span>
               </div>
             </div>
           ) : gamePhase === 'crashed' ? (
-            <div className="text-center animate-scale-in">
-              <div className="text-5xl sm:text-7xl font-black text-red-500 mb-2" 
-                   style={{ textShadow: '0 0 40px rgba(239, 68, 68, 0.5)' }}>
+            <div className="text-center">
+              <div className="text-5xl sm:text-7xl font-black text-red-500 animate-pulse mb-2" 
+                   style={{ textShadow: '0 0 60px rgba(239, 68, 68, 0.6)' }}>
                 FLEW AWAY!
               </div>
               <div className="text-4xl font-bold text-white/80">{multiplier.toFixed(2)}x</div>
             </div>
           ) : (
-            <div 
-              className="text-center"
-              style={{ transform: `scale(${1 + (multiplier - 1) * 0.02})` }}
-            >
+            <div className="text-center transition-transform duration-100" style={getMultiplierSize()}>
               <div 
                 className="text-7xl sm:text-9xl font-black"
                 style={{ 
-                  background: `linear-gradient(180deg, #fff ${100 - multiplier * 10}%, #ffd700 100%)`,
+                  background: multiplier >= 5 
+                    ? 'linear-gradient(180deg, #ffd700 0%, #ff6b35 50%, #ff4444 100%)'
+                    : multiplier >= 2
+                    ? 'linear-gradient(180deg, #fff 0%, #ffd700 100%)'
+                    : 'linear-gradient(180deg, #fff 0%, #ccc 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
-                  textShadow: '0 0 60px rgba(255, 215, 0, 0.4)'
+                  textShadow: multiplier >= 2 ? '0 0 80px rgba(255, 215, 0, 0.5)' : 'none',
+                  filter: multiplier >= 5 ? 'drop-shadow(0 0 20px rgba(255, 107, 53, 0.5))' : 'none'
                 }}
               >
                 {multiplier.toFixed(2)}x
@@ -578,187 +649,138 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
         {/* Plane */}
         {gamePhase === 'flying' && (
           <div 
-            className="absolute transition-all duration-75 ease-out"
+            className="absolute transition-all duration-75 ease-out z-20"
             style={{ 
               left: `${planePosition.x}%`, 
               top: `${planePosition.y}%`,
               transform: `translate(-50%, -50%) rotate(${planeRotation}deg)`
             }}
           >
-            {/* Glow effect */}
-            <div className="absolute inset-0 -m-4 bg-orange-500/30 rounded-full blur-xl" />
+            {/* Glow layers */}
+            <div className="absolute inset-0 -m-6 bg-orange-500/20 rounded-full blur-2xl" />
+            <div className="absolute inset-0 -m-3 bg-yellow-500/30 rounded-full blur-xl" />
+            
             {/* Plane body */}
-            <div className="relative bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 rounded-full p-3 shadow-lg"
-                 style={{ boxShadow: '0 0 30px rgba(255, 107, 53, 0.6), 0 0 60px rgba(255, 107, 53, 0.3)' }}>
-              <Plane className="w-8 h-8 text-white" />
-            </div>
-          </div>
-        )}
-        
-        {/* Crashed plane */}
-        {gamePhase === 'crashed' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-bounce opacity-50">
-              <Plane className="w-16 h-16 text-red-500 rotate-180" />
+            <div className="relative">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-red-500 via-orange-500 to-yellow-400 flex items-center justify-center shadow-2xl"
+                   style={{ boxShadow: '0 0 40px rgba(255, 107, 53, 0.7), 0 0 80px rgba(255, 107, 53, 0.4), inset 0 -2px 10px rgba(0,0,0,0.3)' }}>
+                <Plane className="w-7 h-7 text-white drop-shadow-lg" />
+              </div>
+              {/* Engine glow */}
+              <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-6 bg-gradient-to-r from-yellow-400 to-transparent rounded-full blur-sm" />
             </div>
           </div>
         )}
 
         {/* Y-axis markers */}
         <div className="absolute left-3 top-4 bottom-4 flex flex-col justify-between">
-          {[10, 8, 6, 4, 2, 0].map((n) => (
-            <div key={n} className="text-xs text-gray-500">{n}x</div>
-          ))}
-        </div>
-      </div>
-
-      {/* Live Bets Ticker */}
-      <div className="mx-2 mb-2 px-3 py-2 bg-black/30 rounded-xl border border-white/5">
-        <div className="flex items-center gap-4 overflow-x-auto text-xs">
-          <span className="text-gray-400 flex-shrink-0">Live Bets:</span>
-          {liveBets.map((bet, i) => (
-            <div key={i} className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-gray-400">{bet.user}</span>
-              <span className="text-white font-bold">${bet.bet}</span>
-              {bet.mult && <span className="text-green-400">→ {bet.mult}x</span>}
-            </div>
+          {[10, 8, 6, 4, 2, 1].map((n) => (
+            <div key={n} className="text-xs text-gray-500 font-medium">{n}x</div>
           ))}
         </div>
       </div>
 
       {/* Betting Panels */}
-      <div className="grid grid-cols-2 gap-2 p-2">
-        {/* Bet Panel 1 */}
-        <div className="bg-gradient-to-b from-[#1a1a3a] to-[#0d1025] rounded-xl p-3 border border-white/5">
-          <div className="flex gap-1 mb-3">
-            <button className="flex-1 py-1.5 bg-white/10 rounded-lg text-sm font-bold">Bet</button>
-            <button className="flex-1 py-1.5 text-gray-500 text-sm hover:bg-white/5 rounded-lg transition-colors">Auto</button>
-          </div>
-          
-          <div className="flex items-center bg-black/30 rounded-xl px-3 py-2 mb-2 border border-white/5">
-            <span className="text-2xl font-bold text-white">${betAmount1.toFixed(0)}</span>
-            <div className="ml-auto flex gap-1">
-              <button 
-                onClick={() => setBetAmount1(Math.max(1, betAmount1 - 10))}
-                className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setBetAmount1(betAmount1 + 10)}
-                className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-4 gap-1 mb-3">
-            {[10, 50, 100, 500].map(amount => (
-              <button 
-                key={amount}
-                onClick={() => setBetAmount1(amount)}
-                className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  betAmount1 === amount 
-                    ? 'bg-orange-500/30 text-orange-400 border border-orange-500/50' 
-                    : 'bg-black/30 text-gray-400 hover:bg-white/10'
-                }`}
-              >
-                ${amount}
-              </button>
-            ))}
-          </div>
-          
-          <button
-            onClick={() => {
-              if (bet1Active && gamePhase === 'flying' && !bet1CashedOut) {
-                cashOut(1);
-              } else if (!bet1Active && gamePhase === 'waiting') {
-                placeBet(1);
-              }
-            }}
-            disabled={(gamePhase === 'crashed') || (bet1Active && bet1CashedOut)}
-            className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${
-              bet1Active && gamePhase === 'flying' && !bet1CashedOut
-                ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-black shadow-orange-500/30'
-                : bet1CashedOut
-                ? 'bg-gray-700 text-gray-400'
-                : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-green-500/30'
-            }`}
-          >
-            {bet1Active && gamePhase === 'flying' && !bet1CashedOut
-              ? `CASH OUT $${(betAmount1 * multiplier).toFixed(2)}`
-              : bet1CashedOut
-              ? '✓ CASHED OUT'
-              : 'PLACE BET'}
-          </button>
-        </div>
+      <div className="relative grid grid-cols-2 gap-2 p-2 z-10">
+        {[1, 2].map((panelNum) => {
+          const betAmount = panelNum === 1 ? betAmount1 : betAmount2;
+          const setBetAmount = panelNum === 1 ? setBetAmount1 : setBetAmount2;
+          const betActive = panelNum === 1 ? bet1Active : bet2Active;
+          const betCashedOut = panelNum === 1 ? bet1CashedOut : bet2CashedOut;
+          const autoCashout = panelNum === 1 ? autoCashout1 : autoCashout2;
+          const setAutoCashout = panelNum === 1 ? setAutoCashout1 : setAutoCashout2;
 
-        {/* Bet Panel 2 */}
-        <div className="bg-gradient-to-b from-[#1a1a3a] to-[#0d1025] rounded-xl p-3 border border-white/5">
-          <div className="flex gap-1 mb-3">
-            <button className="flex-1 py-1.5 bg-white/10 rounded-lg text-sm font-bold">Bet</button>
-            <button className="flex-1 py-1.5 text-gray-500 text-sm hover:bg-white/5 rounded-lg transition-colors">Auto</button>
-          </div>
-          
-          <div className="flex items-center bg-black/30 rounded-xl px-3 py-2 mb-2 border border-white/5">
-            <span className="text-2xl font-bold text-white">${betAmount2.toFixed(0)}</span>
-            <div className="ml-auto flex gap-1">
-              <button 
-                onClick={() => setBetAmount2(Math.max(1, betAmount2 - 10))}
-                className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors"
+          return (
+            <div key={panelNum} className="bg-gradient-to-b from-[#1a1a3a]/80 to-[#0d1025]/80 backdrop-blur-sm rounded-xl p-3 border border-white/5">
+              <div className="flex gap-1 mb-3">
+                <button className="flex-1 py-1.5 bg-white/10 rounded-lg text-sm font-bold">Bet</button>
+                <button className="flex-1 py-1.5 text-gray-500 text-sm hover:bg-white/5 rounded-lg transition-colors">Auto</button>
+              </div>
+              
+              <div className="flex items-center bg-black/40 rounded-xl px-3 py-2 mb-2 border border-white/5">
+                <span className="text-2xl font-black text-white">${betAmount}</span>
+                <div className="ml-auto flex gap-1">
+                  <button 
+                    onClick={() => setBetAmount(Math.max(1, betAmount - 10))}
+                    className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all active:scale-90"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => setBetAmount(betAmount + 10)}
+                    className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all active:scale-90"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-1 mb-2">
+                {[10, 50, 100, 500].map(amount => (
+                  <button 
+                    key={amount}
+                    onClick={() => setBetAmount(amount)}
+                    className={`py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                      betAmount === amount 
+                        ? 'bg-orange-500/30 text-orange-400 border border-orange-500/50' 
+                        : 'bg-black/30 text-gray-400 hover:bg-white/10 border border-transparent'
+                    }`}
+                  >
+                    ${amount}
+                  </button>
+                ))}
+              </div>
+
+              {/* Auto cashout input */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs text-gray-400">Auto @</span>
+                <input
+                  type="number"
+                  placeholder="2.00"
+                  value={autoCashout || ''}
+                  onChange={(e) => setAutoCashout(e.target.value ? parseFloat(e.target.value) : null)}
+                  className="flex-1 bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
+                />
+                <span className="text-xs text-gray-400">x</span>
+              </div>
+              
+              <button
+                onClick={() => {
+                  if (betActive && gamePhase === 'flying' && !betCashedOut) {
+                    cashOut(panelNum as 1 | 2);
+                  } else if (!betActive && gamePhase === 'waiting') {
+                    placeBet(panelNum as 1 | 2);
+                  }
+                }}
+                disabled={(gamePhase === 'crashed') || (betActive && betCashedOut)}
+                className={`w-full py-4 rounded-xl font-black text-lg transition-all shadow-lg active:scale-[0.98] ${
+                  betActive && gamePhase === 'flying' && !betCashedOut
+                    ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-black animate-pulse'
+                    : betCashedOut
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                    : betActive && gamePhase === 'waiting'
+                    ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                    : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
+                }`}
+                style={{ 
+                  boxShadow: betActive && gamePhase === 'flying' && !betCashedOut 
+                    ? '0 0 30px rgba(255, 165, 0, 0.5)' 
+                    : betCashedOut 
+                    ? '0 0 20px rgba(34, 197, 94, 0.4)'
+                    : '0 0 20px rgba(34, 197, 94, 0.3)' 
+                }}
               >
-                <Minus className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setBetAmount2(betAmount2 + 10)}
-                className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors"
-              >
-                <Plus className="w-4 h-4" />
+                {betActive && gamePhase === 'flying' && !betCashedOut
+                  ? `CASH OUT $${(betAmount * multiplier).toFixed(2)}`
+                  : betCashedOut
+                  ? `✓ WON $${(betAmount * multiplier).toFixed(2)}`
+                  : betActive && gamePhase === 'waiting'
+                  ? 'CANCEL BET'
+                  : 'PLACE BET'}
               </button>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-4 gap-1 mb-3">
-            {[10, 50, 100, 500].map(amount => (
-              <button 
-                key={amount}
-                onClick={() => setBetAmount2(amount)}
-                className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  betAmount2 === amount 
-                    ? 'bg-orange-500/30 text-orange-400 border border-orange-500/50' 
-                    : 'bg-black/30 text-gray-400 hover:bg-white/10'
-                }`}
-              >
-                ${amount}
-              </button>
-            ))}
-          </div>
-          
-          <button
-            onClick={() => {
-              if (bet2Active && gamePhase === 'flying' && !bet2CashedOut) {
-                cashOut(2);
-              } else if (!bet2Active && gamePhase === 'waiting') {
-                placeBet(2);
-              }
-            }}
-            disabled={(gamePhase === 'crashed') || (bet2Active && bet2CashedOut)}
-            className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${
-              bet2Active && gamePhase === 'flying' && !bet2CashedOut
-                ? 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-black shadow-orange-500/30'
-                : bet2CashedOut
-                ? 'bg-gray-700 text-gray-400'
-                : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-green-500/30'
-            }`}
-          >
-            {bet2Active && gamePhase === 'flying' && !bet2CashedOut
-              ? `CASH OUT $${(betAmount2 * multiplier).toFixed(2)}`
-              : bet2CashedOut
-              ? '✓ CASHED OUT'
-              : 'PLACE BET'}
-          </button>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
