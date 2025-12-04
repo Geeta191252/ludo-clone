@@ -630,6 +630,19 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
             </div>
           </div>
         </div>
+
+        {/* Chip Selection - moved up */}
+        <div className="flex items-center justify-center gap-3 mt-3 pb-2">
+          {CHIP_VALUES.map((value) => (
+            <ChipIcon
+              key={value}
+              value={value}
+              size="lg"
+              selected={selectedChip === value}
+              onClick={() => setSelectedChip(value)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Win Popup */}
@@ -675,19 +688,6 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
                 <span className="text-orange-400 font-bold text-xs">{(balance * 0.000026).toFixed(2)}</span>
               </div>
             </div>
-          </div>
-
-          {/* Chip Selection */}
-          <div className="flex items-center gap-2">
-            {CHIP_VALUES.map((value) => (
-              <ChipIcon
-                key={value}
-                value={value}
-                size="lg"
-                selected={selectedChip === value}
-                onClick={() => setSelectedChip(value)}
-              />
-            ))}
           </div>
 
           {/* REBET Button */}
