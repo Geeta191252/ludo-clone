@@ -182,6 +182,33 @@ const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps)
               यह LudoClassicManual है यहा आप SET ROOM CODE मे दुसरे गेम के कोड देते है या शेयर करते है तो टेबल कैंसल कर दिया जाएगा और Penalty लगा दी जाए
             </p>
           </div>
+
+          {/* Game Rules */}
+          <div className="mx-4 mt-4 bg-white rounded-xl p-4 mb-8">
+            <h3 className="font-bold text-gray-900 text-lg mb-4">Game Rules</h3>
+            
+            <div className="space-y-3">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-gray-800">Record Every Game While Playing.</p>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-gray-800">For Cancellation Of Game, Video Proof Is Necessary.</p>
+              </div>
+              
+              <div className="border-t border-gray-200 pt-3">
+                <p className="text-gray-700 leading-relaxed">
+                  • <strong>महत्वपूर्ण नोट:</strong> कृपया गलत गेम परिणाम अपलोड न करें, अन्यथा आपके वॉलेट बैलेंस पर Penalty लगाई जायगी। गलत रिजल्ट अपडेट करने पर 50 रुपये पेनल्टी लगेगी।
+                </p>
+              </div>
+              
+              <div className="border-t border-gray-200 pt-3">
+                <p className="text-gray-700 leading-relaxed">
+                  • <strong>महत्वपूर्ण नोट:</strong> यदि आप गेम के परिणामों को अपडेट नहीं करते हैं, तो आपके वॉलेट बैलेंस पर जुर्माना लगाया जाएगा। रिजल्ट अपडेट नहीं करने पर 25 रुपये पेनल्टी लगेगी।
+                </p>
+              </div>
+            </div>
+          </div>
         </>
       ) : (
         <>
