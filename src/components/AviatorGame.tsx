@@ -67,9 +67,9 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setLiveBets(generateRandomBets());
   }, []);
   
-  // Calculated stats from actual bets - all counts
+  // Calculated stats from actual bets
   const numberOfBets = liveBets.length;
-  const totalBetsCount = liveBets.length; // Count of total bets
+  const totalBetsAmount = liveBets.reduce((sum, b) => sum + b.bet, 0); // Total rupees bet
   const totalWinningsCount = liveBets.filter(b => b.win > 0).length; // Count of winners
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -602,7 +602,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           <div>
             <div className="text-cyan-300 text-xs font-medium">Total bets</div>
             <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
-              <Coins className="w-4 h-4 text-yellow-400" /> {totalBetsCount}
+              <Coins className="w-4 h-4 text-yellow-400" /> ₹{totalBetsAmount.toFixed(0)}
             </div>
           </div>
           <div>
