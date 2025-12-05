@@ -51,7 +51,9 @@ const GamesSection = ({
     return (
       <BattleArena 
         gameName={gameNames[selectedGame]} 
-        onClose={() => setSelectedGame(null)} 
+        onClose={() => setSelectedGame(null)}
+        balance={walletBalance}
+        onBalanceChange={onWalletChange}
       />
     );
   }

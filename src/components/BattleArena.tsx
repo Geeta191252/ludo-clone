@@ -24,6 +24,8 @@ interface RunningBattle {
 interface BattleArenaProps {
   gameName: string;
   onClose: () => void;
+  balance?: number;
+  onBalanceChange?: (balance: number) => void;
 }
 
 const RupeeIcon = ({ className = "w-5 h-4" }: { className?: string }) => (
@@ -40,7 +42,7 @@ const generateRandomName = () => {
   return result;
 };
 
-const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
+const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: BattleArenaProps) => {
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -131,6 +133,20 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
   };
 
   const handlePlayBattle = (battle: OpenBattle) => {
+    // Check if user has enough balance
+    if (balance < battle.entryFee) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ₹${battle.entryFee} to play this battle`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Deduct entry fee from wallet immediately
+    const newBalance = balance - battle.entryFee;
+    onBalanceChange?.(newBalance);
+
     setOpenBattles(openBattles.filter(b => b.id !== battle.id));
     
     const newRunning: RunningBattle = {
@@ -144,7 +160,7 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
     setRunningBattles([newRunning, ...runningBattles]);
     toast({
       title: "Battle Started!",
-      description: "Open the game app to play",
+      description: `₹${battle.entryFee} deducted. Open the game app to play`,
     });
   };
 
@@ -270,23 +286,35 @@ const BattleArena = ({ gameName, onClose }: BattleArenaProps) => {
               <div className="flex items-center justify-between">
                 {/* Player 1 */}
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-pink-200 flex items-center justify-center mb-1">
+                  <div className="w-12 h-12 rounded-full bg-red-100 border-2 border-red-400 flex items-center justify-center mb-1">
                     <span className="text-2xl">👤</span>
                   </div>
-                  <span className="text-xs text-gray-500">{battle.player1.name}</span>
+                  <span className="text-xs text-gray-700 font-medium">{battle.player1.name}</span>
                 </div>
                 
-                {/* VS */}
+                {/* VS or View Button */}
                 <div className="flex items-center justify-center">
-                  <Zap className="w-8 h-8 text-blue-500" />
+                  {(battle.player1.id === "YOU" || battle.player2.id === "YOU") ? (
+                    <Button 
+                      size="sm" 
+                      className="bg-green-500 hover:bg-green-600 text-white px-6"
+                      onClick={() => toast({ title: "View Battle", description: "Battle details coming soon!" })}
+                    >
+                      View
+                    </Button>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-blue-900 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">VS</span>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Player 2 */}
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-pink-200 flex items-center justify-center mb-1">
+                  <div className="w-12 h-12 rounded-full bg-red-100 border-2 border-red-400 flex items-center justify-center mb-1">
                     <span className="text-2xl">👤</span>
                   </div>
-                  <span className="text-xs text-gray-500">{battle.player2.name}</span>
+                  <span className="text-xs text-gray-700 font-medium">{battle.player2.name}</span>
                 </div>
               </div>
             </div>
