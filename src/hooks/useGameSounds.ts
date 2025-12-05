@@ -166,7 +166,58 @@ export const useGameSounds = () => {
   }, [getAudioContext]);
 
   const playFlyingSound = useCallback(() => {
-    playTone(800, 0.05, 'sine', 0.1);
+    // Engine humming sound
+    try {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      // Variable engine frequency for realistic sound
+      const baseFreq = 150 + Math.random() * 50;
+      oscillator.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+      oscillator.frequency.linearRampToValueAtTime(baseFreq + 30, ctx.currentTime + 0.1);
+      oscillator.type = 'sawtooth';
+      
+      gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.15);
+    } catch (e) {
+      console.log('Audio not supported');
+    }
+  }, [getAudioContext]);
+
+  const playTakeoffSound = useCallback(() => {
+    // Takeoff whoosh sound
+    try {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.setValueAtTime(100, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.5);
+      oscillator.type = 'sawtooth';
+      
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.6);
+    } catch (e) {
+      console.log('Audio not supported');
+    }
+  }, [getAudioContext]);
+
+  const playCountdownBeep = useCallback(() => {
+    playTone(880, 0.15, 'sine', 0.25);
   }, [playTone]);
 
   const playDealingSound = useCallback(() => {
@@ -184,6 +235,8 @@ export const useGameSounds = () => {
     playLoseSound,
     playCrashSound,
     playFlyingSound,
+    playTakeoffSound,
+    playCountdownBeep,
     playDealingSound
   };
 };
