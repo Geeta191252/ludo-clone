@@ -160,6 +160,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               setBet1CashedOut(false);
               setBet2CashedOut(false);
               setCountdown(5);
+              setLiveBets([]); // Reset all bets to 0 for new round
               setGamePhase('waiting');
             }, 2500);
             
