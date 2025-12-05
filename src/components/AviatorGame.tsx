@@ -434,7 +434,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                     }
                   }}
                   disabled={
-                    (gamePhase === 'waiting' && betActive) || 
                     (gamePhase === 'crashed') ||
                     (gamePhase === 'flying' && !betActive) ||
                     betCashedOut
