@@ -135,16 +135,6 @@ const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps)
             </Button>
           </div>
 
-          {/* Send Code Button */}
-          <div className="mx-4 mt-4">
-            <Button 
-              onClick={handleSendCode}
-              disabled={codeSent}
-              className={`w-full font-semibold h-12 ${codeSent ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
-            >
-              {codeSent ? 'CODE SENT ✓' : 'SEND CODE TO OPPONENT'}
-            </Button>
-          </div>
 
           {/* Download App Section */}
           <div className="mx-4 mt-4 bg-gray-100 rounded-xl p-6">
