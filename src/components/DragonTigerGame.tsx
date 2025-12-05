@@ -126,11 +126,11 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       
       let win = 0;
       if (gameWinner === 'dragon' && dragonBet > 0) {
-        win = dragonBet + (dragonBet * 0.5); // Original bet + 50% profit
+        win = dragonBet * 2; // Original bet + 1:1 profit
       } else if (gameWinner === 'tiger' && tigerBet > 0) {
-        win = tigerBet + (tigerBet * 0.5); // Original bet + 50% profit
+        win = tigerBet * 2; // Original bet + 1:1 profit
       } else if (gameWinner === 'tie' && tieBet > 0) {
-        win = tieBet + (tieBet * 8); // Original bet + 8x profit
+        win = tieBet * 9; // Original bet + 8x profit
       }
       
       setWinAmount(win);
@@ -364,7 +364,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <div className="text-center">
                 <span className="text-3xl">🐲</span>
                 <div className="text-sm font-bold mt-1">Dragon</div>
-                <div className="text-xs text-orange-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:0.5</div>
+                <div className="text-xs text-orange-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:1</div>
                 {dragonBet > 0 && (
                   <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{dragonBet}
@@ -410,7 +410,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
               <div className="text-center">
                 <span className="text-3xl">🐯</span>
                 <div className="text-sm font-bold mt-1">Tiger</div>
-                <div className="text-xs text-blue-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:0.5</div>
+                <div className="text-xs text-blue-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:1</div>
                 {tigerBet > 0 && (
                   <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{tigerBet}
