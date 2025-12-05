@@ -388,7 +388,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       )}
 
       {/* Game Area */}
-      <div className="relative flex-1 mx-3 rounded-xl overflow-hidden" style={{ minHeight: '200px', maxHeight: '250px' }}>
+      <div className="relative flex-1 mx-3 rounded-xl overflow-hidden" style={{ minHeight: '150px', maxHeight: '180px' }}>
         {/* Sunburst Background */}
         <div className="absolute inset-0 bg-[#1a1a1a]">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -475,7 +475,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))'
             }}
           >
-            <svg width="120" height="70" viewBox="0 0 120 70" fill="none">
+            <svg width="80" height="50" viewBox="0 0 120 70" fill="none">
               <defs>
                 <linearGradient id="bodyGold" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#FFD93D" />
