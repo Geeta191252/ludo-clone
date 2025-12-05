@@ -67,34 +67,37 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setLiveBets(generateRandomBets());
   }, []);
   
-  // Calculated stats from actual bets
-  const numberOfBets = liveBets.length;
-  const totalBetsAmount = liveBets.reduce((sum, b) => sum + b.bet, 0); // Total rupees bet
-  const totalWinningsCount = liveBets.filter(b => b.win > 0).length; // Count of winners
+  // Calculated stats from actual bets (with safety checks)
+  const validBets = liveBets.filter(b => b && typeof b.bet === 'number');
+  const numberOfBets = validBets.length;
+  const totalBetsAmount = validBets.reduce((sum, b) => sum + b.bet, 0);
+  const totalWinningsCount = validBets.filter(b => b.win > 0).length;
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
   // Generate new bets when round starts
   // Add users one by one during flying phase
+  const betsToAddRef = useRef<{username: string, odds: string, bet: number, win: number}[]>([]);
+  const addIndexRef = useRef(0);
+  
   useEffect(() => {
     if (gamePhase !== 'flying') return;
     
-    const allBets = generateRandomBets();
-    let currentIndex = 0;
+    betsToAddRef.current = generateRandomBets();
+    addIndexRef.current = 0;
     
     const addUserInterval = setInterval(() => {
-      if (currentIndex < allBets.length) {
-        setLiveBets(prev => {
-          // Don't add if already have this user (avoid duplicates)
-          const newBet = allBets[currentIndex];
-          return [...prev, newBet];
-        });
-        currentIndex++;
+      if (addIndexRef.current < betsToAddRef.current.length) {
+        const betToAdd = betsToAddRef.current[addIndexRef.current];
+        if (betToAdd) {
+          setLiveBets(prev => [...prev, betToAdd]);
+        }
+        addIndexRef.current++;
       } else {
         clearInterval(addUserInterval);
       }
-    }, 300 + Math.random() * 400); // Random delay between 300-700ms
+    }, 400);
     
     return () => clearInterval(addUserInterval);
   }, [gamePhase]);
