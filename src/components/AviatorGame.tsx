@@ -41,9 +41,21 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [planeRotation, setPlaneRotation] = useState(-20);
   const [pathPoints, setPathPoints] = useState<{x: number, y: number}[]>([]);
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
+  const [liveUsers, setLiveUsers] = useState(2847);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
+
+  // Simulate live user count fluctuations
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveUsers(prev => {
+        const change = Math.floor(Math.random() * 21) - 10; // -10 to +10
+        return Math.max(2500, Math.min(3500, prev + change));
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Game loop
   useEffect(() => {
@@ -254,10 +266,18 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             </div>
           ))}
         </div>
-        <button className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-600">
-          <History className="w-4 h-4" />
-          <ChevronDown className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Live User Count */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/50">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-green-400 text-sm font-semibold">{liveUsers.toLocaleString()}</span>
+            <span className="text-green-400/70 text-xs">LIVE</span>
+          </div>
+          <button className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-600">
+            <History className="w-4 h-4" />
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Game Area */}
