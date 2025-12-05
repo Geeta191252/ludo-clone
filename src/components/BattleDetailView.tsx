@@ -29,8 +29,26 @@ const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps)
   const [generatedCode] = useState(() => generateRoomCode());
   const [codeSent, setCodeSent] = useState(false);
   
-  // Check if current user is the joiner (player2 = YOU means user clicked Play)
+  // Check if current user is the creator (player1 = YOU) or joiner (player2 = YOU)
+  const isCreator = battle.player1.id === "YOU";
   const isJoiner = battle.player2.id === "YOU";
+
+  const handleSetRoomCode = () => {
+    if (!roomCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter room code",
+        variant: "destructive",
+      });
+      return;
+    }
+    onSendCode?.(roomCode);
+    setCodeSent(true);
+    toast({
+      title: "Code Sent!",
+      description: "Room code sent to opponent",
+    });
+  };
 
   const handleSendCode = () => {
     onSendCode?.(generatedCode);
@@ -122,18 +140,35 @@ const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps)
       {/* Joiner View - Show Room Code */}
       {isJoiner ? (
         <>
-          {/* Room Code Display */}
-          <div className="mx-4 mt-4 bg-gray-200 rounded-xl p-4 flex items-center justify-between">
-            <span className="font-bold text-gray-800 text-lg">
-              Room Code {generatedCode}
-            </span>
-            <Button 
-              onClick={copyRoomCode}
-              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4"
-            >
-              COPY CODE
-            </Button>
-          </div>
+          {/* Room Code Display - only show after creator sends code */}
+          {battle.roomCode ? (
+            <div className="mx-4 mt-4 bg-gray-200 rounded-xl p-4 flex items-center justify-between">
+              <span className="font-bold text-gray-800 text-lg">
+                Room Code {battle.roomCode}
+              </span>
+              <Button 
+                onClick={() => {
+                  navigator.clipboard.writeText(battle.roomCode!);
+                  toast({ title: "Copied!", description: "Room code copied" });
+                }}
+                className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4"
+              >
+                COPY CODE
+              </Button>
+            </div>
+          ) : (
+            <div className="mx-4 mt-4 bg-gray-100 rounded-xl p-6">
+              <div className="text-center">
+                <h2 className="text-xl font-medium text-gray-800">Waiting for Room Code</h2>
+                <p className="text-lg text-gray-700 mt-1">
+                  रूम कोड का इंतजार है। [{countdown}]
+                </p>
+              </div>
+              <div className="flex justify-center my-6">
+                <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </div>
+          )}
 
 
           {/* Download App Section */}
@@ -231,88 +266,103 @@ const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps)
             </div>
           </div>
         </>
-      ) : (
+      ) : isCreator ? (
         <>
-          {/* Creator View */}
-          {battle.roomCode ? (
-            /* Room Code Received - Show the code */
-            <div className="mx-4 mt-4 bg-green-100 rounded-xl p-6">
+          {/* Creator View - Set Room Code */}
+          {codeSent ? (
+            <div className="mx-4 mt-4 bg-gray-200 rounded-xl p-6">
               <div className="text-center">
-                <h2 className="text-xl font-medium text-green-800">Room Code Received!</h2>
-                <p className="text-3xl font-bold text-green-600 mt-4">{battle.roomCode}</p>
-                <Button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(battle.roomCode!);
-                    toast({ title: "Copied!", description: "Room code copied" });
-                  }}
-                  className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold px-6"
-                >
-                  COPY CODE
-                </Button>
-              </div>
-
-              {/* Download App Section */}
-              <div className="mt-6">
-                <p className="text-center text-gray-700 mb-4">
-                  Open Ludo King App and join with this code
-                </p>
-                <div className="flex gap-3">
-                  <a 
-                    href="https://apps.apple.com/app/ludo-king/id993090598" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex-1 bg-black rounded-lg p-3 flex items-center justify-center gap-2"
-                  >
-                    <div className="text-white text-left">
-                      <div className="text-[10px]">Download on the</div>
-                      <div className="text-sm font-semibold">App Store</div>
-                    </div>
-                  </a>
-                  <a 
-                    href="https://play.google.com/store/apps/details?id=com.ludo.king" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex-1 bg-black rounded-lg p-3 flex items-center justify-center gap-2"
-                  >
-                    <div className="text-white text-left">
-                      <div className="text-[10px]">GET IT ON</div>
-                      <div className="text-sm font-semibold">Google Play</div>
-                    </div>
-                  </a>
-                </div>
+                <h2 className="text-xl font-medium text-green-600">Room Code Sent!</h2>
+                <p className="text-2xl font-bold text-gray-800 mt-2">{roomCode}</p>
+                <p className="text-gray-600 mt-4">Waiting for opponent to join...</p>
               </div>
             </div>
           ) : (
-            /* Waiting for Room Code */
+            /* Set Room Code Form */
+            <div className="mx-4 mt-4 bg-gray-200 rounded-xl p-6">
+              <div className="text-center">
+                <h2 className="text-xl font-medium text-gray-800">Set Room Code</h2>
+                <p className="text-gray-600 mt-1">लूडो किंग से रूम कोड अपलोड करें</p>
+              </div>
+              
+              <div className="mt-4">
+                <Input
+                  type="text"
+                  placeholder="Enter Room Code"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value)}
+                  className="w-full bg-white border-2 border-red-400 text-gray-900 text-center text-lg py-6"
+                />
+              </div>
+              
+              <Button 
+                onClick={handleSetRoomCode}
+                className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-4 text-lg"
+              >
+                SET ROOM CODE
+              </Button>
+              
+              <div className="text-center mt-4">
+                <span className="text-blue-500 font-medium">Remaining Time :</span>
+                <span className="text-red-500 font-bold text-3xl ml-2">{countdown}</span>
+                <span className="text-red-500 font-medium ml-1">seconds</span>
+              </div>
+            </div>
+          )}
+
+          {/* Game Rules for Creator */}
+          <div className="mx-4 mt-4 bg-white rounded-xl p-4 mb-8">
+            <h3 className="font-bold text-gray-900 text-lg mb-4">Game Rules</h3>
+            <div className="space-y-3">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-gray-800">Record Every Game While Playing.</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-gray-800">For Cancellation Of Game, Video Proof Is Necessary.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Match Status for Creator */}
+          <div className="mx-4 mt-4 bg-gray-100 rounded-xl p-4 mb-8">
+            <h3 className="font-bold text-gray-900 text-lg mb-3">Match Status</h3>
+            <p className="text-gray-600 italic mb-4">
+              After completion of your game, select the status of the game and post your screenshot below.
+            </p>
+            <div className="flex gap-2">
+              <button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-center">
+                <div className="text-xl">I</div>
+                <div className="text-lg">WON</div>
+              </button>
+              <button className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg text-center">
+                <div className="text-xl">I</div>
+                <div className="text-lg">LOST</div>
+              </button>
+              <button className="flex-1 bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-lg text-center border-2 border-gray-900">
+                <div className="text-lg">CANCEL</div>
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Other Player View (spectator) */}
+          {battle.roomCode ? (
+            <div className="mx-4 mt-4 bg-green-100 rounded-xl p-6">
+              <div className="text-center">
+                <h2 className="text-xl font-medium text-green-800">Room Code</h2>
+                <p className="text-3xl font-bold text-green-600 mt-4">{battle.roomCode}</p>
+              </div>
+            </div>
+          ) : (
             <div className="mx-4 mt-4 bg-gray-100 rounded-xl p-6">
               <div className="text-center">
                 <h2 className="text-xl font-medium text-gray-800">Waiting for Room Code</h2>
-                <p className="text-lg text-gray-700 mt-1">
-                  रूम कोड का इंतजार है। [{countdown}]
-                </p>
+                <p className="text-lg text-gray-700 mt-1">रूम कोड का इंतजार है। [{countdown}]</p>
               </div>
-
-              {/* Loading Spinner */}
               <div className="flex justify-center my-6">
-                <div className="relative w-16 h-16">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute w-3 h-3 rounded-full"
-                      style={{
-                        backgroundColor: `hsl(0, ${70 - i * 8}%, ${60 + i * 4}%)`,
-                        top: `${50 + 40 * Math.sin((i * Math.PI) / 4) - 6}%`,
-                        left: `${50 + 40 * Math.cos((i * Math.PI) / 4) - 6}%`,
-                        animation: `pulse 1s ease-in-out ${i * 0.125}s infinite`,
-                      }}
-                    />
-                  ))}
-                </div>
+                <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
-
-              <p className="text-center text-gray-500 text-sm">
-                Opponent is creating room code...
-              </p>
             </div>
           )}
         </>

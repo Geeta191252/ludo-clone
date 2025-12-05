@@ -135,6 +135,26 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     });
   };
 
+  // Creator clicks Start - move to running and show Set Room Code screen
+  const handleStartBattle = (battle: OpenBattle) => {
+    setOpenBattles(openBattles.filter(b => b.id !== battle.id));
+    
+    const newRunning: RunningBattle = {
+      id: `running_${Date.now()}`,
+      player1: { id: "YOU", name: "YOU" }, // Creator is player1
+      player2: { id: generateRandomName(), name: generateRandomName() }, // Simulated joiner
+      entryFee: battle.entryFee,
+      prize: battle.prize,
+    };
+    
+    setRunningBattles([newRunning, ...runningBattles]);
+    setSelectedBattle(newRunning);
+    toast({
+      title: "Battle Started!",
+      description: "Set room code for your opponent",
+    });
+  };
+
   const handlePlayBattle = (battle: OpenBattle) => {
     // Check if user has enough balance
     if (balance < battle.entryFee) {
@@ -250,6 +270,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                     <Button 
                       size="sm" 
                       className="bg-green-500 hover:bg-green-600 text-white px-4"
+                      onClick={() => handleStartBattle(battle)}
                     >
                       Start
                     </Button>
