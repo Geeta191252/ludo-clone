@@ -235,38 +235,68 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
           {openBattles.map((battle, index) => (
             <div 
               key={battle.id} 
-              className="bg-gray-100 rounded-lg p-3 transition-all duration-300"
+              className="bg-gray-200 rounded-xl overflow-hidden transition-all duration-300"
               style={{ 
                 animation: index === 0 && isRefreshing ? 'slideIn 0.3s ease-out' : 'none'
               }}
             >
-              <div className="flex items-center justify-between mb-2">
+              {/* Header with Challenge info and buttons */}
+              <div className="flex items-center justify-between p-3 pb-2">
                 <span className="text-sm text-gray-700">
-                  CHALLENGE FROM <span className="text-green-600 font-medium">{battle.creatorName}</span>
+                  Challange From <span className="text-green-600 font-bold">{battle.creatorName}</span>
                 </span>
-                {battle.creatorId !== "YOU" && (
+                {battle.creatorId === "YOU" ? (
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="bg-green-500 hover:bg-green-600 text-white px-4"
+                    >
+                      Start
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="bg-red-500 hover:bg-red-600 text-white px-4"
+                      onClick={() => setOpenBattles(openBattles.filter(b => b.id !== battle.id))}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
                   <Button 
                     size="sm" 
                     onClick={() => handlePlayBattle(battle)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white"
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-6"
                   >
-                    PLAY
+                    Play
                   </Button>
                 )}
               </div>
-              <div className="flex gap-6 text-sm">
+              
+              {/* Entry Fee, Avatar, Prize Row */}
+              <div className="bg-gray-100 p-3 flex items-center justify-between">
                 <div>
-                  <span className="text-pink-500 text-xs">ENTRY FEE</span>
+                  <span className="text-green-600 text-xs font-medium">ENTRY FEE</span>
                   <div className="flex items-center gap-1">
                     <RupeeIcon className="w-5 h-4" />
-                    <span className="text-gray-600">{battle.entryFee}</span>
+                    <span className="text-gray-800 font-bold text-lg">{battle.entryFee}</span>
                   </div>
                 </div>
-                <div>
-                  <span className="text-pink-500 text-xs">PRIZE</span>
+                
+                {/* Center Avatar - only show for creator's battle */}
+                {battle.creatorId === "YOU" && (
+                  <div className="flex flex-col items-center">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 border-2 border-orange-300 flex items-center justify-center">
+                      <span className="text-xl">😊</span>
+                    </div>
+                    <span className="text-xs text-gray-700 font-medium mt-1">{generateRandomName().slice(0,6)}</span>
+                  </div>
+                )}
+                
+                <div className={battle.creatorId === "YOU" ? "" : "ml-auto"}>
+                  <span className="text-green-600 text-xs font-medium">PRIZE</span>
                   <div className="flex items-center gap-1">
                     <RupeeIcon className="w-5 h-4" />
-                    <span className="text-gray-600">{battle.prize}</span>
+                    <span className="text-gray-800 font-bold text-lg">{battle.prize}</span>
                   </div>
                 </div>
               </div>
