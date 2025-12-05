@@ -12,7 +12,7 @@ interface BetHistory {
 
 const CARD_VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const CARD_SUITS = ['♠', '♥', '♦', '♣'];
-const CHIP_VALUES = [10, 50, 100, 500, 1000, 5000];
+const CHIP_VALUES = [10, 50, 100, 500, 1000];
 
 const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [balance, setBalance] = useState(10000);
