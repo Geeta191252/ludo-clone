@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Minus, Plus, History, ChevronDown } from 'lucide-react';
+import { useGameSounds } from '@/hooks/useGameSounds';
 
 interface AviatorGameProps {
   onClose: () => void;
@@ -41,6 +42,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { playChipSound, playWinSound, playLoseSound, playCrashSound, playFlyingSound } = useGameSounds();
 
   // Game loop
   useEffect(() => {
@@ -62,8 +64,13 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           const increment = Math.random() * 0.06 + 0.02;
           const newMultiplier = prev + increment;
           
+          // Play flying sound occasionally
+          if (Math.random() < 0.1) playFlyingSound();
+          
           const crashChance = (newMultiplier - 1) * 0.012;
           if (Math.random() < crashChance || newMultiplier > 20) {
+            playCrashSound();
+            playLoseSound();
             setGamePhase('crashed');
             setHistory(h => [parseFloat(newMultiplier.toFixed(2)), ...h.slice(0, 5)]);
             
@@ -158,6 +165,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     if (balance < amount) return;
     
+    playChipSound();
     setBalance(prev => prev - amount);
     if (betNum === 1) setBet1Active(true);
     else setBet2Active(true);
@@ -171,6 +179,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     
     if (!isActive || isCashedOut) return;
     
+    playWinSound();
     const winnings = amount * multiplier;
     setBalance(prev => prev + winnings);
     
