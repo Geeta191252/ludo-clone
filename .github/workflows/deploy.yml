@@ -33,7 +33,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
-          server-dir: ./public_html/
-          protocol: sftp
-          port: 22
+          server-dir: public_html/
+          protocol: ftps
+          port: 21
           timeout: 120000
+          dangerous-clean-slate: true
