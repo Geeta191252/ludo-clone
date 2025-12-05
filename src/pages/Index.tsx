@@ -1,5 +1,4 @@
 import { useState } from "react";
-import CommissionBanner from "@/components/CommissionBanner";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import NoticeBox from "@/components/NoticeBox";
@@ -21,7 +20,6 @@ const Index = () => {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         
         <div className="max-w-md mx-auto">
-          <CommissionBanner />
           <Header onMenuClick={() => setSidebarOpen(true)} walletBalance={100} />
           
           <main>
@@ -43,7 +41,6 @@ const Index = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="max-w-md mx-auto">
-        <CommissionBanner />
         <Header onMenuClick={() => setSidebarOpen(true)} walletBalance={100} />
         
         <main>
