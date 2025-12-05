@@ -623,22 +623,34 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
 
         {/* Table Body */}
         <div className="bg-[#151d28] max-h-64 overflow-y-auto">
-          {liveBets.map((bet, i) => {
-            const isUserBet = (bet as any).isUser;
-            return (
-              <div 
-                key={i} 
-                className={`grid grid-cols-4 py-2.5 px-3 text-sm border-b border-gray-800/50 ${
-                  isUserBet ? 'bg-yellow-500/20 border-l-4 border-l-yellow-500' : ''
-                }`}
-              >
-                <div className={isUserBet ? 'text-yellow-400 font-bold' : 'text-gray-300'}>{bet.username}</div>
-                <div className={`text-center ${bet.odds !== 'x0' ? 'text-green-400' : 'text-gray-500'}`}>{bet.odds}</div>
-                <div className={`text-center ${isUserBet ? 'text-yellow-400 font-semibold' : 'text-white'}`}>₹{bet.bet}</div>
-                <div className={`text-right ${bet.win > 0 ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>₹{bet.win}</div>
-              </div>
-            );
-          })}
+          {[...liveBets]
+            .sort((a, b) => {
+              // User bets first, Bet 1 before Bet 2
+              const aIsUser = (a as any).isUser;
+              const bIsUser = (b as any).isUser;
+              if (aIsUser && !bIsUser) return -1;
+              if (!aIsUser && bIsUser) return 1;
+              if (aIsUser && bIsUser) {
+                return (a as any).betNum - (b as any).betNum;
+              }
+              return b.bet - a.bet; // Sort others by bet amount
+            })
+            .map((bet, i) => {
+              const isUserBet = (bet as any).isUser;
+              return (
+                <div 
+                  key={i} 
+                  className={`grid grid-cols-4 py-2.5 px-3 text-sm border-b border-gray-800/50 ${
+                    isUserBet ? 'bg-yellow-500/20 border-l-4 border-l-yellow-500' : ''
+                  }`}
+                >
+                  <div className={isUserBet ? 'text-yellow-400 font-bold' : 'text-gray-300'}>{bet.username}</div>
+                  <div className={`text-center ${bet.odds !== 'x0' ? 'text-green-400' : 'text-gray-500'}`}>{bet.odds}</div>
+                  <div className={`text-center ${isUserBet ? 'text-yellow-400 font-semibold' : 'text-white'}`}>₹{bet.bet}</div>
+                  <div className={`text-right ${bet.win > 0 ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>₹{bet.win}</div>
+                </div>
+              );
+            })}
         </div>
       </div>
 
