@@ -290,7 +290,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       isUser: true,
       betNum: betNum
     };
-    setLiveBets(prev => [userBet, ...prev.filter(b => !(b as any).isUser && (b as any).betNum === betNum)]);
+    setLiveBets(prev => [userBet, ...prev.filter(b => !((b as any).isUser && (b as any).betNum === betNum))]);
   };
 
   const cancelBet = (betNum: 1 | 2) => {
