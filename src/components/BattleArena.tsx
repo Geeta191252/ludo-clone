@@ -20,6 +20,7 @@ interface RunningBattle {
   player2: { id: string; name: string };
   entryFee: number;
   prize: number;
+  roomCode?: string;
 }
 
 interface BattleArenaProps {
@@ -166,12 +167,23 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     });
   };
 
+  const handleRoomCodeSent = (battleId: string, code: string) => {
+    setRunningBattles(prev => 
+      prev.map(b => b.id === battleId ? { ...b, roomCode: code } : b)
+    );
+    // Update selected battle with room code
+    if (selectedBattle && selectedBattle.id === battleId) {
+      setSelectedBattle({ ...selectedBattle, roomCode: code });
+    }
+  };
+
   // Show Battle Detail View when a battle is selected
   if (selectedBattle) {
     return (
       <BattleDetailView 
         battle={selectedBattle}
         onBack={() => setSelectedBattle(null)}
+        onSendCode={(code) => handleRoomCodeSent(selectedBattle.id, code)}
       />
     );
   }
