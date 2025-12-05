@@ -43,11 +43,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playChipSound, playWinSound, playLoseSound, playCrashSound, playFlyingSound, playTakeoffSound, playCountdownBeep } = useGameSounds();
+  const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
   // Game loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let engineCleanup: (() => void) | null = null;
     
     if (gamePhase === 'waiting') {
       // 5 second countdown
@@ -70,16 +71,17 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     }
     
     if (gamePhase === 'flying') {
+      // Start continuous engine sound
+      engineCleanup = startEngineSound();
+      
       interval = setInterval(() => {
         setMultiplier(prev => {
           const increment = Math.random() * 0.06 + 0.02;
           const newMultiplier = prev + increment;
           
-          // Play flying sound occasionally
-          if (Math.random() < 0.2) playFlyingSound();
-          
           const crashChance = (newMultiplier - 1) * 0.012;
           if (Math.random() < crashChance || newMultiplier > 20) {
+            stopEngineSound();
             playCrashSound();
             playLoseSound();
             setGamePhase('crashed');
@@ -114,6 +116,8 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     
     return () => {
       if (interval) clearInterval(interval);
+      if (engineCleanup) engineCleanup();
+      stopEngineSound();
     };
   }, [gamePhase]);
 
