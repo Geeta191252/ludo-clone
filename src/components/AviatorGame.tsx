@@ -252,6 +252,17 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setBalance(prev => prev - amount);
     if (betNum === 1) setBet1Active(true);
     else setBet2Active(true);
+    
+    // Add user's bet to the table
+    const userBet = {
+      username: `YOU (Bet ${betNum})`,
+      odds: 'x0',
+      bet: amount,
+      win: 0,
+      isUser: true,
+      betNum: betNum
+    };
+    setLiveBets(prev => [userBet, ...prev.filter(b => !(b as any).isUser && (b as any).betNum === betNum)]);
   };
 
   const cancelBet = (betNum: 1 | 2) => {
@@ -264,6 +275,9 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setBalance(prev => prev + amount);
     if (betNum === 1) setBet1Active(false);
     else setBet2Active(false);
+    
+    // Remove user's bet from table
+    setLiveBets(prev => prev.filter(b => !((b as any).isUser && (b as any).betNum === betNum)));
   };
 
   const cashOut = (betNum: 1 | 2) => {
@@ -283,6 +297,14 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     
     if (betNum === 1) setBet1CashedOut(true);
     else setBet2CashedOut(true);
+    
+    // Update user's bet in table with win
+    setLiveBets(prev => prev.map(b => {
+      if ((b as any).isUser && (b as any).betNum === betNum) {
+        return { ...b, odds: `x${multiplier.toFixed(2)}`, win: Math.floor(winnings) };
+      }
+      return b;
+    }));
   };
 
   const getMultiplierColor = (mult: number) => {
@@ -601,14 +623,22 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
 
         {/* Table Body */}
         <div className="bg-[#151d28] max-h-64 overflow-y-auto">
-          {liveBets.map((bet, i) => (
-            <div key={i} className="grid grid-cols-4 py-2.5 px-3 text-sm border-b border-gray-800/50">
-              <div className="text-gray-300">{bet.username}</div>
-              <div className={`text-center ${bet.odds !== 'x0' ? 'text-green-400' : 'text-gray-500'}`}>{bet.odds}</div>
-              <div className="text-center text-white">₹{bet.bet}</div>
-              <div className={`text-right ${bet.win > 0 ? 'text-green-400' : 'text-gray-500'}`}>₹{bet.win}</div>
-            </div>
-          ))}
+          {liveBets.map((bet, i) => {
+            const isUserBet = (bet as any).isUser;
+            return (
+              <div 
+                key={i} 
+                className={`grid grid-cols-4 py-2.5 px-3 text-sm border-b border-gray-800/50 ${
+                  isUserBet ? 'bg-yellow-500/20 border-l-4 border-l-yellow-500' : ''
+                }`}
+              >
+                <div className={isUserBet ? 'text-yellow-400 font-bold' : 'text-gray-300'}>{bet.username}</div>
+                <div className={`text-center ${bet.odds !== 'x0' ? 'text-green-400' : 'text-gray-500'}`}>{bet.odds}</div>
+                <div className={`text-center ${isUserBet ? 'text-yellow-400 font-semibold' : 'text-white'}`}>₹{bet.bet}</div>
+                <div className={`text-right ${bet.win > 0 ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>₹{bet.win}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
