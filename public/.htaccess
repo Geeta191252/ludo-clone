@@ -1,9 +1,23 @@
+# Enable directory browsing fix
+Options -Indexes
+
+# Set default directory index
+DirectoryIndex index.html
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+  
+  # Handle Angular/React/Vue Router
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !-l
   RewriteRule . /index.html [L]
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
 </IfModule>
