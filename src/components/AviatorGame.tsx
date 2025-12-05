@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, History, ChevronDown, Users, Coins, DollarSign } from 'lucide-react';
 import { useGameSounds } from '@/hooks/useGameSounds';
-import aviatorPlane from '@/assets/aviator-plane.png';
 
 interface AviatorGameProps {
   onClose: () => void;
@@ -491,15 +490,75 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             style={{ 
               left: `${planePosition.x}%`, 
               top: `${planePosition.y}%`,
-              transform: `translate(-50%, -50%) rotate(${planeRotation}deg)`
+              transform: `translate(-50%, -50%) rotate(${planeRotation}deg)`,
+              filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))'
             }}
           >
-            <img 
-              src={aviatorPlane} 
-              alt="Aviator Plane" 
-              className="w-24 h-auto object-contain"
-              style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.5))' }}
-            />
+            <svg width="120" height="70" viewBox="0 0 120 70" fill="none">
+              <defs>
+                <linearGradient id="bodyGold" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#FFD93D" />
+                  <stop offset="30%" stopColor="#F4A42E" />
+                  <stop offset="70%" stopColor="#E08B1A" />
+                  <stop offset="100%" stopColor="#C67614" />
+                </linearGradient>
+                <linearGradient id="wingGold" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#FFEB6B" />
+                  <stop offset="50%" stopColor="#E8A424" />
+                  <stop offset="100%" stopColor="#B86B0A" />
+                </linearGradient>
+                <linearGradient id="cockpitGold" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#FFE066" />
+                  <stop offset="100%" stopColor="#D4871A" />
+                </linearGradient>
+                <linearGradient id="engineGold" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#D4871A" />
+                  <stop offset="100%" stopColor="#8B5A0A" />
+                </linearGradient>
+              </defs>
+              
+              {/* Tail Section */}
+              <path d="M8 35 L22 22 L28 24 L22 35 Z" fill="url(#wingGold)" />
+              <path d="M8 35 L22 48 L28 46 L22 35 Z" fill="url(#wingGold)" />
+              <ellipse cx="15" cy="35" rx="8" ry="5" fill="url(#bodyGold)" />
+              
+              {/* Main Fuselage */}
+              <ellipse cx="55" cy="35" rx="42" ry="14" fill="url(#bodyGold)" />
+              
+              {/* Top Wing */}
+              <path d="M35 35 L55 8 L68 12 L52 35 Z" fill="url(#wingGold)" stroke="#C67614" strokeWidth="0.5" />
+              
+              {/* Bottom Wing */}
+              <path d="M35 35 L55 62 L68 58 L52 35 Z" fill="url(#wingGold)" stroke="#C67614" strokeWidth="0.5" />
+              
+              {/* Cockpit Dome */}
+              <ellipse cx="68" cy="30" rx="14" ry="10" fill="url(#cockpitGold)" />
+              <ellipse cx="68" cy="30" rx="11" ry="7" fill="#5C3D0A" opacity="0.85" />
+              <ellipse cx="66" cy="28" rx="4" ry="2" fill="#8B6914" opacity="0.4" />
+              
+              {/* Nose/Engine Section */}
+              <ellipse cx="95" cy="35" rx="12" ry="9" fill="url(#engineGold)" />
+              <circle cx="102" cy="35" r="6" fill="#8B5A0A" />
+              <circle cx="102" cy="35" r="4" fill="#6B4A0A" />
+              
+              {/* Propeller */}
+              <ellipse cx="110" cy="35" rx="3" ry="14" fill="#444" opacity="0.8">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="rotate" 
+                  from="0 110 35" 
+                  to="360 110 35" 
+                  dur="0.08s" 
+                  repeatCount="indefinite"
+                />
+              </ellipse>
+              
+              {/* Wing Highlights */}
+              <path d="M40 32 L52 14 L56 16 L46 32 Z" fill="#FFE066" opacity="0.3" />
+              
+              {/* Body Highlight */}
+              <ellipse cx="50" cy="28" rx="25" ry="4" fill="#FFE066" opacity="0.25" />
+            </svg>
           </div>
         )}
         
