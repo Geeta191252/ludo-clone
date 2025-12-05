@@ -42,6 +42,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [pathPoints, setPathPoints] = useState<{x: number, y: number}[]>([]);
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
   const [liveUsers, setLiveUsers] = useState(2847);
+  const [showHistory, setShowHistory] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
@@ -273,12 +274,32 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             <span className="text-green-400 text-sm font-semibold">{liveUsers.toLocaleString()}</span>
             <span className="text-green-400/70 text-xs">LIVE</span>
           </div>
-          <button className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-600">
+          <button 
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-600 hover:bg-gray-700 transition-colors"
+          >
             <History className="w-4 h-4" />
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className={`w-4 h-4 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </div>
+
+      {/* History Panel */}
+      {showHistory && (
+        <div className="mx-4 mb-2 p-3 bg-gray-800/90 rounded-xl border border-gray-700 max-h-40 overflow-y-auto">
+          <div className="text-xs text-gray-400 mb-2 font-semibold">ROUND HISTORY</div>
+          <div className="flex flex-wrap gap-2">
+            {history.map((mult, i) => (
+              <div
+                key={i}
+                className={`px-3 py-1.5 rounded-full text-sm font-bold ${getMultiplierColor(mult)}`}
+              >
+                {mult.toFixed(2)}x
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Game Area */}
       <div className="relative flex-1 mx-3 rounded-xl overflow-hidden" style={{ minHeight: '200px', maxHeight: '250px' }}>
