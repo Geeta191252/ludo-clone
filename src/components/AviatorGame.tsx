@@ -264,7 +264,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       ctx.lineTo((point.x / 100) * w, (point.y / 100) * h);
     }
     
-    ctx.strokeStyle = '#dc143c';
+    ctx.strokeStyle = '#ffd700';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -482,7 +482,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           )}
         </div>
 
-        {/* Red Airplane */}
+        {/* Golden Propeller Airplane */}
         {gamePhase === 'flying' && (
           <div 
             className="absolute z-30 transition-all duration-75"
@@ -492,23 +492,68 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               transform: `translate(-50%, -50%) rotate(${planeRotation}deg)`
             }}
           >
-            <svg width="80" height="50" viewBox="0 0 80 50" fill="none">
-              {/* Plane body */}
-              <ellipse cx="35" cy="25" rx="30" ry="12" fill="#dc143c" />
-              {/* Cockpit */}
-              <ellipse cx="58" cy="25" rx="12" ry="8" fill="#8b0000" />
+            <svg width="100" height="60" viewBox="0 0 100 60" fill="none">
+              {/* Main body - Golden fuselage */}
+              <ellipse cx="50" cy="30" rx="35" ry="12" fill="url(#goldGradient)" />
+              
+              {/* Cockpit dome */}
+              <ellipse cx="60" cy="26" rx="12" ry="8" fill="url(#cockpitGradient)" />
+              <ellipse cx="60" cy="26" rx="10" ry="6" fill="#4a3520" opacity="0.8" />
+              
+              {/* Nose cone */}
+              <ellipse cx="82" cy="30" rx="8" ry="6" fill="url(#noseGradient)" />
+              
               {/* Top wing */}
-              <path d="M20 25 L35 5 L45 5 L35 25 Z" fill="#dc143c" />
+              <path d="M30 30 L50 8 L60 10 L45 30 Z" fill="url(#wingGradient)" stroke="#b8860b" strokeWidth="1" />
+              
               {/* Bottom wing */}
-              <path d="M20 25 L35 45 L45 45 L35 25 Z" fill="#dc143c" />
-              {/* Tail */}
-              <path d="M5 25 L15 15 L15 35 Z" fill="#dc143c" />
-              {/* Propeller */}
-              <ellipse cx="68" cy="25" rx="3" ry="10" fill="#333" />
-              {/* Window */}
-              <ellipse cx="50" cy="23" rx="4" ry="3" fill="#222" />
-              {/* X mark on wing */}
-              <text x="28" y="28" fill="#8b0000" fontSize="10" fontWeight="bold">X</text>
+              <path d="M30 30 L50 52 L60 50 L45 30 Z" fill="url(#wingGradient)" stroke="#b8860b" strokeWidth="1" />
+              
+              {/* Tail fin vertical */}
+              <path d="M12 30 L20 18 L25 20 L20 30 Z" fill="url(#tailGradient)" />
+              
+              {/* Tail fin horizontal */}
+              <path d="M12 30 L20 42 L25 40 L20 30 Z" fill="url(#tailGradient)" />
+              
+              {/* Engine housing */}
+              <circle cx="88" cy="30" r="5" fill="#8b6914" />
+              
+              {/* Propeller blur effect */}
+              <ellipse cx="94" cy="30" rx="4" ry="12" fill="#555" opacity="0.7">
+                <animateTransform 
+                  attributeName="transform" 
+                  type="rotate" 
+                  from="0 94 30" 
+                  to="360 94 30" 
+                  dur="0.1s" 
+                  repeatCount="indefinite"
+                />
+              </ellipse>
+              
+              {/* Gradients */}
+              <defs>
+                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffd700" />
+                  <stop offset="50%" stopColor="#daa520" />
+                  <stop offset="100%" stopColor="#b8860b" />
+                </linearGradient>
+                <linearGradient id="cockpitGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffd700" />
+                  <stop offset="100%" stopColor="#cd853f" />
+                </linearGradient>
+                <linearGradient id="noseGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#daa520" />
+                  <stop offset="100%" stopColor="#8b6914" />
+                </linearGradient>
+                <linearGradient id="wingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffc125" />
+                  <stop offset="100%" stopColor="#cd853f" />
+                </linearGradient>
+                <linearGradient id="tailGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#b8860b" />
+                  <stop offset="100%" stopColor="#daa520" />
+                </linearGradient>
+              </defs>
             </svg>
           </div>
         )}
