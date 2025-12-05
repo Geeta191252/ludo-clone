@@ -162,11 +162,8 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     setRunningBattles([newRunning, ...runningBattles]);
     toast({
       title: "Battle Started!",
-      description: `₹${battle.entryFee} deducted. Open the game app to play`,
+      description: `₹${battle.entryFee} deducted. Click View to see details`,
     });
-
-    // Auto open battle detail view
-    setSelectedBattle(newRunning);
   };
 
   // Show Battle Detail View when a battle is selected
