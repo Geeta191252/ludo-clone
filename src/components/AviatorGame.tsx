@@ -71,7 +71,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const validBets = liveBets.filter(b => b && typeof b.bet === 'number');
   const numberOfBets = validBets.length;
   const totalBetsAmount = validBets.reduce((sum, b) => sum + b.bet, 0);
-  const totalWinningsCount = validBets.filter(b => b.win > 0).length;
+  const totalWinningsAmount = validBets.reduce((sum, b) => sum + (b.win || 0), 0); // Total INR won
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
@@ -636,7 +636,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           <div>
             <div className="text-red-300 text-xs font-medium">Total winnings</div>
             <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
-              <DollarSign className="w-4 h-4 text-green-400" /> {totalWinningsCount}
+              <DollarSign className="w-4 h-4 text-green-400" /> ₹{totalWinningsAmount}
             </div>
           </div>
         </div>
