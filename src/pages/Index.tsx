@@ -12,6 +12,7 @@ type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'av
 const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
+  const [walletBalance, setWalletBalance] = useState(10000);
 
   // When a game is selected, show only the battle arena
   if (selectedGame) {
@@ -20,12 +21,14 @@ const Index = () => {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         
         <div className="max-w-md mx-auto">
-          <Header onMenuClick={() => setSidebarOpen(true)} walletBalance={100} />
+          <Header onMenuClick={() => setSidebarOpen(true)} walletBalance={walletBalance} />
           
           <main>
             <GamesSection 
               selectedGame={selectedGame} 
-              onGameSelect={setSelectedGame} 
+              onGameSelect={setSelectedGame}
+              walletBalance={walletBalance}
+              onWalletChange={setWalletBalance}
             />
           </main>
         </div>
@@ -41,14 +44,16 @@ const Index = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="max-w-md mx-auto">
-        <Header onMenuClick={() => setSidebarOpen(true)} walletBalance={100} />
+        <Header onMenuClick={() => setSidebarOpen(true)} walletBalance={walletBalance} />
         
         <main>
           <NoticeBox />
           <InstantWithdrawal />
           <GamesSection 
             selectedGame={selectedGame} 
-            onGameSelect={setSelectedGame} 
+            onGameSelect={setSelectedGame}
+            walletBalance={walletBalance}
+            onWalletChange={setWalletBalance}
           />
         </main>
       </div>

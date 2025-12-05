@@ -4,6 +4,8 @@ import { useGameSounds } from '@/hooks/useGameSounds';
 
 interface DragonTigerGameProps {
   onClose: () => void;
+  balance?: number;
+  onBalanceChange?: (balance: number) => void;
 }
 
 interface BetHistory {
@@ -15,8 +17,19 @@ const CARD_VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q'
 const CARD_SUITS = ['♠', '♥', '♦', '♣'];
 const CHIP_VALUES = [10, 50, 100, 500, 1000];
 
-const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
-  const [balance, setBalance] = useState(10000);
+const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: externalBalance, onBalanceChange }) => {
+  const [internalBalance, setInternalBalance] = useState(10000);
+  const balance = externalBalance !== undefined ? externalBalance : internalBalance;
+  
+  const setBalance = (value: number | ((prev: number) => number)) => {
+    const newBalance = typeof value === 'function' ? value(balance) : value;
+    if (onBalanceChange) {
+      onBalanceChange(newBalance);
+    } else {
+      setInternalBalance(newBalance);
+    }
+  };
+
   const [selectedChip, setSelectedChip] = useState(100);
   const [dragonBet, setDragonBet] = useState(0);
   const [tigerBet, setTigerBet] = useState(0);
