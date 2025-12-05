@@ -396,18 +396,30 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                       placeBet(panelNum as 1 | 2);
                     }
                   }}
-                  className={`w-24 rounded-xl font-bold text-base transition-all ${
+                  disabled={
+                    (gamePhase === 'waiting' && betActive) || 
+                    (gamePhase === 'crashed') ||
+                    (gamePhase === 'flying' && !betActive) ||
+                    betCashedOut
+                  }
+                  className={`w-24 rounded-xl font-bold text-base transition-all active:scale-95 ${
                     betActive && gamePhase === 'flying' && !betCashedOut
                       ? 'bg-orange-500 text-white'
                       : betCashedOut
-                      ? 'bg-gray-600 text-gray-300'
-                      : 'bg-green-500 text-white'
+                      ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                      : betActive && gamePhase === 'waiting'
+                      ? 'bg-red-600 text-white'
+                      : gamePhase === 'waiting' && !betActive
+                      ? 'bg-green-500 text-white hover:bg-green-400'
+                      : 'bg-gray-600 text-gray-300 cursor-not-allowed'
                   }`}
                 >
                   {betActive && gamePhase === 'flying' && !betCashedOut
                     ? `₹${(betAmount * multiplier).toFixed(0)}`
                     : betCashedOut
                     ? 'WON'
+                    : betActive && gamePhase === 'waiting'
+                    ? 'CANCEL'
                     : 'BET'}
                 </button>
               </div>
