@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, TrendingUp, User } from 'lucide-react';
+import { ChevronLeft, Volume2, VolumeX, Users, Repeat } from 'lucide-react';
 
 interface DragonTigerGameProps {
   onClose: () => void;
@@ -16,7 +16,7 @@ const CHIP_VALUES = [10, 50, 100, 500, 1000, 5000];
 
 const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [balance, setBalance] = useState(10000);
-  const [selectedChip, setSelectedChip] = useState(10);
+  const [selectedChip, setSelectedChip] = useState(100);
   const [dragonBet, setDragonBet] = useState(0);
   const [tigerBet, setTigerBet] = useState(0);
   const [tieBet, setTieBet] = useState(0);
@@ -29,10 +29,13 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     { id: 4, winner: 'tiger' }, { id: 5, winner: 'dragon' }, { id: 6, winner: 'tiger' },
     { id: 7, winner: 'tie' }, { id: 8, winner: 'dragon' }, { id: 9, winner: 'tiger' },
     { id: 10, winner: 'tiger' }, { id: 11, winner: 'dragon' }, { id: 12, winner: 'dragon' },
+    { id: 13, winner: 'tiger' }, { id: 14, winner: 'dragon' }, { id: 15, winner: 'tiger' },
   ]);
   const [timer, setTimer] = useState(15);
   const [gamePhase, setGamePhase] = useState<'betting' | 'dealing' | 'result'>('betting');
   const [winAmount, setWinAmount] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showWinPopup, setShowWinPopup] = useState(false);
 
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
@@ -52,14 +55,23 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     else setTieBet(prev => prev + selectedChip);
   };
 
+  const clearBets = () => {
+    if (gamePhase !== 'betting') return;
+    const totalBet = dragonBet + tigerBet + tieBet;
+    setBalance(prev => prev + totalBet);
+    setDragonBet(0);
+    setTigerBet(0);
+    setTieBet(0);
+  };
+
   const handleDeal = () => {
     if (gamePhase !== 'betting') return;
     setGamePhase('dealing');
     setShowResult(false);
     setWinner(null);
     setWinAmount(0);
+    setShowWinPopup(false);
 
-    // Winner logic: Area with LEAST bets wins (house edge)
     let gameWinner: 'dragon' | 'tiger' | 'tie';
     
     if (dragonBet === 0 && tigerBet === 0 && tieBet === 0) {
@@ -77,7 +89,6 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       gameWinner = lowestBets[Math.floor(Math.random() * lowestBets.length)].area;
     }
 
-    // Generate cards matching winner
     const generateCards = () => {
       let dragonValue: number, tigerValue: number;
       
@@ -102,18 +113,17 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     
     setTimeout(() => {
       setDragonCard(cards.dragon);
-    }, 500);
+    }, 800);
     
     setTimeout(() => {
       setTigerCard(cards.tiger);
-    }, 1000);
+    }, 1600);
 
     setTimeout(() => {
       setWinner(gameWinner);
       setShowResult(true);
       setGamePhase('result');
       
-      // Calculate winnings
       let win = 0;
       if (gameWinner === 'dragon' && dragonBet > 0) {
         win = dragonBet * 2;
@@ -124,9 +134,12 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       }
       
       setWinAmount(win);
-      setBalance(prev => prev + win);
+      if (win > 0) {
+        setShowWinPopup(true);
+        setBalance(prev => prev + win);
+      }
       setHistory(prev => [{ id: Date.now(), winner: gameWinner }, ...prev.slice(0, 19)]);
-    }, 2000);
+    }, 2500);
 
     setTimeout(() => {
       resetRound();
@@ -142,14 +155,15 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     setTigerBet(0);
     setTieBet(0);
     setWinAmount(0);
+    setShowWinPopup(false);
     setTimer(15);
     setGamePhase('betting');
   };
 
   const getHistoryColor = (w: string) => {
-    if (w === 'dragon') return 'bg-blue-600';
-    if (w === 'tiger') return 'bg-amber-600';
-    return 'bg-green-600';
+    if (w === 'dragon') return 'bg-orange-500';
+    if (w === 'tiger') return 'bg-blue-500';
+    return 'bg-green-500';
   };
 
   const getHistoryLetter = (w: string) => {
@@ -158,30 +172,59 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     return 'T';
   };
 
+  // Timer circle progress
+  const timerProgress = (timer / 15) * 100;
+  const circumference = 2 * Math.PI * 40;
+  const strokeDashoffset = circumference - (timerProgress / 100) * circumference;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0a2e] via-[#16213e] to-[#0d1b2a] text-white">
+    <div className="min-h-screen bg-[#1a1a2e] text-white relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 25% 25%, #ff6b00 0%, transparent 50%),
+                           radial-gradient(circle at 75% 75%, #0066ff 0%, transparent 50%)`
+        }} />
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-900/50 to-blue-900/50 border-b border-purple-500/30">
-        <button onClick={onClose} className="p-2">
-          <ChevronLeft className="w-6 h-6" />
+      <div className="relative z-10 flex items-center justify-between p-3 bg-gradient-to-r from-[#2d1f3d] to-[#1a2d4a]">
+        <button onClick={onClose} className="p-2 rounded-full bg-white/10">
+          <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-            Dragon Tiger
-          </span>
+        <div className="text-center">
+          <h1 className="text-lg font-bold tracking-wider">DRAGON TIGER</h1>
+          <p className="text-xs text-gray-400">Round #4521</p>
         </div>
-        <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full">
-          <span className="text-yellow-400 font-bold">₹{balance.toLocaleString()}</span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setIsMuted(!isMuted)} className="p-2 rounded-full bg-white/10">
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Balance Bar */}
+      <div className="relative z-10 flex justify-between items-center px-4 py-2 bg-black/30">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-400">1,234</span>
+        </div>
+        <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-1.5 rounded-full">
+          <span className="text-sm font-bold">₹{balance.toLocaleString()}</span>
         </div>
       </div>
 
       {/* History Row */}
-      <div className="p-2 bg-black/30">
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {history.slice(0, 15).map((h, idx) => (
+      <div className="relative z-10 px-3 py-2 bg-black/20">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs text-gray-400">History</span>
+          <div className="flex-1 h-px bg-gray-700" />
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {history.slice(0, 20).map((h) => (
             <div
               key={h.id}
-              className={`w-7 h-7 rounded-full ${getHistoryColor(h.winner)} flex items-center justify-center text-xs font-bold flex-shrink-0`}
+              className={`w-6 h-6 rounded-full ${getHistoryColor(h.winner)} flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-lg`}
             >
               {getHistoryLetter(h.winner)}
             </div>
@@ -190,96 +233,140 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       </div>
 
       {/* Main Game Area */}
-      <div className="p-3">
-        {/* Cards Display */}
-        <div className="flex justify-center gap-12 mb-4">
-          {/* Dragon Card */}
-          <div className="text-center">
-            <div className="text-blue-400 font-bold text-lg mb-2">DRAGON</div>
-            <div className={`w-20 h-28 rounded-lg flex items-center justify-center text-2xl font-bold
-              ${dragonCard ? 'bg-white' : 'bg-gradient-to-br from-blue-600 to-blue-800'} 
-              border-2 ${winner === 'dragon' && showResult ? 'border-yellow-400 shadow-lg shadow-yellow-400/50' : 'border-blue-400/50'}
-              transition-all duration-500`}>
-              {dragonCard ? (
-                <span className={dragonCard.suit === '♥' || dragonCard.suit === '♦' ? 'text-red-500' : 'text-black'}>
-                  {dragonCard.value}{dragonCard.suit}
-                </span>
-              ) : (
-                <span className="text-blue-300/50">?</span>
-              )}
-            </div>
-            {dragonCard && (
-              <div className="mt-1 text-blue-400 font-bold">{dragonCard.numValue}</div>
-            )}
-          </div>
-
-          {/* VS */}
-          <div className="flex flex-col items-center justify-center">
-            <div className="text-3xl font-bold text-yellow-500">VS</div>
+      <div className="relative z-10 flex-1 p-3">
+        {/* Cards and Timer Section */}
+        <div className="relative mb-4">
+          {/* Timer Circle in Center */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
             {gamePhase === 'betting' && (
-              <div className={`mt-2 text-2xl font-bold ${timer <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                {timer}s
+              <div className="relative">
+                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="#1a1a2e"
+                    stroke="#333"
+                    strokeWidth="6"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke={timer <= 5 ? '#ff4444' : '#00ff88'}
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <div className={`absolute inset-0 flex items-center justify-center text-3xl font-bold ${timer <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                  {timer}
+                </div>
               </div>
             )}
             {gamePhase === 'dealing' && (
-              <div className="mt-2 text-lg text-yellow-400 animate-pulse">Dealing...</div>
+              <div className="w-24 h-24 rounded-full bg-black/80 flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full" />
+              </div>
             )}
-          </div>
-
-          {/* Tiger Card */}
-          <div className="text-center">
-            <div className="text-amber-400 font-bold text-lg mb-2">TIGER</div>
-            <div className={`w-20 h-28 rounded-lg flex items-center justify-center text-2xl font-bold
-              ${tigerCard ? 'bg-white' : 'bg-gradient-to-br from-amber-600 to-amber-800'} 
-              border-2 ${winner === 'tiger' && showResult ? 'border-yellow-400 shadow-lg shadow-yellow-400/50' : 'border-amber-400/50'}
-              transition-all duration-500`}>
-              {tigerCard ? (
-                <span className={tigerCard.suit === '♥' || tigerCard.suit === '♦' ? 'text-red-500' : 'text-black'}>
-                  {tigerCard.value}{tigerCard.suit}
-                </span>
-              ) : (
-                <span className="text-amber-300/50">?</span>
-              )}
-            </div>
-            {tigerCard && (
-              <div className="mt-1 text-amber-400 font-bold">{tigerCard.numValue}</div>
-            )}
-          </div>
-        </div>
-
-        {/* Winner Display */}
-        {showResult && (
-          <div className="mb-4 text-center animate-bounce">
-            <div className={`inline-block px-6 py-3 rounded-lg text-xl font-bold
-              ${winner === 'dragon' ? 'bg-blue-600' : winner === 'tiger' ? 'bg-amber-600' : 'bg-green-600'}`}>
-              {winner === 'dragon' ? 'DRAGON WINS!' : winner === 'tiger' ? 'TIGER WINS!' : 'TIE!'}
-            </div>
-            {winAmount > 0 && (
-              <div className="mt-2 text-2xl font-bold text-yellow-400">
-                +₹{winAmount.toLocaleString()}
+            {showResult && (
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center text-xl font-bold
+                ${winner === 'dragon' ? 'bg-gradient-to-br from-orange-500 to-red-600' : 
+                  winner === 'tiger' ? 'bg-gradient-to-br from-blue-500 to-blue-700' : 
+                  'bg-gradient-to-br from-green-500 to-green-700'} animate-bounce shadow-2xl`}>
+                {winner === 'dragon' ? 'D' : winner === 'tiger' ? 'T' : 'TIE'}
               </div>
             )}
           </div>
-        )}
+
+          {/* Cards Display */}
+          <div className="flex justify-between items-center px-2">
+            {/* Dragon Side */}
+            <div className="text-center flex-1">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-2xl">🐲</span>
+                <span className="text-orange-400 font-bold text-lg">DRAGON</span>
+              </div>
+              <div className={`relative mx-auto w-20 h-28 rounded-lg overflow-hidden transform transition-all duration-500
+                ${dragonCard ? 'rotate-0' : 'rotate-y-180'}
+                ${winner === 'dragon' && showResult ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 scale-110' : ''}`}>
+                {dragonCard ? (
+                  <div className="w-full h-full bg-white rounded-lg flex flex-col items-center justify-center shadow-xl">
+                    <span className={`text-4xl font-bold ${dragonCard.suit === '♥' || dragonCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                      {dragonCard.value}
+                    </span>
+                    <span className={`text-2xl ${dragonCard.suit === '♥' || dragonCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                      {dragonCard.suit}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-orange-600 to-red-700 rounded-lg flex items-center justify-center border-2 border-orange-400/50">
+                    <span className="text-4xl">🐲</span>
+                  </div>
+                )}
+              </div>
+              {dragonCard && (
+                <div className="mt-2 text-orange-400 font-bold text-lg">{dragonCard.numValue}</div>
+              )}
+            </div>
+
+            {/* Spacer for center timer */}
+            <div className="w-28" />
+
+            {/* Tiger Side */}
+            <div className="text-center flex-1">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-blue-400 font-bold text-lg">TIGER</span>
+                <span className="text-2xl">🐯</span>
+              </div>
+              <div className={`relative mx-auto w-20 h-28 rounded-lg overflow-hidden transform transition-all duration-500
+                ${tigerCard ? 'rotate-0' : 'rotate-y-180'}
+                ${winner === 'tiger' && showResult ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 scale-110' : ''}`}>
+                {tigerCard ? (
+                  <div className="w-full h-full bg-white rounded-lg flex flex-col items-center justify-center shadow-xl">
+                    <span className={`text-4xl font-bold ${tigerCard.suit === '♥' || tigerCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                      {tigerCard.value}
+                    </span>
+                    <span className={`text-2xl ${tigerCard.suit === '♥' || tigerCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                      {tigerCard.suit}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center border-2 border-blue-400/50">
+                    <span className="text-4xl">🐯</span>
+                  </div>
+                )}
+              </div>
+              {tigerCard && (
+                <div className="mt-2 text-blue-400 font-bold text-lg">{tigerCard.numValue}</div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Betting Table */}
-        <div className="bg-gradient-to-b from-[#0d3320] to-[#0a2818] rounded-xl p-4 border border-green-800/50">
+        <div className="bg-gradient-to-b from-[#0d4a2a] to-[#073d1f] rounded-2xl p-3 border border-green-700/50 shadow-2xl">
           <div className="grid grid-cols-3 gap-2">
             {/* Dragon Bet Area */}
             <button
               onClick={() => placeBet('dragon')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-4 rounded-lg transition-all
+              className={`relative p-3 rounded-xl transition-all duration-300 min-h-[100px]
                 ${winner === 'dragon' && showResult 
-                  ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse' 
-                  : 'bg-gradient-to-b from-blue-700 to-blue-900 hover:from-blue-600 hover:to-blue-800'}
-                ${gamePhase !== 'betting' ? 'opacity-60' : ''}`}
+                  ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
+                  : 'bg-gradient-to-b from-orange-600/80 to-orange-800/80 hover:from-orange-500 hover:to-orange-700'}
+                ${gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'}
+                border-2 ${winner === 'dragon' && showResult ? 'border-yellow-300' : 'border-orange-500/50'}`}
             >
               <div className="text-center">
-                <div className="text-lg font-bold mb-1">Dragon</div>
-                <div className="text-sm text-blue-200">1:1</div>
+                <span className="text-3xl">🐲</span>
+                <div className="text-sm font-bold mt-1">Dragon</div>
+                <div className="text-xs text-orange-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:1</div>
                 {dragonBet > 0 && (
-                  <div className="mt-2 bg-black/50 rounded-full px-3 py-1 text-yellow-400 font-bold">
+                  <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{dragonBet}
                   </div>
                 )}
@@ -290,17 +377,19 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
             <button
               onClick={() => placeBet('tie')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-4 rounded-lg transition-all
+              className={`relative p-3 rounded-xl transition-all duration-300 min-h-[100px]
                 ${winner === 'tie' && showResult 
-                  ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse' 
-                  : 'bg-gradient-to-b from-green-700 to-green-900 hover:from-green-600 hover:to-green-800'}
-                ${gamePhase !== 'betting' ? 'opacity-60' : ''}`}
+                  ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
+                  : 'bg-gradient-to-b from-green-600/80 to-green-800/80 hover:from-green-500 hover:to-green-700'}
+                ${gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'}
+                border-2 ${winner === 'tie' && showResult ? 'border-yellow-300' : 'border-green-500/50'}`}
             >
               <div className="text-center">
-                <div className="text-lg font-bold mb-1">Tie</div>
-                <div className="text-sm text-green-200">1:8</div>
+                <span className="text-3xl">🤝</span>
+                <div className="text-sm font-bold mt-1">Tie</div>
+                <div className="text-xs text-green-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:8</div>
                 {tieBet > 0 && (
-                  <div className="mt-2 bg-black/50 rounded-full px-3 py-1 text-yellow-400 font-bold">
+                  <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{tieBet}
                   </div>
                 )}
@@ -311,17 +400,19 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
             <button
               onClick={() => placeBet('tiger')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-4 rounded-lg transition-all
+              className={`relative p-3 rounded-xl transition-all duration-300 min-h-[100px]
                 ${winner === 'tiger' && showResult 
-                  ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse' 
-                  : 'bg-gradient-to-b from-amber-700 to-amber-900 hover:from-amber-600 hover:to-amber-800'}
-                ${gamePhase !== 'betting' ? 'opacity-60' : ''}`}
+                  ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
+                  : 'bg-gradient-to-b from-blue-600/80 to-blue-800/80 hover:from-blue-500 hover:to-blue-700'}
+                ${gamePhase !== 'betting' ? 'opacity-70' : 'active:scale-95'}
+                border-2 ${winner === 'tiger' && showResult ? 'border-yellow-300' : 'border-blue-500/50'}`}
             >
               <div className="text-center">
-                <div className="text-lg font-bold mb-1">Tiger</div>
-                <div className="text-sm text-amber-200">1:1</div>
+                <span className="text-3xl">🐯</span>
+                <div className="text-sm font-bold mt-1">Tiger</div>
+                <div className="text-xs text-blue-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:1</div>
                 {tigerBet > 0 && (
-                  <div className="mt-2 bg-black/50 rounded-full px-3 py-1 text-yellow-400 font-bold">
+                  <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{tigerBet}
                   </div>
                 )}
@@ -332,41 +423,73 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
 
         {/* Chip Selection */}
         <div className="mt-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-400">Select Chip</span>
+            <button 
+              onClick={clearBets}
+              disabled={gamePhase !== 'betting' || (dragonBet === 0 && tigerBet === 0 && tieBet === 0)}
+              className="flex items-center gap-1 text-sm text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Repeat className="w-4 h-4" />
+              Clear
+            </button>
+          </div>
           <div className="flex justify-center gap-2 flex-wrap">
             {CHIP_VALUES.map(value => (
               <button
                 key={value}
                 onClick={() => setSelectedChip(value)}
-                className={`w-14 h-14 rounded-full flex flex-col items-center justify-center text-xs font-bold
-                  transition-all border-2 border-white/30
+                disabled={gamePhase !== 'betting'}
+                className={`relative w-14 h-14 rounded-full flex flex-col items-center justify-center text-xs font-bold
+                  transition-all duration-200 border-4
                   ${selectedChip === value 
-                    ? 'ring-2 ring-yellow-400 scale-110' 
+                    ? 'ring-4 ring-yellow-400 scale-110 shadow-lg shadow-yellow-400/30' 
                     : 'hover:scale-105'}
-                  ${value === 10 ? 'bg-gradient-to-b from-gray-500 to-gray-700' :
-                    value === 50 ? 'bg-gradient-to-b from-green-500 to-green-700' :
-                    value === 100 ? 'bg-gradient-to-b from-blue-500 to-blue-700' :
-                    value === 500 ? 'bg-gradient-to-b from-pink-500 to-pink-700' :
-                    value === 1000 ? 'bg-gradient-to-b from-yellow-500 to-yellow-700' :
-                    'bg-gradient-to-b from-orange-500 to-orange-700'}`}
+                  ${gamePhase !== 'betting' ? 'opacity-50' : ''}
+                  ${value === 10 ? 'bg-gradient-to-b from-gray-400 to-gray-600 border-gray-300' :
+                    value === 50 ? 'bg-gradient-to-b from-green-400 to-green-600 border-green-300' :
+                    value === 100 ? 'bg-gradient-to-b from-blue-400 to-blue-600 border-blue-300' :
+                    value === 500 ? 'bg-gradient-to-b from-purple-400 to-purple-600 border-purple-300' :
+                    value === 1000 ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 border-yellow-300' :
+                    'bg-gradient-to-b from-red-400 to-red-600 border-red-300'}`}
               >
-                <span className="text-white">{value >= 1000 ? `${value/1000}K` : value}</span>
+                <span className="text-white drop-shadow-lg">{value >= 1000 ? `${value/1000}K` : value}</span>
               </button>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Game Stats */}
-        <div className="mt-4 flex justify-center gap-4 text-sm">
-          <div className="flex items-center gap-1 text-gray-400">
-            <User className="w-4 h-4" />
-            <span>1,234 players</span>
-          </div>
-          <div className="flex items-center gap-1 text-gray-400">
-            <TrendingUp className="w-4 h-4" />
-            <span>Round #4521</span>
+      {/* Win Popup */}
+      {showWinPopup && winAmount > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fade-in">
+          <div className="text-center animate-scale-in">
+            <div className="relative">
+              {/* Celebration effects */}
+              <div className="absolute -inset-20 flex items-center justify-center">
+                {[...Array(12)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-3 h-3 bg-yellow-400 rounded-full animate-ping"
+                    style={{
+                      transform: `rotate(${i * 30}deg) translateY(-80px)`,
+                      animationDelay: `${i * 0.1}s`
+                    }}
+                  />
+                ))}
+              </div>
+              
+              <div className="bg-gradient-to-b from-yellow-500 to-yellow-700 rounded-3xl p-8 shadow-2xl border-4 border-yellow-300">
+                <div className="text-6xl mb-4">🎉</div>
+                <div className="text-3xl font-bold text-white mb-2">YOU WIN!</div>
+                <div className="text-5xl font-bold text-white">
+                  ₹{winAmount.toLocaleString()}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
