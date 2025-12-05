@@ -76,30 +76,37 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
-  // Generate new bets when round starts
-  // Add users one by one during flying phase
+  // Add users one by one during waiting phase (when countdown starts)
   const betsToAddRef = useRef<{username: string, odds: string, bet: number, win: number}[]>([]);
   const addIndexRef = useRef(0);
+  const waitingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    if (gamePhase !== 'flying') return;
-    
-    betsToAddRef.current = generateRandomBets();
-    addIndexRef.current = 0;
-    
-    const addUserInterval = setInterval(() => {
-      if (addIndexRef.current < betsToAddRef.current.length) {
-        const betToAdd = betsToAddRef.current[addIndexRef.current];
-        if (betToAdd) {
-          setLiveBets(prev => [...prev, betToAdd]);
+    if (gamePhase === 'waiting') {
+      // Generate bets for waiting phase - users placing bets
+      betsToAddRef.current = generateRandomBets();
+      addIndexRef.current = 0;
+      
+      waitingIntervalRef.current = setInterval(() => {
+        if (addIndexRef.current < betsToAddRef.current.length) {
+          const betToAdd = betsToAddRef.current[addIndexRef.current];
+          if (betToAdd) {
+            setLiveBets(prev => [...prev, betToAdd]);
+          }
+          addIndexRef.current++;
+        } else {
+          if (waitingIntervalRef.current) {
+            clearInterval(waitingIntervalRef.current);
+          }
         }
-        addIndexRef.current++;
-      } else {
-        clearInterval(addUserInterval);
-      }
-    }, 400);
+      }, 500); // Add user every 500ms during waiting
+    }
     
-    return () => clearInterval(addUserInterval);
+    return () => {
+      if (waitingIntervalRef.current) {
+        clearInterval(waitingIntervalRef.current);
+      }
+    };
   }, [gamePhase]);
 
   // Simulate live user count and odds updates during flight
