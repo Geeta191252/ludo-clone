@@ -44,28 +44,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [liveUsers, setLiveUsers] = useState(2847);
   const [showHistory, setShowHistory] = useState(false);
   
-  // Simulated live bets from other players
-  const [liveBets] = useState([
-    { username: '*******97', odds: 'x0', bet: 47.52, win: 0 },
-    { username: '*******75', odds: 'x0', bet: 32.85, win: 0 },
-    { username: '*******83', odds: 'x0', bet: 11.13, win: 0 },
-    { username: '*******15', odds: 'x0', bet: 9.67, win: 0 },
-    { username: '*******75', odds: 'x0', bet: 8.45, win: 0 },
-    { username: '*******83', odds: 'x0', bet: 5.57, win: 0 },
-    { username: '*******63', odds: 'x0', bet: 5.51, win: 0 },
-    { username: '*******51', odds: 'x0', bet: 5.34, win: 0 },
-    { username: '*******41', odds: 'x0', bet: 5.33, win: 0 },
-    { username: '*******27', odds: 'x0', bet: 5.30, win: 0 },
-    { username: '*******53', odds: 'x0', bet: 5.05, win: 0 },
-    { username: '*******53', odds: 'x0', bet: 5.05, win: 0 },
-    { username: '*******45', odds: 'x0', bet: 4.24, win: 0 },
-    { username: '*******29', odds: 'x0', bet: 4.20, win: 0 },
-    { username: '*******27', odds: 'x0', bet: 4.10, win: 0 },
-  ]);
-
-  const totalBets = liveBets.reduce((sum, b) => sum + b.bet, 0);
-  const totalWinnings = liveBets.reduce((sum, b) => sum + b.win, 0);
-  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
@@ -521,52 +499,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                     ? 'CANCEL'
                     : 'BET'}
                 </button>
-      </div>
-
-      {/* Live Bets Stats Panel */}
-      <div className="mx-2 mt-2 rounded-xl overflow-hidden">
-        {/* Stats Header */}
-        <div className="bg-[#1a3a5c] grid grid-cols-3 py-3 px-4 text-center">
-          <div>
-            <div className="text-cyan-300 text-xs font-medium">Number of bets</div>
-            <div className="text-white font-bold flex items-center justify-center gap-1">
-              <span className="text-yellow-400">👤</span> {liveBets.length + 390}
-            </div>
-          </div>
-          <div>
-            <div className="text-cyan-300 text-xs font-medium">Total bets</div>
-            <div className="text-white font-bold flex items-center justify-center gap-1">
-              <span className="text-yellow-400">💰</span> {totalBets.toFixed(2)} INR
-            </div>
-          </div>
-          <div>
-            <div className="text-cyan-300 text-xs font-medium">Total winnings</div>
-            <div className="text-white font-bold flex items-center justify-center gap-1">
-              <span className="text-yellow-400">💵</span> {totalWinnings} INR
-            </div>
-          </div>
-        </div>
-
-        {/* Table Header */}
-        <div className="bg-[#2a3a4a] grid grid-cols-4 py-2 px-4 text-xs text-gray-400 font-semibold">
-          <div>USERNAME</div>
-          <div className="text-center">ODDS</div>
-          <div className="text-center">BET</div>
-          <div className="text-right">WIN</div>
-        </div>
-
-        {/* Table Body */}
-        <div className="bg-[#1e2a3a] max-h-48 overflow-y-auto">
-          {liveBets.map((bet, i) => (
-            <div key={i} className="grid grid-cols-4 py-2 px-4 text-sm border-b border-gray-700/30">
-              <div className="text-gray-300">{bet.username}</div>
-              <div className="text-center text-gray-400">{bet.odds}</div>
-              <div className="text-center text-white">{bet.bet.toFixed(2)} INR</div>
-              <div className="text-right text-gray-400">{bet.win} INR</div>
-            </div>
-          ))}
-        </div>
-      </div>
+              </div>
             </div>
           );
         })}
