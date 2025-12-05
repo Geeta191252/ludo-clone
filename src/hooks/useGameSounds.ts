@@ -141,6 +141,34 @@ export const useGameSounds = () => {
     setTimeout(() => playTone(150, 0.4, 'sawtooth', 0.15), 200);
   }, [playTone]);
 
+  const playCrashSound = useCallback(() => {
+    // Explosion/crash sound
+    try {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.setValueAtTime(400, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.5);
+      oscillator.type = 'sawtooth';
+      
+      gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.5);
+    } catch (e) {
+      console.log('Audio not supported');
+    }
+  }, [getAudioContext]);
+
+  const playFlyingSound = useCallback(() => {
+    playTone(800, 0.05, 'sine', 0.1);
+  }, [playTone]);
+
   const playDealingSound = useCallback(() => {
     playTone(500, 0.1, 'triangle', 0.2);
   }, [playTone]);
@@ -154,6 +182,8 @@ export const useGameSounds = () => {
     playTigerRoarSound,
     playDragonRoarSound,
     playLoseSound,
+    playCrashSound,
+    playFlyingSound,
     playDealingSound
   };
 };
