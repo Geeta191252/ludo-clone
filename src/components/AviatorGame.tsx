@@ -31,6 +31,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [betAmount2, setBetAmount2] = useState(10);
   const [multiplier, setMultiplier] = useState(1.00);
   const [gamePhase, setGamePhase] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
+  const [countdown, setCountdown] = useState(5);
   const [bet1Active, setBet1Active] = useState(false);
   const [bet2Active, setBet2Active] = useState(false);
   const [bet1CashedOut, setBet1CashedOut] = useState(false);
@@ -42,20 +43,30 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playChipSound, playWinSound, playLoseSound, playCrashSound, playFlyingSound } = useGameSounds();
+  const { playChipSound, playWinSound, playLoseSound, playCrashSound, playFlyingSound, playTakeoffSound, playCountdownBeep } = useGameSounds();
 
   // Game loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (gamePhase === 'waiting') {
-      const timeout = setTimeout(() => {
-        setGamePhase('flying');
-        setMultiplier(1.00);
-        setPathPoints([{ x: 0, y: 100 }]);
-        setPlanePosition({ x: 10, y: 80 });
-      }, 3000);
-      return () => clearTimeout(timeout);
+      // 5 second countdown
+      interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            playTakeoffSound();
+            setGamePhase('flying');
+            setMultiplier(1.00);
+            setPathPoints([{ x: 0, y: 100 }]);
+            setPlanePosition({ x: 10, y: 80 });
+            return 5;
+          }
+          // Play countdown beep sound
+          playCountdownBeep();
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
     }
     
     if (gamePhase === 'flying') {
@@ -65,7 +76,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           const newMultiplier = prev + increment;
           
           // Play flying sound occasionally
-          if (Math.random() < 0.1) playFlyingSound();
+          if (Math.random() < 0.2) playFlyingSound();
           
           const crashChance = (newMultiplier - 1) * 0.012;
           if (Math.random() < crashChance || newMultiplier > 20) {
@@ -79,6 +90,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               setBet2Active(false);
               setBet1CashedOut(false);
               setBet2CashedOut(false);
+              setCountdown(5);
               setGamePhase('waiting');
             }, 2500);
             
@@ -281,8 +293,15 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
         {/* Multiplier Display */}
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           {gamePhase === 'waiting' ? (
-            <div className="text-4xl font-bold text-gray-400 animate-pulse">
-              WAITING...
+            <div className="text-center">
+              <div className="text-6xl font-black text-white mb-2">{countdown}</div>
+              <div className="text-xl font-bold text-gray-400">PLACE YOUR BET</div>
+              <div className="mt-4 w-32 h-2 bg-gray-700 rounded-full overflow-hidden mx-auto">
+                <div 
+                  className="h-full bg-green-500 transition-all duration-1000"
+                  style={{ width: `${(countdown / 5) * 100}%` }}
+                />
+              </div>
             </div>
           ) : gamePhase === 'crashed' ? (
             <div className="text-center">
