@@ -43,28 +43,30 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
   const [liveUsers, setLiveUsers] = useState(2847);
   const [showHistory, setShowHistory] = useState(false);
-  const [liveBets, setLiveBets] = useState([
-    { username: '*******75', odds: 'x0', bet: 3285, win: 0 },
-    { username: '*******07', odds: 'x0', bet: 2513, win: 0 },
-    { username: '*******07', odds: 'x0', bet: 2513, win: 0 },
-    { username: '*******87', odds: 'x0', bet: 1018, win: 0 },
-    { username: '*******87', odds: 'x0', bet: 1001, win: 0 },
-    { username: '*******75', odds: 'x0', bet: 845, win: 0 },
-    { username: '*******43', odds: 'x0', bet: 778, win: 0 },
-    { username: '*******15', odds: 'x0', bet: 634, win: 0 },
-    { username: '*******53', odds: 'x0', bet: 632, win: 0 },
-    { username: '*******53', odds: 'x0', bet: 632, win: 0 },
-    { username: '*******43', odds: 'x0', bet: 556, win: 0 },
-    { username: '*******15', odds: 'x0', bet: 555, win: 0 },
-    { username: '*******63', odds: 'x0', bet: 551, win: 0 },
-    { username: '*******71', odds: 'x0', bet: 356, win: 0 },
-    { username: '*******51', odds: 'x0', bet: 336, win: 0 },
-    { username: '*******83', odds: 'x0', bet: 320, win: 0 },
-    { username: '*******83', odds: 'x0', bet: 320, win: 0 },
-    { username: '*******45', odds: 'x0', bet: 318, win: 0 },
-    { username: '*******63', odds: 'x0', bet: 267, win: 0 },
-  ]);
+  const [liveBets, setLiveBets] = useState<{username: string, odds: string, bet: number, win: number}[]>([]);
   const [totalWinnings, setTotalWinnings] = useState(2100);
+  
+  // Generate random bets for each round
+  const generateRandomBets = () => {
+    const numBets = Math.floor(Math.random() * 10) + 15; // 15-25 bets
+    const newBets = [];
+    for (let i = 0; i < numBets; i++) {
+      const randomNum = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+      newBets.push({
+        username: `*******${randomNum}`,
+        odds: 'x0',
+        bet: Math.floor(Math.random() * 5000) + 100, // 100-5100 INR
+        win: 0
+      });
+    }
+    // Sort by bet amount descending
+    return newBets.sort((a, b) => b.bet - a.bet);
+  };
+
+  // Initialize bets on first load
+  useEffect(() => {
+    setLiveBets(generateRandomBets());
+  }, []);
   
   // Calculated stats
   const numberOfBets = liveBets.length + Math.floor(liveUsers / 7);
@@ -73,30 +75,44 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
-  // Simulate live user count and winnings fluctuations
+  // Generate new bets when round starts
+  useEffect(() => {
+    if (gamePhase === 'flying') {
+      setLiveBets(generateRandomBets());
+      setTotalWinnings(prev => prev + Math.floor(Math.random() * 1000));
+    }
+  }, [gamePhase]);
+
+  // Simulate live user count and odds updates during flight
   useEffect(() => {
     const interval = setInterval(() => {
       setLiveUsers(prev => {
-        const change = Math.floor(Math.random() * 21) - 10; // -10 to +10
+        const change = Math.floor(Math.random() * 21) - 10;
         return Math.max(2500, Math.min(3500, prev + change));
       });
-      // Randomly add winnings
-      if (Math.random() > 0.7) {
-        setTotalWinnings(prev => prev + Math.floor(Math.random() * 500));
+      // Update odds during flying phase
+      if (gamePhase === 'flying') {
+        setLiveBets(prev => {
+          const newBets = [...prev];
+          // Randomly cash out some users
+          for (let i = 0; i < 2; i++) {
+            const randomIndex = Math.floor(Math.random() * newBets.length);
+            if (newBets[randomIndex].odds === 'x0' && Math.random() > 0.6) {
+              const mult = (Math.random() * (multiplier - 1) + 1).toFixed(2);
+              newBets[randomIndex] = { 
+                ...newBets[randomIndex], 
+                odds: `x${mult}`, 
+                win: Math.floor(newBets[randomIndex].bet * parseFloat(mult)) 
+              };
+              setTotalWinnings(w => w + newBets[randomIndex].win);
+            }
+          }
+          return newBets;
+        });
       }
-      // Randomly update a bet's odds
-      setLiveBets(prev => {
-        const newBets = [...prev];
-        const randomIndex = Math.floor(Math.random() * newBets.length);
-        if (Math.random() > 0.8) {
-          const mult = (Math.random() * 3 + 1).toFixed(2);
-          newBets[randomIndex] = { ...newBets[randomIndex], odds: `x${mult}`, win: Math.floor(newBets[randomIndex].bet * parseFloat(mult)) };
-        }
-        return newBets;
-      });
-    }, 2000);
+    }, 1500);
     return () => clearInterval(interval);
-  }, []);
+  }, [gamePhase, multiplier]);
 
   // Game loop
   useEffect(() => {
