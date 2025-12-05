@@ -57,6 +57,85 @@ export const useGameSounds = () => {
     });
   }, [playTone]);
 
+  const playTigerRoarSound = useCallback(() => {
+    // Tiger roar - low growling sound building up
+    try {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const oscillator2 = ctx.createOscillator();
+      
+      oscillator.connect(gainNode);
+      oscillator2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      // Main roar frequency sweep
+      oscillator.frequency.setValueAtTime(80, ctx.currentTime);
+      oscillator.frequency.linearRampToValueAtTime(150, ctx.currentTime + 0.2);
+      oscillator.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.5);
+      oscillator.frequency.linearRampToValueAtTime(60, ctx.currentTime + 0.8);
+      oscillator.type = 'sawtooth';
+      
+      // Harmonic for growl texture
+      oscillator2.frequency.setValueAtTime(160, ctx.currentTime);
+      oscillator2.frequency.linearRampToValueAtTime(300, ctx.currentTime + 0.2);
+      oscillator2.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.5);
+      oscillator2.type = 'triangle';
+      
+      // Volume envelope - builds up then fades
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.2);
+      gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.5);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator2.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.8);
+      oscillator2.stop(ctx.currentTime + 0.8);
+    } catch (e) {
+      console.log('Audio not supported');
+    }
+  }, [getAudioContext]);
+
+  const playDragonRoarSound = useCallback(() => {
+    // Dragon roar - deeper, more rumbling
+    try {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const oscillator2 = ctx.createOscillator();
+      
+      oscillator.connect(gainNode);
+      oscillator2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      // Deep rumbling frequency
+      oscillator.frequency.setValueAtTime(50, ctx.currentTime);
+      oscillator.frequency.linearRampToValueAtTime(120, ctx.currentTime + 0.3);
+      oscillator.frequency.linearRampToValueAtTime(80, ctx.currentTime + 0.6);
+      oscillator.frequency.linearRampToValueAtTime(40, ctx.currentTime + 1.0);
+      oscillator.type = 'sawtooth';
+      
+      // Fire crackle overlay
+      oscillator2.frequency.setValueAtTime(200, ctx.currentTime);
+      oscillator2.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.3);
+      oscillator2.frequency.linearRampToValueAtTime(150, ctx.currentTime + 0.8);
+      oscillator2.type = 'square';
+      
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.3);
+      gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.6);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.0);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator2.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 1.0);
+      oscillator2.stop(ctx.currentTime + 1.0);
+    } catch (e) {
+      console.log('Audio not supported');
+    }
+  }, [getAudioContext]);
+
   const playLoseSound = useCallback(() => {
     playTone(200, 0.3, 'sawtooth', 0.2);
     setTimeout(() => playTone(150, 0.4, 'sawtooth', 0.15), 200);
@@ -72,6 +151,8 @@ export const useGameSounds = () => {
     playTickSound,
     playUrgentTickSound,
     playWinSound,
+    playTigerRoarSound,
+    playDragonRoarSound,
     playLoseSound,
     playDealingSound
   };
