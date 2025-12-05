@@ -1,84 +1,101 @@
-import { ArrowLeft, Plus, ArrowDownToLine, Wallet as WalletIcon, TrendingUp } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import rupeeIcon from "@/assets/rupee-icon.png";
+import BottomNav from "@/components/BottomNav";
 
 const Wallet = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen pb-20" style={{ backgroundColor: '#F5D547' }}>
       {/* Header */}
-      <div className="flex items-center gap-4 p-4 border-b border-border">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-secondary rounded-lg">
-          <ArrowLeft className="w-5 h-5" />
+      <div className="flex items-center gap-4 p-4 border-b border-black/10">
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-black/10 rounded-lg">
+          <ArrowLeft className="w-5 h-5 text-black" />
         </button>
-        <h1 className="text-xl font-bold">My Wallet</h1>
+        <h1 className="text-xl font-bold text-black">My Wallet</h1>
       </div>
 
-      {/* Balance Card */}
-      <div className="p-4">
-        <div className="bg-gradient-to-br from-primary/20 to-primary/5 p-6 rounded-2xl border border-primary/30">
-          <p className="text-muted-foreground mb-2">Total Balance</p>
-          <div className="flex items-center gap-2 mb-4">
-            <img src={rupeeIcon} alt="₹" className="w-8 h-8" />
-            <span className="text-4xl font-bold">10,000</span>
+      {/* Wallet Content */}
+      <div className="p-4 space-y-6">
+        {/* Deposit Chips Section */}
+        <div className="rounded-xl border-2 border-black/20 overflow-hidden">
+          {/* Header */}
+          <div className="py-3 px-4 text-center" style={{ backgroundColor: '#1D6B6B' }}>
+            <h2 className="text-xl font-bold text-white">Deposit Chips</h2>
           </div>
-          <div className="flex gap-3">
-            <Button className="flex-1 bg-green-600 hover:bg-green-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Cash
+          
+          {/* Description */}
+          <div className="p-4 text-center" style={{ backgroundColor: '#FFF8DC' }}>
+            <p className="text-red-600 text-sm font-medium">
+              यह चिप्स Win अवं Buy की गई चिप्स है इनसे सिर्फ गेम खेले जा सकते है,
+              <br />
+              बैंक या <span className="italic">UPI</span> से निकाला नहीं जा सकता है
+            </p>
+          </div>
+
+          {/* Amount Display */}
+          <div className="flex justify-center py-6" style={{ backgroundColor: '#F5D547' }}>
+            <div className="bg-white rounded-xl shadow-lg px-12 py-6 text-center">
+              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+                <span className="text-white font-bold text-xl">₹</span>
+              </div>
+              <p className="text-3xl font-bold text-black">₹ 134</p>
+              <p className="text-gray-600 text-lg">Chips</p>
+            </div>
+          </div>
+
+          {/* Add Button */}
+          <div className="px-4 pb-4" style={{ backgroundColor: '#F5D547' }}>
+            <Button 
+              className="w-full py-6 text-lg font-bold text-white rounded-xl"
+              style={{ backgroundColor: '#1D6B6B' }}
+            >
+              Add
             </Button>
-            <Button className="flex-1" variant="outline">
-              <ArrowDownToLine className="w-4 h-4 mr-2" />
-              Withdraw
+          </div>
+        </div>
+
+        {/* Winning Chips Section */}
+        <div className="rounded-xl border-2 border-black/20 overflow-hidden">
+          {/* Header */}
+          <div className="py-3 px-4 text-center" style={{ backgroundColor: '#1D6B6B' }}>
+            <h2 className="text-xl font-bold text-white">Winning Chips</h2>
+          </div>
+          
+          {/* Description */}
+          <div className="p-4 text-center" style={{ backgroundColor: '#FFF8DC' }}>
+            <p className="text-red-600 text-sm font-medium">
+              यह चिप्स गेम से जीती हुई एवं रेफरल से कमाई हुई है, इन्हे बैंक या <span className="italic">UPI</span> में
+              <br />
+              निकाला जा सकता है, इन चिप्स से गेम भी खेला जा सकता है
+            </p>
+          </div>
+
+          {/* Amount Display */}
+          <div className="flex justify-center py-6" style={{ backgroundColor: '#F5D547' }}>
+            <div className="bg-white rounded-xl shadow-lg px-12 py-6 text-center">
+              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+                <span className="text-white font-bold text-xl">₹</span>
+              </div>
+              <p className="text-3xl font-bold text-black">₹ 0</p>
+              <p className="text-gray-600 text-lg">Chips</p>
+            </div>
+          </div>
+
+          {/* Withdrawal Button */}
+          <div className="px-4 pb-4" style={{ backgroundColor: '#F5D547' }}>
+            <Button 
+              className="w-full py-6 text-lg font-bold text-white rounded-xl"
+              style={{ backgroundColor: '#1D6B6B' }}
+            >
+              Withdrawal
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Balance Breakdown */}
-      <div className="px-4 space-y-3">
-        <h3 className="font-semibold text-lg">Balance Details</h3>
-        
-        <div className="bg-card p-4 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-              <WalletIcon className="w-5 h-5 text-green-500" />
-            </div>
-            <div>
-              <p className="font-medium">Deposit Balance</p>
-              <p className="text-xs text-muted-foreground">Can be used to play</p>
-            </div>
-          </div>
-          <span className="font-bold">₹5,000</span>
-        </div>
-
-        <div className="bg-card p-4 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium">Winning Balance</p>
-              <p className="text-xs text-muted-foreground">Can be withdrawn</p>
-            </div>
-          </div>
-          <span className="font-bold">₹5,000</span>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="p-4 mt-4">
-        <h3 className="font-semibold text-lg mb-3">Quick Add</h3>
-        <div className="grid grid-cols-4 gap-2">
-          {[100, 500, 1000, 2000].map((amount) => (
-            <Button key={amount} variant="outline" className="h-12">
-              ₹{amount}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <BottomNav />
     </div>
   );
 };
