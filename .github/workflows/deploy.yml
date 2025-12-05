@@ -26,14 +26,13 @@ jobs:
       - name: List build output
         run: ls -la ./dist/
         
-      - name: Deploy to Hostinger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Deploy to Hostinger via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/
-          server-dir: domains/rajasthanludo.com/public_html/
-          protocol: ftps
-          port: 21
-          timeout: 60000
+          port: 22
+          local_path: ./dist/*
+          remote_path: /domains/rajasthanludo.com/public_html/
+          sftp_only: true
