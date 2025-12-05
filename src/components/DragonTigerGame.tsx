@@ -38,7 +38,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [showWinPopup, setShowWinPopup] = useState(false);
 
-  const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playLoseSound } = useGameSounds();
+  const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playTigerRoarSound, playDragonRoarSound, playLoseSound } = useGameSounds();
 
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
@@ -163,12 +163,26 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       }
       
       setWinAmount(win);
+      
+      // Play winner announcement sound (roar)
+      if (!isMuted) {
+        if (gameWinner === 'tiger') {
+          playTigerRoarSound();
+        } else if (gameWinner === 'dragon') {
+          playDragonRoarSound();
+        }
+      }
+      
       if (win > 0) {
-        if (!isMuted) playWinSound();
+        setTimeout(() => {
+          if (!isMuted) playWinSound();
+        }, 500);
         setShowWinPopup(true);
         setBalance(prev => prev + win);
       } else if (dragonBet > 0 || tigerBet > 0 || tieBet > 0) {
-        if (!isMuted) playLoseSound();
+        setTimeout(() => {
+          if (!isMuted) playLoseSound();
+        }, 500);
       }
       setHistory(prev => [{ id: Date.now(), winner: gameWinner }, ...prev.slice(0, 19)]);
     }, 2500);
