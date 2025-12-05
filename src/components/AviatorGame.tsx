@@ -711,6 +711,8 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             })
             .map((bet, i) => {
               const isUserBet = (bet as any).isUser;
+              const isLoser = gamePhase === 'crashed' && bet.odds === 'x0'; // User lost - didn't cash out
+              const isWinner = bet.win > 0;
               return (
                 <div 
                   key={i} 
@@ -718,10 +720,26 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                     isUserBet ? 'bg-yellow-500/20 border-l-4 border-l-yellow-500' : ''
                   }`}
                 >
-                  <div className={isUserBet ? 'text-yellow-400 font-bold' : 'text-gray-300'}>{bet.username}</div>
-                  <div className={`text-center ${bet.odds !== 'x0' ? 'text-green-400' : 'text-gray-500'}`}>{bet.odds}</div>
-                  <div className={`text-center ${isUserBet ? 'text-yellow-400 font-semibold' : 'text-white'}`}>₹{bet.bet}</div>
-                  <div className={`text-right ${bet.win > 0 ? 'text-green-400 font-semibold' : 'text-gray-500'}`}>₹{bet.win}</div>
+                  <div className={
+                    isUserBet ? 'text-yellow-400 font-bold' : 
+                    isLoser ? 'text-red-500' : 
+                    'text-gray-300'
+                  }>{bet.username}</div>
+                  <div className={`text-center ${
+                    isWinner ? 'text-green-400' : 
+                    isLoser ? 'text-red-500' : 
+                    'text-gray-500'
+                  }`}>{bet.odds}</div>
+                  <div className={`text-center ${
+                    isUserBet ? 'text-yellow-400 font-semibold' : 
+                    isLoser ? 'text-red-500' : 
+                    'text-white'
+                  }`}>₹{bet.bet}</div>
+                  <div className={`text-right ${
+                    isWinner ? 'text-green-400 font-semibold' : 
+                    isLoser ? 'text-red-500' : 
+                    'text-gray-500'
+                  }`}>₹{bet.win}</div>
                 </div>
               );
             })}
