@@ -1,4 +1,4 @@
-import { X, User, Wallet, Trophy, History, Clock, Gift, Users, Bell, HelpCircle, LogOut, ChevronRight } from "lucide-react";
+import { X, User, Wallet, Trophy, History, Clock, Gift, Users, Bell, HelpCircle, LogOut, ChevronRight, ArrowDownToLine } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface SidebarProps {
@@ -11,6 +11,7 @@ const menuItems = [
   { icon: Trophy, label: "Win Cash", href: "/" },
   { icon: Wallet, label: "My Wallet", href: "/wallet" },
   { icon: History, label: "Games History", href: "/game-history" },
+  { icon: ArrowDownToLine, label: "Withdraw History", href: "/withdraw-history" },
   { icon: Clock, label: "Transaction History", href: "/game-history" },
   { icon: Gift, label: "Refer & Earn", href: "/refer-earn" },
   { icon: Users, label: "Referral History", href: "/refer-earn" },

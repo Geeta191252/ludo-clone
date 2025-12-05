@@ -8,6 +8,7 @@ import Profile from "./pages/Profile";
 import Wallet from "./pages/Wallet";
 import GameHistory from "./pages/GameHistory";
 import ReferEarn from "./pages/ReferEarn";
+import WithdrawHistory from "./pages/WithdrawHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/game-history" element={<GameHistory />} />
           <Route path="/refer-earn" element={<ReferEarn />} />
+          <Route path="/withdraw-history" element={<WithdrawHistory />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
