@@ -1,4 +1,5 @@
 import { X, User, Wallet, Trophy, History, Clock, Gift, Users, Bell, HelpCircle, LogOut, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,11 +11,11 @@ const menuItems = [
   { icon: Trophy, label: "Win Cash", href: "/" },
   { icon: Wallet, label: "My Wallet", href: "/wallet" },
   { icon: History, label: "Games History", href: "/game-history" },
-  { icon: Clock, label: "Transaction History", href: "/transaction-history" },
+  { icon: Clock, label: "Transaction History", href: "/game-history" },
   { icon: Gift, label: "Refer & Earn", href: "/refer-earn" },
-  { icon: Users, label: "Referral History", href: "/referral-history" },
-  { icon: Bell, label: "Notification", href: "/notification" },
-  { icon: HelpCircle, label: "Support", href: "/support" },
+  { icon: Users, label: "Referral History", href: "/refer-earn" },
+  { icon: Bell, label: "Notification", href: "/" },
+  { icon: HelpCircle, label: "Support", href: "/" },
 ];
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
@@ -51,9 +52,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           {/* Menu Items */}
           <nav className="space-y-1">
             {menuItems.map((item) => (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
+                to={item.href}
+                onClick={onClose}
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-sidebar-accent transition-colors group"
               >
                 <div className="flex items-center gap-3">
@@ -63,7 +65,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   <span className="font-medium">{item.label}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </a>
+              </Link>
             ))}
           </nav>
           
