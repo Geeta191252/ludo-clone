@@ -413,6 +413,85 @@ export const useGameSounds = () => {
     } catch (e) {}
   }, [getAudioContext]);
 
+  // Continuous engine sound - returns stop function
+  const engineNodesRef = useRef<{ osc1: OscillatorNode; osc2: OscillatorNode; gain: GainNode } | null>(null);
+  
+  const startEngineSound = useCallback(() => {
+    try {
+      const ctx = getAudioContext();
+      
+      // Stop any existing engine sound
+      if (engineNodesRef.current) {
+        try {
+          engineNodesRef.current.gain.gain.setValueAtTime(0, ctx.currentTime);
+          engineNodesRef.current.osc1.stop();
+          engineNodesRef.current.osc2.stop();
+        } catch (e) {}
+      }
+      
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      
+      filter.type = 'lowpass';
+      filter.frequency.value = 400;
+      
+      // Engine rumble
+      osc1.frequency.value = 80;
+      osc1.type = 'sawtooth';
+      
+      // Higher harmonic
+      osc2.frequency.value = 160;
+      osc2.type = 'triangle';
+      
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      
+      osc1.start(ctx.currentTime);
+      osc2.start(ctx.currentTime);
+      
+      engineNodesRef.current = { osc1, osc2, gain };
+      
+      // Modulate engine sound for realism
+      const modulateEngine = () => {
+        if (engineNodesRef.current && ctx.state === 'running') {
+          const variation = Math.random() * 20 - 10;
+          osc1.frequency.setValueAtTime(80 + variation, ctx.currentTime);
+          osc2.frequency.setValueAtTime(160 + variation * 2, ctx.currentTime);
+        }
+      };
+      
+      const modulationInterval = setInterval(modulateEngine, 100);
+      
+      return () => {
+        clearInterval(modulationInterval);
+      };
+    } catch (e) {
+      return () => {};
+    }
+  }, [getAudioContext]);
+  
+  const stopEngineSound = useCallback(() => {
+    try {
+      const ctx = getAudioContext();
+      if (engineNodesRef.current) {
+        engineNodesRef.current.gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        setTimeout(() => {
+          try {
+            engineNodesRef.current?.osc1.stop();
+            engineNodesRef.current?.osc2.stop();
+            engineNodesRef.current = null;
+          } catch (e) {}
+        }, 150);
+      }
+    } catch (e) {}
+  }, [getAudioContext]);
+
   return {
     playChipSound,
     playCardSound,
@@ -426,6 +505,8 @@ export const useGameSounds = () => {
     playFlyingSound,
     playTakeoffSound,
     playCountdownBeep,
-    playDealingSound
+    playDealingSound,
+    startEngineSound,
+    stopEngineSound
   };
 };
