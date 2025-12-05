@@ -67,10 +67,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setLiveBets(generateRandomBets());
   }, []);
   
-  // Calculated stats from actual bets
+  // Calculated stats from actual bets - all counts
   const numberOfBets = liveBets.length;
-  const totalBetsAmount = liveBets.reduce((sum, b) => sum + b.bet, 0);
-  const totalWinnings = liveBets.reduce((sum, b) => sum + b.win, 0);
+  const totalBetsCount = liveBets.length; // Count of total bets
+  const totalWinningsCount = liveBets.filter(b => b.win > 0).length; // Count of winners
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
@@ -602,13 +602,13 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           <div>
             <div className="text-cyan-300 text-xs font-medium">Total bets</div>
             <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
-              <Coins className="w-4 h-4 text-yellow-400" /> ₹{totalBetsAmount.toFixed(0)}
+              <Coins className="w-4 h-4 text-yellow-400" /> {totalBetsCount}
             </div>
           </div>
           <div>
             <div className="text-red-300 text-xs font-medium">Total winnings</div>
             <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
-              <DollarSign className="w-4 h-4 text-green-400" /> ₹{totalWinnings}
+              <DollarSign className="w-4 h-4 text-green-400" /> {totalWinningsCount}
             </div>
           </div>
         </div>
