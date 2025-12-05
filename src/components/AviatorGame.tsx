@@ -76,10 +76,27 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
   // Generate new bets when round starts
+  // Add users one by one during flying phase
   useEffect(() => {
-    if (gamePhase === 'flying') {
-      setLiveBets(generateRandomBets());
-    }
+    if (gamePhase !== 'flying') return;
+    
+    const allBets = generateRandomBets();
+    let currentIndex = 0;
+    
+    const addUserInterval = setInterval(() => {
+      if (currentIndex < allBets.length) {
+        setLiveBets(prev => {
+          // Don't add if already have this user (avoid duplicates)
+          const newBet = allBets[currentIndex];
+          return [...prev, newBet];
+        });
+        currentIndex++;
+      } else {
+        clearInterval(addUserInterval);
+      }
+    }, 300 + Math.random() * 400); // Random delay between 300-700ms
+    
+    return () => clearInterval(addUserInterval);
   }, [gamePhase]);
 
   // Simulate live user count and odds updates during flight
