@@ -3,6 +3,8 @@ import { Minus, Plus, History, ChevronDown } from 'lucide-react';
 
 interface AviatorGameProps {
   onClose: () => void;
+  balance?: number;
+  onBalanceChange?: (balance: number) => void;
 }
 
 interface WinPopup {
@@ -11,8 +13,19 @@ interface WinPopup {
   visible: boolean;
 }
 
-const AviatorGame: React.FC<AviatorGameProps> = ({ onClose }) => {
-  const [balance, setBalance] = useState(0);
+const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBalance, onBalanceChange }) => {
+  const [internalBalance, setInternalBalance] = useState(10000);
+  const balance = externalBalance !== undefined ? externalBalance : internalBalance;
+  
+  const setBalance = (value: number | ((prev: number) => number)) => {
+    const newBalance = typeof value === 'function' ? value(balance) : value;
+    if (onBalanceChange) {
+      onBalanceChange(newBalance);
+    } else {
+      setInternalBalance(newBalance);
+    }
+  };
+
   const [betAmount1, setBetAmount1] = useState(10);
   const [betAmount2, setBetAmount2] = useState(10);
   const [multiplier, setMultiplier] = useState(1.00);

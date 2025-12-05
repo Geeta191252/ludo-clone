@@ -9,9 +9,16 @@ type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'av
 interface GamesSectionProps {
   onGameSelect?: (game: GameType | null) => void;
   selectedGame?: GameType | null;
+  walletBalance?: number;
+  onWalletChange?: (balance: number) => void;
 }
 
-const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: GamesSectionProps) => {
+const GamesSection = ({ 
+  onGameSelect, 
+  selectedGame: externalSelectedGame,
+  walletBalance = 10000,
+  onWalletChange
+}: GamesSectionProps) => {
   const [internalSelectedGame, setInternalSelectedGame] = useState<GameType | null>(null);
   
   const selectedGame = externalSelectedGame !== undefined ? externalSelectedGame : internalSelectedGame;
@@ -19,12 +26,24 @@ const GamesSection = ({ onGameSelect, selectedGame: externalSelectedGame }: Game
 
   // Show Dragon Tiger game
   if (selectedGame === 'dragon-tiger') {
-    return <DragonTigerGame onClose={() => setSelectedGame(null)} />;
+    return (
+      <DragonTigerGame 
+        onClose={() => setSelectedGame(null)}
+        balance={walletBalance}
+        onBalanceChange={onWalletChange}
+      />
+    );
   }
 
   // Show Aviator game
   if (selectedGame === 'aviator') {
-    return <AviatorGame onClose={() => setSelectedGame(null)} />;
+    return (
+      <AviatorGame 
+        onClose={() => setSelectedGame(null)}
+        balance={walletBalance}
+        onBalanceChange={onWalletChange}
+      />
+    );
   }
 
   // Show Battle Arena for other games
