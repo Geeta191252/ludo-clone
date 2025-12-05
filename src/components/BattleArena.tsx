@@ -63,6 +63,11 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     { id: "r3", player1: { id: "S10XRUBJ", name: "S10XRUBJ" }, player2: { id: "TRTXBKFF", name: "TRTXBKFF" }, entryFee: 100, prize: 197 },
   ]);
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Auto-refresh every 5 seconds to simulate real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
