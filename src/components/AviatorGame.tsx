@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, History, ChevronDown, Users, Coins, DollarSign } from 'lucide-react';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import aviatorPlane from '@/assets/aviator-plane.png';
 
 interface AviatorGameProps {
   onClose: () => void;
@@ -493,69 +494,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               transform: `translate(-50%, -50%) rotate(${planeRotation}deg)`
             }}
           >
-            <svg width="100" height="60" viewBox="0 0 100 60" fill="none">
-              {/* Main body - Golden fuselage */}
-              <ellipse cx="50" cy="30" rx="35" ry="12" fill="url(#goldGradient)" />
-              
-              {/* Cockpit dome */}
-              <ellipse cx="60" cy="26" rx="12" ry="8" fill="url(#cockpitGradient)" />
-              <ellipse cx="60" cy="26" rx="10" ry="6" fill="#4a3520" opacity="0.8" />
-              
-              {/* Nose cone */}
-              <ellipse cx="82" cy="30" rx="8" ry="6" fill="url(#noseGradient)" />
-              
-              {/* Top wing */}
-              <path d="M30 30 L50 8 L60 10 L45 30 Z" fill="url(#wingGradient)" stroke="#b8860b" strokeWidth="1" />
-              
-              {/* Bottom wing */}
-              <path d="M30 30 L50 52 L60 50 L45 30 Z" fill="url(#wingGradient)" stroke="#b8860b" strokeWidth="1" />
-              
-              {/* Tail fin vertical */}
-              <path d="M12 30 L20 18 L25 20 L20 30 Z" fill="url(#tailGradient)" />
-              
-              {/* Tail fin horizontal */}
-              <path d="M12 30 L20 42 L25 40 L20 30 Z" fill="url(#tailGradient)" />
-              
-              {/* Engine housing */}
-              <circle cx="88" cy="30" r="5" fill="#8b6914" />
-              
-              {/* Propeller blur effect */}
-              <ellipse cx="94" cy="30" rx="4" ry="12" fill="#555" opacity="0.7">
-                <animateTransform 
-                  attributeName="transform" 
-                  type="rotate" 
-                  from="0 94 30" 
-                  to="360 94 30" 
-                  dur="0.1s" 
-                  repeatCount="indefinite"
-                />
-              </ellipse>
-              
-              {/* Gradients */}
-              <defs>
-                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#ffd700" />
-                  <stop offset="50%" stopColor="#daa520" />
-                  <stop offset="100%" stopColor="#b8860b" />
-                </linearGradient>
-                <linearGradient id="cockpitGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#ffd700" />
-                  <stop offset="100%" stopColor="#cd853f" />
-                </linearGradient>
-                <linearGradient id="noseGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#daa520" />
-                  <stop offset="100%" stopColor="#8b6914" />
-                </linearGradient>
-                <linearGradient id="wingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#ffc125" />
-                  <stop offset="100%" stopColor="#cd853f" />
-                </linearGradient>
-                <linearGradient id="tailGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#b8860b" />
-                  <stop offset="100%" stopColor="#daa520" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <img 
+              src={aviatorPlane} 
+              alt="Aviator Plane" 
+              className="w-24 h-auto object-contain"
+              style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.5))' }}
+            />
           </div>
         )}
         
