@@ -237,26 +237,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     
-    // Draw gradient fill under curve
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    
-    pathPoints.forEach((point) => {
-      ctx.lineTo((point.x / 100) * w, (point.y / 100) * h);
-    });
-    
-    const lastPoint = pathPoints[pathPoints.length - 1];
-    ctx.lineTo((lastPoint.x / 100) * w, h);
-    ctx.closePath();
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, 'rgba(180, 30, 50, 0.9)');
-    gradient.addColorStop(0.5, 'rgba(140, 20, 40, 0.7)');
-    gradient.addColorStop(1, 'rgba(100, 10, 30, 0.5)');
-    ctx.fillStyle = gradient;
-    ctx.fill();
-    
-    // Draw red line
+    // Draw golden line only (no fill)
     ctx.beginPath();
     ctx.moveTo(0, h);
     
