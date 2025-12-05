@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Minus, Plus, History, ChevronDown } from 'lucide-react';
+import { X, History, ChevronDown, Users, Coins, DollarSign } from 'lucide-react';
 import { useGameSounds } from '@/hooks/useGameSounds';
 
 interface AviatorGameProps {
@@ -426,83 +426,158 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           const betCashedOut = panelNum === 1 ? bet1CashedOut : bet2CashedOut;
 
           return (
-            <div key={panelNum} className="bg-[#252525] rounded-xl p-2">
-              <div className="flex gap-2">
-                {/* Bet Amount Section */}
-                <div className="flex-1 space-y-1.5">
-                  {/* Amount with +/- */}
-                  <div className="flex items-center bg-[#1a1a1a] rounded-full px-3 py-1.5">
-                    <span className="text-base font-bold flex-1">{betAmount.toFixed(2)}</span>
-                    <div className="flex gap-1">
-                      <button 
-                        onClick={() => setBetAmount(Math.max(10, betAmount - 10))}
-                        className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <button 
-                        onClick={() => setBetAmount(betAmount + 10)}
-                        className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
+            <div key={panelNum} className="bg-[#1a2332] rounded-xl p-3">
+              <div className="flex gap-3">
+                {/* Left Side - Input and Quick Amounts */}
+                <div className="flex-1 space-y-2">
+                  {/* Input with X button */}
+                  <div className="flex items-center bg-[#0d1520] rounded-lg border border-gray-600 px-3 py-2">
+                    <input
+                      type="number"
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(Math.max(1, Number(e.target.value) || 1))}
+                      className="bg-transparent text-white text-lg font-medium flex-1 outline-none w-full"
+                    />
+                    <button 
+                      onClick={() => setBetAmount(1)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
                   
-                  {/* Preset amounts */}
-                  <div className="grid grid-cols-4 gap-1">
-                    {[100, 200, 500, 1000].map(amount => (
+                  {/* Quick Amount Buttons - 2 rows */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[1, 2, 5, 10, 50, 100].map(amount => (
                       <button 
                         key={amount}
                         onClick={() => setBetAmount(amount)}
-                        className="py-1 rounded-full bg-[#1a1a1a] border border-gray-700 text-gray-400 font-medium text-xs"
+                        className="py-2 rounded-lg bg-[#2a3a4d] border border-gray-600 text-white font-semibold text-sm hover:bg-[#3a4a5d] transition-colors"
                       >
-                        {amount}₹
+                        {amount}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* BET Button */}
-                <button
-                  onClick={() => {
-                    if (betActive && gamePhase === 'flying' && !betCashedOut) {
-                      cashOut(panelNum as 1 | 2);
-                    } else if (betActive && gamePhase === 'waiting') {
-                      cancelBet(panelNum as 1 | 2);
-                    } else if (!betActive && gamePhase === 'waiting') {
-                      placeBet(panelNum as 1 | 2);
+                {/* Right Side - Autoplay and Bet Button */}
+                <div className="flex flex-col gap-2 w-36">
+                  {/* Enable Autoplay Button */}
+                  <button className="py-2 px-3 rounded-lg border-2 border-orange-500 text-orange-500 font-bold text-xs hover:bg-orange-500/10 transition-colors">
+                    ENABLE AUTOPLAY
+                  </button>
+
+                  {/* Place a Bet Button */}
+                  <button
+                    onClick={() => {
+                      if (betActive && gamePhase === 'flying' && !betCashedOut) {
+                        cashOut(panelNum as 1 | 2);
+                      } else if (betActive && gamePhase === 'waiting') {
+                        cancelBet(panelNum as 1 | 2);
+                      } else if (!betActive && gamePhase === 'waiting') {
+                        placeBet(panelNum as 1 | 2);
+                      }
+                    }}
+                    disabled={
+                      (gamePhase === 'crashed') ||
+                      (gamePhase === 'flying' && !betActive) ||
+                      betCashedOut
                     }
-                  }}
-                  disabled={
-                    (gamePhase === 'crashed') ||
-                    (gamePhase === 'flying' && !betActive) ||
-                    betCashedOut
-                  }
-                  className={`w-24 rounded-xl font-bold text-base transition-all active:scale-95 ${
-                    betActive && gamePhase === 'flying' && !betCashedOut
-                      ? 'bg-orange-500 text-white'
-                      : betCashedOut
-                      ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                      : betActive && gamePhase === 'waiting'
-                      ? 'bg-red-600 text-white'
-                      : gamePhase === 'waiting' && !betActive
-                      ? 'bg-green-500 text-white hover:bg-green-400'
-                      : 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                  }`}
-                >
-                  {betActive && gamePhase === 'flying' && !betCashedOut
-                    ? `₹${(betAmount * multiplier).toFixed(0)}`
-                    : betCashedOut
-                    ? 'WON'
-                    : betActive && gamePhase === 'waiting'
-                    ? 'CANCEL'
-                    : 'BET'}
-                </button>
+                    className={`flex-1 rounded-lg font-bold text-sm transition-all active:scale-95 flex flex-col items-center justify-center ${
+                      betActive && gamePhase === 'flying' && !betCashedOut
+                        ? 'bg-orange-500 text-white'
+                        : betCashedOut
+                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                        : betActive && gamePhase === 'waiting'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-orange-500 text-white hover:bg-orange-400'
+                    }`}
+                  >
+                    {betActive && gamePhase === 'flying' && !betCashedOut ? (
+                      <span>₹{(betAmount * multiplier).toFixed(0)}</span>
+                    ) : betCashedOut ? (
+                      <span>WON</span>
+                    ) : betActive && gamePhase === 'waiting' ? (
+                      <span>CANCEL</span>
+                    ) : (
+                      <>
+                        <span>PLACE A BET</span>
+                        <span className="text-[10px] font-normal opacity-80">(on the next round)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Live Bets Stats Panel */}
+      <div className="mx-2 mb-2 rounded-xl overflow-hidden">
+        {/* Stats Header - Gradient */}
+        <div className="bg-gradient-to-r from-[#1a3a5c] to-[#5c2a3a] grid grid-cols-3 py-3 px-2 text-center">
+          <div>
+            <div className="text-cyan-300 text-xs font-medium">Number of bets</div>
+            <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
+              <Users className="w-4 h-4 text-cyan-300" /> 411
+            </div>
+          </div>
+          <div>
+            <div className="text-cyan-300 text-xs font-medium">Total bets</div>
+            <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
+              <Coins className="w-4 h-4 text-yellow-400" /> 734.64
+              <span className="text-xs">USD</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-red-300 text-xs font-medium">Total winnings</div>
+            <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
+              <DollarSign className="w-4 h-4 text-green-400" /> 21
+              <span className="text-xs">USD</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Header */}
+        <div className="bg-[#1e2a3a] grid grid-cols-4 py-2 px-3 text-xs text-gray-400 font-semibold">
+          <div>USERNAME</div>
+          <div className="text-center">ODDS</div>
+          <div className="text-center">BET</div>
+          <div className="text-right">WIN</div>
+        </div>
+
+        {/* Table Body */}
+        <div className="bg-[#151d28] max-h-64 overflow-y-auto">
+          {[
+            { username: '*******75', odds: 'x0', bet: 32.85, win: 0 },
+            { username: '*******07', odds: 'x0', bet: 25.13, win: 0 },
+            { username: '*******07', odds: 'x0', bet: 25.13, win: 0 },
+            { username: '*******87', odds: 'x0', bet: 10.18, win: 0 },
+            { username: '*******87', odds: 'x0', bet: 10.01, win: 0 },
+            { username: '*******75', odds: 'x0', bet: 8.45, win: 0 },
+            { username: '*******43', odds: 'x0', bet: 7.78, win: 0 },
+            { username: '*******15', odds: 'x0', bet: 6.34, win: 0 },
+            { username: '*******53', odds: 'x0', bet: 6.32, win: 0 },
+            { username: '*******53', odds: 'x0', bet: 6.32, win: 0 },
+            { username: '*******43', odds: 'x0', bet: 5.56, win: 0 },
+            { username: '*******15', odds: 'x0', bet: 5.55, win: 0 },
+            { username: '*******63', odds: 'x0', bet: 5.51, win: 0 },
+            { username: '*******71', odds: 'x0', bet: 3.56, win: 0 },
+            { username: '*******51', odds: 'x0', bet: 3.36, win: 0 },
+            { username: '*******83', odds: 'x0', bet: 3.20, win: 0 },
+            { username: '*******83', odds: 'x0', bet: 3.20, win: 0 },
+            { username: '*******45', odds: 'x0', bet: 3.18, win: 0 },
+            { username: '*******63', odds: 'x0', bet: 2.67, win: 0 },
+          ].map((bet, i) => (
+            <div key={i} className="grid grid-cols-4 py-2.5 px-3 text-sm border-b border-gray-800/50">
+              <div className="text-gray-300">{bet.username}</div>
+              <div className="text-center text-gray-500">{bet.odds}</div>
+              <div className="text-center text-white">{bet.bet.toFixed(2)} USD</div>
+              <div className="text-right text-gray-500">{bet.win} USD</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Win Popup */}
