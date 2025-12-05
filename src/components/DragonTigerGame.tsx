@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Volume2, VolumeX, Users, Repeat } from 'lucide-react';
+import { useGameSounds } from '@/hooks/useGameSounds';
 
 interface DragonTigerGameProps {
   onClose: () => void;
@@ -37,18 +38,29 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [showWinPopup, setShowWinPopup] = useState(false);
 
+  const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playLoseSound } = useGameSounds();
+
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
-      const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
+      const interval = setInterval(() => {
+        setTimer(prev => {
+          if (!isMuted) {
+            if (prev <= 6) playUrgentTickSound();
+            else playTickSound();
+          }
+          return prev - 1;
+        });
+      }, 1000);
       return () => clearInterval(interval);
     } else if (timer === 0 && gamePhase === 'betting') {
       handleDeal();
     }
-  }, [timer, gamePhase]);
+  }, [timer, gamePhase, isMuted]);
 
   const placeBet = (area: 'dragon' | 'tiger' | 'tie') => {
     if (gamePhase !== 'betting' || balance < selectedChip) return;
 
+    if (!isMuted) playChipSound();
     setBalance(prev => prev - selectedChip);
     if (area === 'dragon') setDragonBet(prev => prev + selectedChip);
     else if (area === 'tiger') setTigerBet(prev => prev + selectedChip);
@@ -127,10 +139,12 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     const cards = generateCards();
     
     setTimeout(() => {
+      if (!isMuted) playCardSound();
       setDragonCard(cards.dragon);
     }, 800);
     
     setTimeout(() => {
+      if (!isMuted) playCardSound();
       setTigerCard(cards.tiger);
     }, 1600);
 
@@ -150,8 +164,11 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       
       setWinAmount(win);
       if (win > 0) {
+        if (!isMuted) playWinSound();
         setShowWinPopup(true);
         setBalance(prev => prev + win);
+      } else if (dragonBet > 0 || tigerBet > 0 || tieBet > 0) {
+        if (!isMuted) playLoseSound();
       }
       setHistory(prev => [{ id: Date.now(), winner: gameWinner }, ...prev.slice(0, 19)]);
     }, 2500);
