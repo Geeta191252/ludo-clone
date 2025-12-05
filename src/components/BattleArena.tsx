@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Info, X, Zap, RefreshCw } from "lucide-react";
+import { Info, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import rupeeIcon from "@/assets/rupee-icon.png";
+import BattleDetailView from "./BattleDetailView";
 
 interface OpenBattle {
   id: string;
@@ -46,6 +47,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedBattle, setSelectedBattle] = useState<RunningBattle | null>(null);
   const [openBattles, setOpenBattles] = useState<OpenBattle[]>([
     { id: "1", creatorId: "2FD2O376", creatorName: "2FD2O376", entryFee: 100, prize: 197 },
     { id: "2", creatorId: "U8TPK996", creatorName: "U8TPK996", entryFee: 2300, prize: 4531 },
@@ -162,7 +164,20 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
       title: "Battle Started!",
       description: `₹${battle.entryFee} deducted. Open the game app to play`,
     });
+
+    // Auto open battle detail view
+    setSelectedBattle(newRunning);
   };
+
+  // Show Battle Detail View when a battle is selected
+  if (selectedBattle) {
+    return (
+      <BattleDetailView 
+        battle={selectedBattle}
+        onBack={() => setSelectedBattle(null)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -298,7 +313,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                     <Button 
                       size="sm" 
                       className="bg-green-500 hover:bg-green-600 text-white px-6"
-                      onClick={() => toast({ title: "View Battle", description: "Battle details coming soon!" })}
+                      onClick={() => setSelectedBattle(battle)}
                     >
                       View
                     </Button>
