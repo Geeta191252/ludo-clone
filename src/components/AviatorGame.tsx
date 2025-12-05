@@ -187,6 +187,18 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     else setBet2Active(true);
   };
 
+  const cancelBet = (betNum: 1 | 2) => {
+    if (gamePhase !== 'waiting') return;
+    const isActive = betNum === 1 ? bet1Active : bet2Active;
+    if (!isActive) return;
+    
+    const amount = betNum === 1 ? betAmount1 : betAmount2;
+    playChipSound();
+    setBalance(prev => prev + amount);
+    if (betNum === 1) setBet1Active(false);
+    else setBet2Active(false);
+  };
+
   const cashOut = (betNum: 1 | 2) => {
     if (gamePhase !== 'flying') return;
     const amount = betNum === 1 ? betAmount1 : betAmount2;
@@ -415,6 +427,8 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                   onClick={() => {
                     if (betActive && gamePhase === 'flying' && !betCashedOut) {
                       cashOut(panelNum as 1 | 2);
+                    } else if (betActive && gamePhase === 'waiting') {
+                      cancelBet(panelNum as 1 | 2);
                     } else if (!betActive && gamePhase === 'waiting') {
                       placeBet(panelNum as 1 | 2);
                     }
