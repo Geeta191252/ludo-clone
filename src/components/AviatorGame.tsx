@@ -43,16 +43,56 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
   const [liveUsers, setLiveUsers] = useState(2847);
   const [showHistory, setShowHistory] = useState(false);
+  const [liveBets, setLiveBets] = useState([
+    { username: '*******75', odds: 'x0', bet: 3285, win: 0 },
+    { username: '*******07', odds: 'x0', bet: 2513, win: 0 },
+    { username: '*******07', odds: 'x0', bet: 2513, win: 0 },
+    { username: '*******87', odds: 'x0', bet: 1018, win: 0 },
+    { username: '*******87', odds: 'x0', bet: 1001, win: 0 },
+    { username: '*******75', odds: 'x0', bet: 845, win: 0 },
+    { username: '*******43', odds: 'x0', bet: 778, win: 0 },
+    { username: '*******15', odds: 'x0', bet: 634, win: 0 },
+    { username: '*******53', odds: 'x0', bet: 632, win: 0 },
+    { username: '*******53', odds: 'x0', bet: 632, win: 0 },
+    { username: '*******43', odds: 'x0', bet: 556, win: 0 },
+    { username: '*******15', odds: 'x0', bet: 555, win: 0 },
+    { username: '*******63', odds: 'x0', bet: 551, win: 0 },
+    { username: '*******71', odds: 'x0', bet: 356, win: 0 },
+    { username: '*******51', odds: 'x0', bet: 336, win: 0 },
+    { username: '*******83', odds: 'x0', bet: 320, win: 0 },
+    { username: '*******83', odds: 'x0', bet: 320, win: 0 },
+    { username: '*******45', odds: 'x0', bet: 318, win: 0 },
+    { username: '*******63', odds: 'x0', bet: 267, win: 0 },
+  ]);
+  const [totalWinnings, setTotalWinnings] = useState(2100);
+  
+  // Calculated stats
+  const numberOfBets = liveBets.length + Math.floor(liveUsers / 7);
+  const totalBetsAmount = liveBets.reduce((sum, b) => sum + b.bet, 0) + (liveUsers * 2.5);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
-  // Simulate live user count fluctuations
+  // Simulate live user count and winnings fluctuations
   useEffect(() => {
     const interval = setInterval(() => {
       setLiveUsers(prev => {
         const change = Math.floor(Math.random() * 21) - 10; // -10 to +10
         return Math.max(2500, Math.min(3500, prev + change));
+      });
+      // Randomly add winnings
+      if (Math.random() > 0.7) {
+        setTotalWinnings(prev => prev + Math.floor(Math.random() * 500));
+      }
+      // Randomly update a bet's odds
+      setLiveBets(prev => {
+        const newBets = [...prev];
+        const randomIndex = Math.floor(Math.random() * newBets.length);
+        if (Math.random() > 0.8) {
+          const mult = (Math.random() * 3 + 1).toFixed(2);
+          newBets[randomIndex] = { ...newBets[randomIndex], odds: `x${mult}`, win: Math.floor(newBets[randomIndex].bet * parseFloat(mult)) };
+        }
+        return newBets;
       });
     }, 2000);
     return () => clearInterval(interval);
@@ -520,21 +560,19 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           <div>
             <div className="text-cyan-300 text-xs font-medium">Number of bets</div>
             <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
-              <Users className="w-4 h-4 text-cyan-300" /> 411
+              <Users className="w-4 h-4 text-cyan-300" /> {numberOfBets}
             </div>
           </div>
           <div>
             <div className="text-cyan-300 text-xs font-medium">Total bets</div>
             <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
-              <Coins className="w-4 h-4 text-yellow-400" /> 734.64
-              <span className="text-xs">USD</span>
+              <Coins className="w-4 h-4 text-yellow-400" /> ₹{totalBetsAmount.toFixed(0)}
             </div>
           </div>
           <div>
             <div className="text-red-300 text-xs font-medium">Total winnings</div>
             <div className="text-white font-bold flex items-center justify-center gap-1 text-sm">
-              <DollarSign className="w-4 h-4 text-green-400" /> 21
-              <span className="text-xs">USD</span>
+              <DollarSign className="w-4 h-4 text-green-400" /> ₹{totalWinnings}
             </div>
           </div>
         </div>
@@ -549,32 +587,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
 
         {/* Table Body */}
         <div className="bg-[#151d28] max-h-64 overflow-y-auto">
-          {[
-            { username: '*******75', odds: 'x0', bet: 32.85, win: 0 },
-            { username: '*******07', odds: 'x0', bet: 25.13, win: 0 },
-            { username: '*******07', odds: 'x0', bet: 25.13, win: 0 },
-            { username: '*******87', odds: 'x0', bet: 10.18, win: 0 },
-            { username: '*******87', odds: 'x0', bet: 10.01, win: 0 },
-            { username: '*******75', odds: 'x0', bet: 8.45, win: 0 },
-            { username: '*******43', odds: 'x0', bet: 7.78, win: 0 },
-            { username: '*******15', odds: 'x0', bet: 6.34, win: 0 },
-            { username: '*******53', odds: 'x0', bet: 6.32, win: 0 },
-            { username: '*******53', odds: 'x0', bet: 6.32, win: 0 },
-            { username: '*******43', odds: 'x0', bet: 5.56, win: 0 },
-            { username: '*******15', odds: 'x0', bet: 5.55, win: 0 },
-            { username: '*******63', odds: 'x0', bet: 5.51, win: 0 },
-            { username: '*******71', odds: 'x0', bet: 3.56, win: 0 },
-            { username: '*******51', odds: 'x0', bet: 3.36, win: 0 },
-            { username: '*******83', odds: 'x0', bet: 3.20, win: 0 },
-            { username: '*******83', odds: 'x0', bet: 3.20, win: 0 },
-            { username: '*******45', odds: 'x0', bet: 3.18, win: 0 },
-            { username: '*******63', odds: 'x0', bet: 2.67, win: 0 },
-          ].map((bet, i) => (
+          {liveBets.map((bet, i) => (
             <div key={i} className="grid grid-cols-4 py-2.5 px-3 text-sm border-b border-gray-800/50">
               <div className="text-gray-300">{bet.username}</div>
-              <div className="text-center text-gray-500">{bet.odds}</div>
-              <div className="text-center text-white">{bet.bet.toFixed(2)} USD</div>
-              <div className="text-right text-gray-500">{bet.win} USD</div>
+              <div className={`text-center ${bet.odds !== 'x0' ? 'text-green-400' : 'text-gray-500'}`}>{bet.odds}</div>
+              <div className="text-center text-white">₹{bet.bet}</div>
+              <div className={`text-right ${bet.win > 0 ? 'text-green-400' : 'text-gray-500'}`}>₹{bet.win}</div>
             </div>
           ))}
         </div>
