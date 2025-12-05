@@ -209,6 +209,27 @@ const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps)
               </div>
             </div>
           </div>
+
+          {/* Match Status */}
+          <div className="mx-4 mt-4 bg-gray-100 rounded-xl p-4 mb-8">
+            <h3 className="font-bold text-gray-900 text-lg mb-3">Match Status</h3>
+            <p className="text-gray-600 italic mb-4">
+              After completion of your game, select the status of the game and post your screenshot below.
+            </p>
+            <div className="flex gap-2">
+              <button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-center">
+                <div className="text-xl">I</div>
+                <div className="text-lg">WON</div>
+              </button>
+              <button className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg text-center">
+                <div className="text-xl">I</div>
+                <div className="text-lg">LOST</div>
+              </button>
+              <button className="flex-1 bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-lg text-center border-2 border-gray-900">
+                <div className="text-lg">CANCEL</div>
+              </button>
+            </div>
+          </div>
         </>
       ) : (
         <>
