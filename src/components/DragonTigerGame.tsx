@@ -79,23 +79,29 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       const allAreas: ('dragon' | 'tiger' | 'tie')[] = ['dragon', 'tiger', 'tie'];
       gameWinner = allAreas[Math.floor(Math.random() * 3)];
     } else {
-      // User should LOSE - pick area where user has NO bet or LEAST bet
-      const bets = [
-        { area: 'dragon' as const, amount: dragonBet },
-        { area: 'tiger' as const, amount: tigerBet },
-        { area: 'tie' as const, amount: tieBet }
+      // Calculate net profit/loss for user for each outcome
+      // Dragon wins: user gets dragonBet*2, loses tigerBet + tieBet
+      // Tiger wins: user gets tigerBet*2, loses dragonBet + tieBet  
+      // Tie wins: user gets tieBet*9, loses dragonBet + tigerBet
+      
+      const outcomes = [
+        { 
+          area: 'dragon' as const, 
+          userNet: (dragonBet * 2) - (dragonBet + tigerBet + tieBet) // profit - total bet
+        },
+        { 
+          area: 'tiger' as const, 
+          userNet: (tigerBet * 2) - (dragonBet + tigerBet + tieBet)
+        },
+        { 
+          area: 'tie' as const, 
+          userNet: (tieBet * 9) - (dragonBet + tigerBet + tieBet)
+        }
       ];
       
-      // First priority: areas with ZERO bet (user loses everything)
-      const zeroBets = bets.filter(b => b.amount === 0);
-      if (zeroBets.length > 0) {
-        // Pick randomly from areas where user didn't bet
-        gameWinner = zeroBets[Math.floor(Math.random() * zeroBets.length)].area;
-      } else {
-        // User bet on all areas - pick the one with LEAST bet (minimize user win)
-        bets.sort((a, b) => a.amount - b.amount);
-        gameWinner = bets[0].area;
-      }
+      // Pick outcome where user loses MOST (lowest net, preferably negative)
+      outcomes.sort((a, b) => a.userNet - b.userNet);
+      gameWinner = outcomes[0].area;
     }
 
     const generateCards = () => {
