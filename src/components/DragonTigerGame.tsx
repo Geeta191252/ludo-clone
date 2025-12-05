@@ -37,8 +37,22 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
   const [winAmount, setWinAmount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [showWinPopup, setShowWinPopup] = useState(false);
+  const [livePlayerCount, setLivePlayerCount] = useState(1234);
+  const [roundNumber, setRoundNumber] = useState(4521);
 
   const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playTigerRoarSound, playDragonRoarSound, playLoseSound } = useGameSounds();
+
+  // Live player count simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLivePlayerCount(prev => {
+        const change = Math.floor(Math.random() * 20) - 10; // -10 to +10
+        const newCount = prev + change;
+        return Math.max(800, Math.min(2000, newCount)); // Keep between 800-2000
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
@@ -204,6 +218,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
     setShowWinPopup(false);
     setTimer(15);
     setGamePhase('betting');
+    setRoundNumber(prev => prev + 1);
   };
 
   const getHistoryColor = (w: string) => {
@@ -240,7 +255,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
         </button>
         <div className="text-center">
           <h1 className="text-lg font-bold tracking-wider">DRAGON TIGER</h1>
-          <p className="text-xs text-gray-400">Round #4521</p>
+          <p className="text-xs text-gray-400">Round #{roundNumber}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsMuted(!isMuted)} className="p-2 rounded-full bg-white/10">
@@ -252,8 +267,12 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose }) => {
       {/* Balance Bar */}
       <div className="relative z-10 flex justify-between items-center px-4 py-2 bg-black/30">
         <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-400">1,234</span>
+          <div className="relative flex items-center gap-1">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <Users className="w-4 h-4 text-green-400" />
+            <span className="text-sm text-green-400 font-medium">{livePlayerCount.toLocaleString()}</span>
+            <span className="text-xs text-gray-500">LIVE</span>
+          </div>
         </div>
         <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-1.5 rounded-full">
           <span className="text-sm font-bold">₹{balance.toLocaleString()}</span>
