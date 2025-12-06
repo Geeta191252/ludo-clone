@@ -19,24 +19,19 @@ const Wallet = () => {
   const [depositChips, setDepositChips] = useState(134);
   const [winningChips, setWinningChips] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false);
-  const [showUpiInputDialog, setShowUpiInputDialog] = useState(false);
-  const [showProcessingDialog, setShowProcessingDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [amount, setAmount] = useState("");
   const [upiId, setUpiId] = useState("");
-  const [paymentUpiId, setPaymentUpiId] = useState("");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
-  const paymentMethods = [
-    { id: "paytm", name: "Paytm", color: "#00BAF2", deepLink: "paytmmp://pay" },
-    { id: "phonepe", name: "PhonePe", color: "#5F259F", deepLink: "phonepe://pay" },
-    { id: "googlepay", name: "Google Pay", color: "#4285F4", deepLink: "tez://upi/pay" },
-    { id: "upi", name: "UPI", color: "#FF6B00", deepLink: "upi://pay" },
-  ];
+  // Pay0.shop Configuration - Yahan apna user_token daalo
+  const PAY0_USER_TOKEN = "YOUR_PAY0_USER_TOKEN"; // Pay0.shop dashboard se le
+  const PAY0_BASE_URL = "https://pay0.shop/pay";
+  const REDIRECT_URL = "https://rajasthanludo.com/wallet"; // Aapka domain
 
-  // Merchant UPI ID
-  const merchantUpiId = "8504021912@slc";
+  // Generate unique transaction ID
+  const generateTxnId = () => {
+    return `TXN${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  };
 
   // Load wallet data from localStorage
   useEffect(() => {
@@ -44,6 +39,41 @@ const Wallet = () => {
     const savedWinning = localStorage.getItem("winningChips");
     if (savedDeposit) setDepositChips(Number(savedDeposit));
     if (savedWinning) setWinningChips(Number(savedWinning));
+
+    // Check for payment callback from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const txnId = urlParams.get('client_txn_id');
+    const paidAmount = urlParams.get('amount');
+
+    if (status && txnId) {
+      // Clear URL params
+      window.history.replaceState({}, '', '/wallet');
+      
+      if (status === 'success' || status === 'SUCCESS') {
+        const addAmount = Number(paidAmount) || 0;
+        const currentDeposit = Number(localStorage.getItem("depositChips")) || 0;
+        const newDeposit = currentDeposit + addAmount;
+        setDepositChips(newDeposit);
+        localStorage.setItem("depositChips", newDeposit.toString());
+        
+        toast({
+          title: "Payment Successful!",
+          description: `₹${addAmount} added to your wallet`,
+        });
+      } else if (status === 'failed' || status === 'FAILED') {
+        toast({
+          title: "Payment Failed",
+          description: "Payment was not completed. Please try again.",
+          variant: "destructive",
+        });
+      } else if (status === 'pending' || status === 'PENDING') {
+        toast({
+          title: "Payment Pending",
+          description: "Your payment is being processed. It will be added shortly.",
+        });
+      }
+    }
   }, []);
 
   // Save wallet data to localStorage
@@ -54,87 +84,31 @@ const Wallet = () => {
 
   const handleProceedToPayment = () => {
     const addAmount = Number(amount);
-    if (isNaN(addAmount) || addAmount <= 0) {
+    if (isNaN(addAmount) || addAmount < 10) {
       toast({
         title: "Invalid Amount",
-        description: "Please enter a valid amount",
-        variant: "destructive",
-      });
-      return;
-    }
-    setShowAddDialog(false);
-    setShowPaymentMethodDialog(true);
-  };
-
-  const handlePaymentMethodSelect = (methodId: string) => {
-    setSelectedPaymentMethod(methodId);
-    const method = paymentMethods.find(m => m.id === methodId);
-    const addAmount = Number(amount);
-    
-    if (methodId === "upi") {
-      // For generic UPI, show UPI ID input
-      setShowPaymentMethodDialog(false);
-      setShowUpiInputDialog(true);
-    } else if (method) {
-      // For specific apps (Paytm, PhonePe, Google Pay), redirect to app
-      const upiUrl = `${method.deepLink}?pa=${merchantUpiId}&pn=LudoGame&am=${addAmount}&cu=INR&tn=AddChips`;
-      
-      setShowPaymentMethodDialog(false);
-      setShowProcessingDialog(true);
-      
-      // Try to open the app
-      window.location.href = upiUrl;
-      
-      // Simulate payment completion after delay (in real app, use webhook/callback)
-      setTimeout(() => {
-        const newDeposit = depositChips + addAmount;
-        setDepositChips(newDeposit);
-        saveWalletData(newDeposit, winningChips);
-        setShowProcessingDialog(false);
-        
-        toast({
-          title: "Payment Successful!",
-          description: `₹${addAmount} added via ${method.name}`,
-        });
-        
-        setAmount("");
-        setSelectedPaymentMethod("");
-      }, 5000);
-    }
-  };
-
-  const handleUpiSubmit = () => {
-    if (!paymentUpiId.trim() || !paymentUpiId.includes('@')) {
-      toast({
-        title: "Invalid UPI ID",
-        description: "Please enter a valid UPI ID (e.g., name@upi)",
+        description: "Minimum amount is ₹10",
         variant: "destructive",
       });
       return;
     }
     
-    setShowUpiInputDialog(false);
-    setShowProcessingDialog(true);
+    // Generate unique transaction ID
+    const clientTxnId = generateTxnId();
     
-    // Simulate payment processing
-    setTimeout(() => {
-      const addAmount = Number(amount);
-      const newDeposit = depositChips + addAmount;
-      setDepositChips(newDeposit);
-      saveWalletData(newDeposit, winningChips);
-      setShowProcessingDialog(false);
-      
-      const methodName = paymentMethods.find(m => m.id === selectedPaymentMethod)?.name || "UPI";
-      toast({
-        title: "Payment Successful!",
-        description: `₹${addAmount} added via ${methodName}`,
-      });
-      
-      setAmount("");
-      setPaymentUpiId("");
-      setSelectedPaymentMethod("");
-    }, 3000);
+    // Save pending transaction to localStorage
+    localStorage.setItem("pendingTxn", JSON.stringify({
+      txnId: clientTxnId,
+      amount: addAmount,
+      timestamp: Date.now()
+    }));
+    
+    // Redirect to Pay0.shop
+    const paymentUrl = `${PAY0_BASE_URL}?user_token=${PAY0_USER_TOKEN}&amount=${addAmount}&client_txn_id=${clientTxnId}&redirect_url=${encodeURIComponent(REDIRECT_URL)}`;
+    
+    window.location.href = paymentUrl;
   };
+
 
   const handleWithdraw = () => {
     const withdrawAmount = Number(amount);
@@ -271,13 +245,19 @@ const Wallet = () => {
           </DialogHeader>
           
           <div className="space-y-4">
+            {/* Notice Box */}
+            <div className="p-3 rounded-lg bg-black text-white text-sm">
+              <p>ध्यान दें जिस नंबर से केवाईसी हो उसी नंबर से पेमेंट डालें और विड्रॉल उसी नंबर पर लेवे अदर नंबर से पेमेंट डालने पर आईडी 0 कर दी जाए ही</p>
+            </div>
+
             <div>
-              <label className="text-sm font-medium text-black">Enter Amount</label>
+              <label className="text-sm font-medium text-black">Enter Amount (Min ₹10)</label>
               <Input
                 type="number"
                 placeholder="₹ Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                min="10"
                 className="mt-1 bg-white border-2 border-black/20 text-black"
               />
             </div>
@@ -287,7 +267,7 @@ const Wallet = () => {
                 <button
                   key={amt}
                   onClick={() => setAmount(amt.toString())}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-transform hover:scale-105 active:scale-95"
                   style={{ backgroundColor: '#1D6B6B' }}
                 >
                   ₹{amt}
@@ -295,144 +275,23 @@ const Wallet = () => {
               ))}
             </div>
 
+            {/* UPI Logo Section */}
+            <div className="bg-gray-200 rounded-xl p-4 flex flex-col items-center justify-center">
+              <div className="text-2xl font-bold text-gray-600 tracking-wider">Pay0.shop</div>
+              <p className="text-gray-500 text-xs mt-1">Secure UPI Payment Gateway</p>
+            </div>
+
             <Button
               onClick={handleProceedToPayment}
-              className="w-full py-6 text-lg font-bold text-white rounded-xl"
+              className="w-full py-6 text-lg font-bold text-white rounded-xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
               style={{ backgroundColor: '#1D6B6B' }}
             >
-              Add ₹{amount || 0}
+              Pay ₹{amount || 0} via UPI
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Payment Method Selection Dialog */}
-      <Dialog open={showPaymentMethodDialog} onOpenChange={setShowPaymentMethodDialog}>
-        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold text-black">Select Payment Method</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* Notice Box */}
-            <div className="p-3 rounded-lg bg-black text-white text-sm">
-              <p>ध्यान दें जिस नंबर से केवाईसी हो उसी नंबर से पेमेंट डालें और विड्रॉल उसी नंबर पर लेवे अदर नंबर से पेमेंट डालने पर आईडी 0 कर दी जाए ही</p>
-            </div>
-
-            {/* Amount Display */}
-            <div className="flex items-center justify-between">
-              <p className="text-lg font-bold text-black">Amount to be added ₹{amount}</p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowPaymentMethodDialog(false);
-                  setShowAddDialog(true);
-                }}
-                className="bg-teal-600 text-white hover:bg-teal-700 border-none"
-              >
-                Edit
-              </Button>
-            </div>
-
-            {/* UPI Logo Section */}
-            <div className="bg-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
-              <div className="text-4xl font-bold text-gray-500 tracking-wider">UPI</div>
-              <p className="text-gray-600 text-sm mt-1">UNIFIED PAYMENTS INTERFACE</p>
-            </div>
-
-            {/* Payment Method Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              {paymentMethods.map((method) => (
-                <button
-                  key={method.id}
-                  onClick={() => handlePaymentMethodSelect(method.id)}
-                  className="py-4 px-4 rounded-xl text-white font-bold text-lg transition-transform hover:scale-105 active:scale-95"
-                  style={{ backgroundColor: method.color }}
-                >
-                  {method.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* UPI ID Input Dialog */}
-      <Dialog open={showUpiInputDialog} onOpenChange={setShowUpiInputDialog}>
-        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold text-black">
-              Enter UPI ID
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: '#FFF8DC' }}>
-              <p className="text-sm text-gray-600">Payment Amount</p>
-              <p className="text-2xl font-bold text-black">₹ {amount}</p>
-              <p className="text-sm text-teal-600 font-medium mt-1">
-                via {paymentMethods.find(m => m.id === selectedPaymentMethod)?.name}
-              </p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-black">Your UPI ID</label>
-              <Input
-                type="text"
-                placeholder="example@paytm, example@ybl"
-                value={paymentUpiId}
-                onChange={(e) => setPaymentUpiId(e.target.value)}
-                className="mt-1 bg-white border-2 border-black/20 text-black"
-              />
-              <p className="text-xs text-gray-600 mt-1">
-                Payment request will be sent to this UPI ID
-              </p>
-            </div>
-
-            <Button
-              onClick={handleUpiSubmit}
-              className="w-full py-6 text-lg font-bold text-white rounded-xl"
-              style={{ backgroundColor: '#1D6B6B' }}
-            >
-              Pay ₹{amount}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowUpiInputDialog(false);
-                setShowPaymentMethodDialog(true);
-              }}
-              className="w-full py-4 text-black border-2 border-black/20"
-            >
-              Change Payment Method
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Processing Payment Dialog */}
-      <Dialog open={showProcessingDialog} onOpenChange={() => {}}>
-        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
-          <div className="py-8 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-teal-600 flex items-center justify-center animate-pulse">
-              <span className="text-white text-2xl">₹</span>
-            </div>
-            <h3 className="text-xl font-bold text-black">Processing Payment</h3>
-            <p className="text-gray-700">
-              Payment request sent to <span className="font-medium">{paymentUpiId}</span>
-            </p>
-            <p className="text-sm text-gray-600">
-              Please approve the payment in your {paymentMethods.find(m => m.id === selectedPaymentMethod)?.name} app
-            </p>
-            <div className="flex justify-center gap-1 pt-4">
-              <div className="w-2 h-2 rounded-full bg-teal-600 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 rounded-full bg-teal-600 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 rounded-full bg-teal-600 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Withdrawal Dialog */}
       <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
