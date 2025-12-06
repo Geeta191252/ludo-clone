@@ -130,7 +130,7 @@ const Wallet = () => {
     }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const withdrawAmount = Number(amount);
     if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
       toast({
@@ -159,17 +159,52 @@ const Wallet = () => {
       return;
     }
 
-    const newWinning = winningChips - withdrawAmount;
-    setWinningChips(newWinning);
-    localStorage.setItem("winningChips", newWinning.toString());
-    setShowWithdrawDialog(false);
-    setAmount("");
-    setUpiId("");
-    
-    toast({
-      title: "Withdrawal Requested!",
-      description: `₹${withdrawAmount} will be sent to ${upiId} within 24 hours`,
-    });
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/create-withdrawal.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mobile: mobileNumber,
+          amount: withdrawAmount,
+          upi_id: upiId
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.status) {
+        setWinningChips(data.winning_balance);
+        setDepositChips(data.wallet_balance);
+        localStorage.setItem("winningChips", data.winning_balance.toString());
+        localStorage.setItem("depositChips", data.wallet_balance.toString());
+        setShowWithdrawDialog(false);
+        setAmount("");
+        setUpiId("");
+        
+        toast({
+          title: "Withdrawal Requested!",
+          description: `₹${withdrawAmount} will be sent to ${upiId} within 24 hours`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to process withdrawal",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const quickAmounts = [100, 500, 1000, 2000, 5000];
