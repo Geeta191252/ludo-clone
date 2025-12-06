@@ -20,9 +20,12 @@ const Wallet = () => {
   const [winningChips, setWinningChips] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false);
+  const [showUpiInputDialog, setShowUpiInputDialog] = useState(false);
+  const [showProcessingDialog, setShowProcessingDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [amount, setAmount] = useState("");
   const [upiId, setUpiId] = useState("");
+  const [paymentUpiId, setPaymentUpiId] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
   const paymentMethods = [
@@ -62,19 +65,41 @@ const Wallet = () => {
 
   const handlePaymentMethodSelect = (methodId: string) => {
     setSelectedPaymentMethod(methodId);
-    const addAmount = Number(amount);
-    const newDeposit = depositChips + addAmount;
-    setDepositChips(newDeposit);
-    saveWalletData(newDeposit, winningChips);
     setShowPaymentMethodDialog(false);
-    setAmount("");
-    setSelectedPaymentMethod("");
+    setShowUpiInputDialog(true);
+  };
+
+  const handleUpiSubmit = () => {
+    if (!paymentUpiId.trim() || !paymentUpiId.includes('@')) {
+      toast({
+        title: "Invalid UPI ID",
+        description: "Please enter a valid UPI ID (e.g., name@upi)",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    const methodName = paymentMethods.find(m => m.id === methodId)?.name || "UPI";
-    toast({
-      title: "Payment Initiated!",
-      description: `₹${addAmount} payment via ${methodName} - Chips will be added shortly`,
-    });
+    setShowUpiInputDialog(false);
+    setShowProcessingDialog(true);
+    
+    // Simulate payment processing
+    setTimeout(() => {
+      const addAmount = Number(amount);
+      const newDeposit = depositChips + addAmount;
+      setDepositChips(newDeposit);
+      saveWalletData(newDeposit, winningChips);
+      setShowProcessingDialog(false);
+      
+      const methodName = paymentMethods.find(m => m.id === selectedPaymentMethod)?.name || "UPI";
+      toast({
+        title: "Payment Successful!",
+        description: `₹${addAmount} added via ${methodName}`,
+      });
+      
+      setAmount("");
+      setPaymentUpiId("");
+      setSelectedPaymentMethod("");
+    }, 3000);
   };
 
   const handleWithdraw = () => {
@@ -293,6 +318,83 @@ const Wallet = () => {
                   {method.name}
                 </button>
               ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* UPI ID Input Dialog */}
+      <Dialog open={showUpiInputDialog} onOpenChange={setShowUpiInputDialog}>
+        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-black">
+              Enter UPI ID
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: '#FFF8DC' }}>
+              <p className="text-sm text-gray-600">Payment Amount</p>
+              <p className="text-2xl font-bold text-black">₹ {amount}</p>
+              <p className="text-sm text-teal-600 font-medium mt-1">
+                via {paymentMethods.find(m => m.id === selectedPaymentMethod)?.name}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-black">Your UPI ID</label>
+              <Input
+                type="text"
+                placeholder="example@paytm, example@ybl"
+                value={paymentUpiId}
+                onChange={(e) => setPaymentUpiId(e.target.value)}
+                className="mt-1 bg-white border-2 border-black/20 text-black"
+              />
+              <p className="text-xs text-gray-600 mt-1">
+                Payment request will be sent to this UPI ID
+              </p>
+            </div>
+
+            <Button
+              onClick={handleUpiSubmit}
+              className="w-full py-6 text-lg font-bold text-white rounded-xl"
+              style={{ backgroundColor: '#1D6B6B' }}
+            >
+              Pay ₹{amount}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowUpiInputDialog(false);
+                setShowPaymentMethodDialog(true);
+              }}
+              className="w-full py-4 text-black border-2 border-black/20"
+            >
+              Change Payment Method
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Processing Payment Dialog */}
+      <Dialog open={showProcessingDialog} onOpenChange={() => {}}>
+        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
+          <div className="py-8 text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-teal-600 flex items-center justify-center animate-pulse">
+              <span className="text-white text-2xl">₹</span>
+            </div>
+            <h3 className="text-xl font-bold text-black">Processing Payment</h3>
+            <p className="text-gray-700">
+              Payment request sent to <span className="font-medium">{paymentUpiId}</span>
+            </p>
+            <p className="text-sm text-gray-600">
+              Please approve the payment in your {paymentMethods.find(m => m.id === selectedPaymentMethod)?.name} app
+            </p>
+            <div className="flex justify-center gap-1 pt-4">
+              <div className="w-2 h-2 rounded-full bg-teal-600 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 rounded-full bg-teal-600 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 rounded-full bg-teal-600 animate-bounce" style={{ animationDelay: '300ms' }}></div>
             </div>
           </div>
         </DialogContent>
