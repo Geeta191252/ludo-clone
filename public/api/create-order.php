@@ -36,6 +36,7 @@ $post_data = [
     'amount' => $amount,
     'order_id' => $order_id,
     'redirect_url' => SITE_URL . '/payment-success.html?order_id=' . $order_id,
+    'callback_url' => SITE_URL . '/api/callback.php',
     'remark1' => 'wallet_recharge',
     'remark2' => $mobile
 ];
