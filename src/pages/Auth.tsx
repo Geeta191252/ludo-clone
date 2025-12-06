@@ -128,9 +128,9 @@ const Auth = () => {
             <Gamepad2 className="w-10 h-10 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Pay0.shop
+            RockyLudo
           </h1>
-          <p className="text-muted-foreground mt-2">Play Games & Win Real Money!</p>
+          <p className="text-muted-foreground mt-2">Play Ludo & Win Real Money!</p>
         </div>
 
         <Card className="border-border/50 shadow-xl backdrop-blur-sm bg-card/80">
