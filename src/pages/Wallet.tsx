@@ -1,10 +1,108 @@
+import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 
 const Wallet = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const [depositChips, setDepositChips] = useState(134);
+  const [winningChips, setWinningChips] = useState(0);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [upiId, setUpiId] = useState("");
+
+  // Load wallet data from localStorage
+  useEffect(() => {
+    const savedDeposit = localStorage.getItem("depositChips");
+    const savedWinning = localStorage.getItem("winningChips");
+    if (savedDeposit) setDepositChips(Number(savedDeposit));
+    if (savedWinning) setWinningChips(Number(savedWinning));
+  }, []);
+
+  // Save wallet data to localStorage
+  const saveWalletData = (deposit: number, winning: number) => {
+    localStorage.setItem("depositChips", deposit.toString());
+    localStorage.setItem("winningChips", winning.toString());
+  };
+
+  const handleAddChips = () => {
+    const addAmount = Number(amount);
+    if (isNaN(addAmount) || addAmount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newDeposit = depositChips + addAmount;
+    setDepositChips(newDeposit);
+    saveWalletData(newDeposit, winningChips);
+    setShowAddDialog(false);
+    setAmount("");
+    
+    toast({
+      title: "Chips Added!",
+      description: `₹${addAmount} chips added successfully`,
+    });
+  };
+
+  const handleWithdraw = () => {
+    const withdrawAmount = Number(amount);
+    if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (withdrawAmount > winningChips) {
+      toast({
+        title: "Insufficient Balance",
+        description: "You don't have enough winning chips",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!upiId.trim()) {
+      toast({
+        title: "UPI ID Required",
+        description: "Please enter your UPI ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newWinning = winningChips - withdrawAmount;
+    setWinningChips(newWinning);
+    saveWalletData(depositChips, newWinning);
+    setShowWithdrawDialog(false);
+    setAmount("");
+    setUpiId("");
+    
+    toast({
+      title: "Withdrawal Requested!",
+      description: `₹${withdrawAmount} will be sent to ${upiId}`,
+    });
+  };
+
+  const quickAmounts = [100, 500, 1000, 2000, 5000];
 
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#F5D547' }}>
@@ -20,12 +118,10 @@ const Wallet = () => {
       <div className="p-4 space-y-6">
         {/* Deposit Chips Section */}
         <div className="rounded-xl border-2 border-black/20 overflow-hidden">
-          {/* Header */}
           <div className="py-3 px-4 text-center" style={{ backgroundColor: '#1D6B6B' }}>
             <h2 className="text-xl font-bold text-white">Deposit Chips</h2>
           </div>
           
-          {/* Description */}
           <div className="p-4 text-center" style={{ backgroundColor: '#FFF8DC' }}>
             <p className="text-red-600 text-sm font-medium">
               यह चिप्स Win अवं Buy की गई चिप्स है इनसे सिर्फ गेम खेले जा सकते है,
@@ -34,20 +130,19 @@ const Wallet = () => {
             </p>
           </div>
 
-          {/* Amount Display */}
           <div className="flex justify-center py-6" style={{ backgroundColor: '#F5D547' }}>
             <div className="bg-white rounded-xl shadow-lg px-12 py-6 text-center">
               <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
                 <span className="text-white font-bold text-xl">₹</span>
               </div>
-              <p className="text-3xl font-bold text-black">₹ 134</p>
+              <p className="text-3xl font-bold text-black">₹ {depositChips}</p>
               <p className="text-gray-600 text-lg">Chips</p>
             </div>
           </div>
 
-          {/* Add Button */}
           <div className="px-4 pb-4" style={{ backgroundColor: '#F5D547' }}>
             <Button 
+              onClick={() => setShowAddDialog(true)}
               className="w-full py-6 text-lg font-bold text-white rounded-xl"
               style={{ backgroundColor: '#1D6B6B' }}
             >
@@ -58,12 +153,10 @@ const Wallet = () => {
 
         {/* Winning Chips Section */}
         <div className="rounded-xl border-2 border-black/20 overflow-hidden">
-          {/* Header */}
           <div className="py-3 px-4 text-center" style={{ backgroundColor: '#1D6B6B' }}>
             <h2 className="text-xl font-bold text-white">Winning Chips</h2>
           </div>
           
-          {/* Description */}
           <div className="p-4 text-center" style={{ backgroundColor: '#FFF8DC' }}>
             <p className="text-red-600 text-sm font-medium">
               यह चिप्स गेम से जीती हुई एवं रेफरल से कमाई हुई है, इन्हे बैंक या <span className="italic">UPI</span> में
@@ -72,20 +165,19 @@ const Wallet = () => {
             </p>
           </div>
 
-          {/* Amount Display */}
           <div className="flex justify-center py-6" style={{ backgroundColor: '#F5D547' }}>
             <div className="bg-white rounded-xl shadow-lg px-12 py-6 text-center">
               <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
                 <span className="text-white font-bold text-xl">₹</span>
               </div>
-              <p className="text-3xl font-bold text-black">₹ 0</p>
+              <p className="text-3xl font-bold text-black">₹ {winningChips}</p>
               <p className="text-gray-600 text-lg">Chips</p>
             </div>
           </div>
 
-          {/* Withdrawal Button */}
           <div className="px-4 pb-4" style={{ backgroundColor: '#F5D547' }}>
             <Button 
+              onClick={() => setShowWithdrawDialog(true)}
               className="w-full py-6 text-lg font-bold text-white rounded-xl"
               style={{ backgroundColor: '#1D6B6B' }}
             >
@@ -94,6 +186,109 @@ const Wallet = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Chips Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-black">Add Chips</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-black">Enter Amount</label>
+              <Input
+                type="number"
+                placeholder="₹ Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="mt-1 bg-white border-2 border-black/20 text-black"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {quickAmounts.map((amt) => (
+                <button
+                  key={amt}
+                  onClick={() => setAmount(amt.toString())}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                  style={{ backgroundColor: '#1D6B6B' }}
+                >
+                  ₹{amt}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleAddChips}
+              className="w-full py-6 text-lg font-bold text-white rounded-xl"
+              style={{ backgroundColor: '#1D6B6B' }}
+            >
+              Add ₹{amount || 0}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdrawal Dialog */}
+      <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
+        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-black">Withdraw Chips</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: '#FFF8DC' }}>
+              <p className="text-sm text-gray-600">Available Balance</p>
+              <p className="text-2xl font-bold text-black">₹ {winningChips}</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-black">Enter Amount</label>
+              <Input
+                type="number"
+                placeholder="₹ Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="mt-1 bg-white border-2 border-black/20 text-black"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-black">UPI ID</label>
+              <Input
+                type="text"
+                placeholder="Enter your UPI ID"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                className="mt-1 bg-white border-2 border-black/20 text-black"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {quickAmounts.map((amt) => (
+                <button
+                  key={amt}
+                  onClick={() => setAmount(amt.toString())}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                  style={{ backgroundColor: '#1D6B6B' }}
+                  disabled={amt > winningChips}
+                >
+                  ₹{amt}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleWithdraw}
+              className="w-full py-6 text-lg font-bold text-white rounded-xl"
+              style={{ backgroundColor: '#1D6B6B' }}
+            >
+              Withdraw ₹{amount || 0}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
