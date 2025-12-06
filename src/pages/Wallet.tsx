@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,11 @@ const Wallet = () => {
 
   // Pay0.shop Configuration
   const PAY0_USER_TOKEN = "472229be3b0340b2667f61fb25b3da17";
-  const PAY0_BASE_URL = "https://pay0.shop/pay";
   const REDIRECT_URL = "https://rajasthanludo.com/wallet";
+  
+  // Form ref for POST submission
+  const formRef = useRef<HTMLFormElement>(null);
+  const [txnId, setTxnId] = useState("");
 
   // Generate unique transaction ID
   const generateTxnId = () => {
@@ -95,6 +98,7 @@ const Wallet = () => {
     
     // Generate unique transaction ID
     const clientTxnId = generateTxnId();
+    setTxnId(clientTxnId);
     
     // Save pending transaction to localStorage
     localStorage.setItem("pendingTxn", JSON.stringify({
@@ -103,10 +107,12 @@ const Wallet = () => {
       timestamp: Date.now()
     }));
     
-    // Redirect to Pay0.shop
-    const paymentUrl = `${PAY0_BASE_URL}?user_token=${PAY0_USER_TOKEN}&amount=${addAmount}&client_txn_id=${clientTxnId}&redirect_url=${encodeURIComponent(REDIRECT_URL)}`;
-    
-    window.location.href = paymentUrl;
+    // Submit form after state update
+    setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.submit();
+      }
+    }, 100);
   };
 
 
@@ -288,6 +294,19 @@ const Wallet = () => {
             >
               Pay ₹{amount || 0} via UPI
             </Button>
+            
+            {/* Hidden form for POST submission to Pay0.shop */}
+            <form 
+              ref={formRef}
+              action="https://pay0.shop/api/create-order" 
+              method="POST"
+              style={{ display: 'none' }}
+            >
+              <input type="hidden" name="user_token" value={PAY0_USER_TOKEN} />
+              <input type="hidden" name="amount" value={amount} />
+              <input type="hidden" name="txn_id" value={txnId} />
+              <input type="hidden" name="redirect_url" value={REDIRECT_URL} />
+            </form>
           </div>
         </DialogContent>
       </Dialog>
