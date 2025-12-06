@@ -18,11 +18,23 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/admin-login.php", {
+      // Use full URL for production
+      const apiUrl = window.location.hostname === 'localhost' 
+        ? "/api/admin-login.php" 
+        : `${window.location.origin}/api/admin-login.php`;
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({ username, password }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -35,7 +47,12 @@ const AdminLogin = () => {
         toast({ title: "Login Failed", description: data.message, variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Server connection failed", variant: "destructive" });
+      console.error("Login error:", error);
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Server connection failed", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
