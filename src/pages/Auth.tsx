@@ -41,7 +41,23 @@ const Auth = () => {
         }),
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      const text = await response.text();
+      console.log('Login response:', text);
+      
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error('Invalid JSON response:', text);
+        toast({
+          title: "Server Error",
+          description: "Server error - please try again later",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
       if (data.status) {
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -95,7 +111,23 @@ const Auth = () => {
         }),
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      const text = await response.text();
+      console.log('Signup response:', text);
+      
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error('Invalid JSON response:', text);
+        toast({
+          title: "Server Error",
+          description: "Server error - please try again later",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
       if (data.status) {
         localStorage.setItem("user", JSON.stringify(data.user));
