@@ -12,8 +12,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 
-// API Base URL - Hostinger पर deploy करने के बाद अपनी site का URL डालो
-const API_BASE_URL = window.location.origin;
+// API Base URL - Hostinger domain
+const API_BASE_URL = "https://rajasthanludo.com";
 
 const Wallet = () => {
   const navigate = useNavigate();
