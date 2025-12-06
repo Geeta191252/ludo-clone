@@ -51,40 +51,69 @@ if (!$transaction) {
 file_put_contents('webhook_log.txt', "Found transaction - Mobile: " . $transaction['mobile'] . ", Amount: " . $transaction['amount'] . ", Current Status: " . $transaction['status'] . "\n", FILE_APPEND);
 
 $mobile = $transaction['mobile'];
+$tx_amount = floatval($transaction['amount']);
 
-if ($status === 'SUCCESS' || $status === 'success') {
-    // Update transaction status
-    $stmt = $conn->prepare("UPDATE transactions SET status = 'SUCCESS', utr = ?, updated_at = NOW() WHERE order_id = ? AND status = 'PENDING'");
-    $stmt->bind_param("ss", $utr, $order_id);
-    $stmt->execute();
-    $affected = $stmt->affected_rows;
+file_put_contents('webhook_log.txt', "Processing - Status check: '$status'\n", FILE_APPEND);
+
+if (strtoupper($status) === 'SUCCESS') {
+    file_put_contents('webhook_log.txt', "Entering SUCCESS block\n", FILE_APPEND);
     
-    file_put_contents('webhook_log.txt', "Transaction update affected rows: $affected\n", FILE_APPEND);
+    // Update transaction status
+    $update_sql = "UPDATE transactions SET status = 'SUCCESS', utr = ?, updated_at = NOW() WHERE order_id = ? AND status = 'PENDING'";
+    $stmt = $conn->prepare($update_sql);
+    if (!$stmt) {
+        file_put_contents('webhook_log.txt', "ERROR preparing transaction update: " . $conn->error . "\n", FILE_APPEND);
+        echo 'DB Error';
+        exit;
+    }
+    $stmt->bind_param("ss", $utr, $order_id);
+    $exec_result = $stmt->execute();
+    
+    if (!$exec_result) {
+        file_put_contents('webhook_log.txt', "ERROR executing transaction update: " . $stmt->error . "\n", FILE_APPEND);
+    }
+    
+    $affected = $stmt->affected_rows;
+    file_put_contents('webhook_log.txt', "Transaction update - Affected rows: $affected\n", FILE_APPEND);
     
     // Only update wallet if transaction was actually updated (was pending)
     if ($affected > 0) {
-        $tx_amount = $transaction['amount'];
-        $stmt = $conn->prepare("UPDATE users SET wallet_balance = wallet_balance + ? WHERE mobile = ?");
-        $stmt->bind_param("ds", $tx_amount, $mobile);
-        $stmt->execute();
-        $wallet_affected = $stmt->affected_rows;
+        $wallet_sql = "UPDATE users SET wallet_balance = wallet_balance + ? WHERE mobile = ?";
+        $stmt2 = $conn->prepare($wallet_sql);
+        if (!$stmt2) {
+            file_put_contents('webhook_log.txt', "ERROR preparing wallet update: " . $conn->error . "\n", FILE_APPEND);
+            echo 'DB Error';
+            exit;
+        }
+        $stmt2->bind_param("ds", $tx_amount, $mobile);
+        $wallet_exec = $stmt2->execute();
         
-        file_put_contents('webhook_log.txt', "Wallet update affected rows: $wallet_affected\n", FILE_APPEND);
+        if (!$wallet_exec) {
+            file_put_contents('webhook_log.txt', "ERROR executing wallet update: " . $stmt2->error . "\n", FILE_APPEND);
+        }
+        
+        $wallet_affected = $stmt2->affected_rows;
+        file_put_contents('webhook_log.txt', "Wallet update - Mobile: $mobile, Amount: $tx_amount, Affected: $wallet_affected\n", FILE_APPEND);
         
         // If user doesn't exist, create new user
         if ($wallet_affected === 0) {
-            $stmt = $conn->prepare("INSERT INTO users (mobile, wallet_balance, created_at) VALUES (?, ?, NOW())");
-            $stmt->bind_param("sd", $mobile, $tx_amount);
-            $stmt->execute();
-            file_put_contents('webhook_log.txt', "Created new user with mobile: $mobile\n", FILE_APPEND);
+            $insert_sql = "INSERT INTO users (mobile, wallet_balance, created_at) VALUES (?, ?, NOW())";
+            $stmt3 = $conn->prepare($insert_sql);
+            if ($stmt3) {
+                $stmt3->bind_param("sd", $mobile, $tx_amount);
+                $stmt3->execute();
+                file_put_contents('webhook_log.txt', "Created new user - Mobile: $mobile, Balance: $tx_amount\n", FILE_APPEND);
+            }
         }
     } else {
-        file_put_contents('webhook_log.txt', "Transaction already processed or not pending\n", FILE_APPEND);
+        file_put_contents('webhook_log.txt', "Transaction already processed or not pending - skipping wallet update\n", FILE_APPEND);
     }
     
     file_put_contents('webhook_log.txt', "SUCCESS - END\n\n", FILE_APPEND);
     echo 'SUCCESS';
 } else {
+    file_put_contents('webhook_log.txt', "Status not SUCCESS, updating as FAILED\n", FILE_APPEND);
+    
     // Update transaction as failed
     $stmt = $conn->prepare("UPDATE transactions SET status = 'FAILED', updated_at = NOW() WHERE order_id = ? AND status = 'PENDING'");
     $stmt->bind_param("s", $order_id);
