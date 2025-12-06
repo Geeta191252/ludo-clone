@@ -1,134 +1,131 @@
 <?php
-// Pay0.shop Webhook Callback Handler
+// Pay0.shop Webhook Callback Handler - Fixed Version
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 require_once 'config.php';
 
+function logMsg($msg) {
+    file_put_contents('webhook_log.txt', date('Y-m-d H:i:s') . " - " . $msg . "\n", FILE_APPEND);
+}
+
 // Get raw input
 $raw_input = file_get_contents('php://input');
+logMsg("START CALLBACK");
+logMsg("RAW: " . $raw_input);
 
-// Log all incoming requests for debugging
-$log_data = date('Y-m-d H:i:s') . " - START CALLBACK\n";
-$log_data .= "RAW: " . $raw_input . "\n";
-file_put_contents('webhook_log.txt', $log_data, FILE_APPEND);
-
-// Try to parse as JSON first
-$json_data = json_decode($raw_input, true);
-
-// If not JSON, try URL-encoded (query string format)
-$url_data = [];
-if (!$json_data) {
-    parse_str($raw_input, $url_data);
+// Parse data - try JSON first, then URL-encoded
+$data = json_decode($raw_input, true);
+if (!$data) {
+    parse_str($raw_input, $data);
 }
 
-// Get values from JSON, URL-encoded, POST, or GET
-$status = $json_data['status'] ?? $url_data['status'] ?? $_POST['status'] ?? $_GET['status'] ?? '';
-$order_id = $json_data['order_id'] ?? $url_data['order_id'] ?? $_POST['order_id'] ?? $_GET['order_id'] ?? '';
-$amount = floatval($json_data['amount'] ?? $url_data['amount'] ?? $_POST['amount'] ?? $_GET['amount'] ?? 0);
-$utr = $json_data['utr'] ?? $url_data['utr'] ?? $_POST['utr'] ?? $_GET['utr'] ?? '';
+// Extract values
+$status = trim($data['status'] ?? $_POST['status'] ?? $_GET['status'] ?? '');
+$order_id = trim($data['order_id'] ?? $_POST['order_id'] ?? $_GET['order_id'] ?? '');
+$utr = trim($data['utr'] ?? $_POST['utr'] ?? $_GET['utr'] ?? '');
 
-file_put_contents('webhook_log.txt', "Parsed - Status: $status, Order: $order_id, Amount: $amount, UTR: $utr\n", FILE_APPEND);
+logMsg("Parsed - Status: $status, Order: $order_id, UTR: $utr");
 
 if (empty($order_id)) {
-    file_put_contents('webhook_log.txt', "ERROR: Empty order_id\n", FILE_APPEND);
-    echo 'Invalid order_id';
-    exit;
+    logMsg("ERROR: Empty order_id");
+    die('Invalid order_id');
 }
 
-$conn = getDBConnection();
-file_put_contents('webhook_log.txt', "DB Connected\n", FILE_APPEND);
-
-// First get the transaction details
-$select_stmt = $conn->prepare("SELECT * FROM transactions WHERE order_id = ?");
-$select_stmt->bind_param("s", $order_id);
-$select_stmt->execute();
-$result = $select_stmt->get_result();
-$transaction = $result->fetch_assoc();
-$select_stmt->close(); // Close statement to free resources
-
-if (!$transaction) {
-    file_put_contents('webhook_log.txt', "ERROR: Transaction not found for order_id: $order_id\n", FILE_APPEND);
-    echo 'Transaction not found';
-    $conn->close();
-    exit;
-}
-
-file_put_contents('webhook_log.txt', "Found transaction - Mobile: " . $transaction['mobile'] . ", Amount: " . $transaction['amount'] . ", Current Status: " . $transaction['status'] . "\n", FILE_APPEND);
-
-$mobile = $transaction['mobile'];
-$tx_amount = floatval($transaction['amount']);
-
-file_put_contents('webhook_log.txt', "Processing - Status check: '$status'\n", FILE_APPEND);
-
-if (strtoupper($status) === 'SUCCESS') {
-    file_put_contents('webhook_log.txt', "Entering SUCCESS block\n", FILE_APPEND);
+try {
+    $conn = getDBConnection();
+    logMsg("DB Connected");
     
-    // Update transaction status
-    $update_sql = "UPDATE transactions SET status = 'SUCCESS', utr = ?, updated_at = NOW() WHERE order_id = ? AND status = 'PENDING'";
-    $stmt = $conn->prepare($update_sql);
-    if (!$stmt) {
-        file_put_contents('webhook_log.txt', "ERROR preparing transaction update: " . $conn->error . "\n", FILE_APPEND);
-        echo 'DB Error';
-        exit;
-    }
-    $stmt->bind_param("ss", $utr, $order_id);
-    $exec_result = $stmt->execute();
+    // Get transaction using simple query with escaping
+    $order_id_escaped = $conn->real_escape_string($order_id);
+    $sql = "SELECT * FROM transactions WHERE order_id = '$order_id_escaped' LIMIT 1";
+    $result = $conn->query($sql);
     
-    if (!$exec_result) {
-        file_put_contents('webhook_log.txt', "ERROR executing transaction update: " . $stmt->error . "\n", FILE_APPEND);
+    if (!$result) {
+        logMsg("ERROR: Query failed - " . $conn->error);
+        die('Query error');
     }
     
-    $affected = $stmt->affected_rows;
-    file_put_contents('webhook_log.txt', "Transaction update - Affected rows: $affected\n", FILE_APPEND);
+    $transaction = $result->fetch_assoc();
+    $result->free();
     
-    // Only update wallet if transaction was actually updated (was pending)
-    if ($affected > 0) {
-        $wallet_sql = "UPDATE users SET wallet_balance = wallet_balance + ? WHERE mobile = ?";
-        $stmt2 = $conn->prepare($wallet_sql);
-        if (!$stmt2) {
-            file_put_contents('webhook_log.txt', "ERROR preparing wallet update: " . $conn->error . "\n", FILE_APPEND);
-            echo 'DB Error';
-            exit;
+    if (!$transaction) {
+        logMsg("ERROR: Transaction not found");
+        die('Transaction not found');
+    }
+    
+    $mobile = $transaction['mobile'];
+    $tx_amount = floatval($transaction['amount']);
+    $current_status = $transaction['status'];
+    
+    logMsg("Found - Mobile: $mobile, Amount: $tx_amount, Status: $current_status");
+    
+    // Check if already processed
+    if ($current_status !== 'PENDING') {
+        logMsg("Already processed, skipping");
+        die('Already processed');
+    }
+    
+    // Check status
+    if (strtoupper($status) === 'SUCCESS') {
+        logMsg("Processing SUCCESS");
+        
+        // Update transaction to SUCCESS
+        $utr_escaped = $conn->real_escape_string($utr);
+        $update_tx = "UPDATE transactions SET status = 'SUCCESS', utr = '$utr_escaped', updated_at = NOW() WHERE order_id = '$order_id_escaped' AND status = 'PENDING'";
+        
+        logMsg("Running TX update: $update_tx");
+        
+        if (!$conn->query($update_tx)) {
+            logMsg("ERROR: TX update failed - " . $conn->error);
+            die('TX update error');
         }
-        $stmt2->bind_param("ds", $tx_amount, $mobile);
-        $wallet_exec = $stmt2->execute();
         
-        if (!$wallet_exec) {
-            file_put_contents('webhook_log.txt', "ERROR executing wallet update: " . $stmt2->error . "\n", FILE_APPEND);
-        }
+        $tx_affected = $conn->affected_rows;
+        logMsg("TX updated, affected: $tx_affected");
         
-        $wallet_affected = $stmt2->affected_rows;
-        file_put_contents('webhook_log.txt', "Wallet update - Mobile: $mobile, Amount: $tx_amount, Affected: $wallet_affected\n", FILE_APPEND);
-        
-        // If user doesn't exist, create new user
-        if ($wallet_affected === 0) {
-            $insert_sql = "INSERT INTO users (mobile, wallet_balance, created_at) VALUES (?, ?, NOW())";
-            $stmt3 = $conn->prepare($insert_sql);
-            if ($stmt3) {
-                $stmt3->bind_param("sd", $mobile, $tx_amount);
-                $stmt3->execute();
-                file_put_contents('webhook_log.txt', "Created new user - Mobile: $mobile, Balance: $tx_amount\n", FILE_APPEND);
+        if ($tx_affected > 0) {
+            // Update wallet balance
+            $mobile_escaped = $conn->real_escape_string($mobile);
+            $update_wallet = "UPDATE users SET wallet_balance = wallet_balance + $tx_amount WHERE mobile = '$mobile_escaped'";
+            
+            logMsg("Running wallet update: $update_wallet");
+            
+            if (!$conn->query($update_wallet)) {
+                logMsg("ERROR: Wallet update failed - " . $conn->error);
+                die('Wallet error');
+            }
+            
+            $wallet_affected = $conn->affected_rows;
+            logMsg("Wallet updated, affected: $wallet_affected");
+            
+            // If user doesn't exist, create
+            if ($wallet_affected === 0) {
+                $insert_user = "INSERT INTO users (mobile, wallet_balance, created_at) VALUES ('$mobile_escaped', $tx_amount, NOW())";
+                logMsg("Creating new user: $insert_user");
+                $conn->query($insert_user);
+                logMsg("User created");
             }
         }
+        
+        logMsg("SUCCESS COMPLETE");
+        echo 'SUCCESS';
+        
     } else {
-        file_put_contents('webhook_log.txt', "Transaction already processed or not pending - skipping wallet update\n", FILE_APPEND);
+        logMsg("Processing FAILED status");
+        
+        $update_fail = "UPDATE transactions SET status = 'FAILED', updated_at = NOW() WHERE order_id = '$order_id_escaped' AND status = 'PENDING'";
+        $conn->query($update_fail);
+        
+        logMsg("FAILED COMPLETE");
+        echo 'FAILED';
     }
     
-    file_put_contents('webhook_log.txt', "SUCCESS - END\n\n", FILE_APPEND);
-    echo 'SUCCESS';
-} else {
-    file_put_contents('webhook_log.txt', "Status not SUCCESS, updating as FAILED\n", FILE_APPEND);
+    $conn->close();
     
-    // Update transaction as failed
-    $stmt = $conn->prepare("UPDATE transactions SET status = 'FAILED', updated_at = NOW() WHERE order_id = ? AND status = 'PENDING'");
-    $stmt->bind_param("s", $order_id);
-    $stmt->execute();
-    
-    file_put_contents('webhook_log.txt', "FAILED - END\n\n", FILE_APPEND);
-    echo 'FAILED';
+} catch (Exception $e) {
+    logMsg("EXCEPTION: " . $e->getMessage());
+    die('Error: ' . $e->getMessage());
 }
-
-$conn->close();
 ?>
