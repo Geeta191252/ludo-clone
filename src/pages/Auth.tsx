@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Phone, User, Lock, Gamepad2 } from "lucide-react";
 
-// API Base URL - change this to your Hostinger domain
-const API_BASE = "https://chethanludo.com";
+// API Base URL - your Hostinger domain
+const API_BASE = "https://rajasthanludo.com";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
