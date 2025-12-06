@@ -318,7 +318,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
             {gamePhase === 'betting' && (
               <div className="relative">
-                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 100 100">
                   <circle
                     cx="50"
                     cy="50"
@@ -340,18 +340,18 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                     className="transition-all duration-1000"
                   />
                 </svg>
-                <div className={`absolute inset-0 flex items-center justify-center text-3xl font-bold ${timer <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                <div className={`absolute inset-0 flex items-center justify-center text-2xl font-bold ${timer <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
                   {timer}
                 </div>
               </div>
             )}
             {gamePhase === 'dealing' && (
-              <div className="w-24 h-24 rounded-full bg-black/80 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-black/80 flex items-center justify-center">
                 <div className="animate-spin w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full" />
               </div>
             )}
             {showResult && (
-              <div className={`w-24 h-24 rounded-full flex items-center justify-center text-xl font-bold
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center text-lg font-bold
                 ${winner === 'dragon' ? 'bg-gradient-to-br from-orange-500 to-red-600' : 
                   winner === 'tiger' ? 'bg-gradient-to-br from-blue-500 to-blue-700' : 
                   'bg-gradient-to-br from-green-500 to-green-700'} animate-bounce shadow-2xl`}>
@@ -368,21 +368,21 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 <span className="text-2xl">🐲</span>
                 <span className="text-orange-400 font-bold text-lg">DRAGON</span>
               </div>
-              <div className={`relative mx-auto w-20 h-28 rounded-lg overflow-hidden transform transition-all duration-500
+              <div className={`relative mx-auto w-16 h-22 rounded-lg overflow-hidden transform transition-all duration-500
                 ${dragonCard ? 'rotate-0' : 'rotate-y-180'}
                 ${winner === 'dragon' && showResult ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 scale-110' : ''}`}>
                 {dragonCard ? (
                   <div className="w-full h-full bg-white rounded-lg flex flex-col items-center justify-center shadow-xl">
-                    <span className={`text-4xl font-bold ${dragonCard.suit === '♥' || dragonCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                    <span className={`text-3xl font-bold ${dragonCard.suit === '♥' || dragonCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
                       {dragonCard.value}
                     </span>
-                    <span className={`text-2xl ${dragonCard.suit === '♥' || dragonCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                    <span className={`text-xl ${dragonCard.suit === '♥' || dragonCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
                       {dragonCard.suit}
                     </span>
                   </div>
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-orange-600 to-red-700 rounded-lg flex items-center justify-center border-2 border-orange-400/50">
-                    <span className="text-4xl">🐲</span>
+                    <span className="text-3xl">🐲</span>
                   </div>
                 )}
               </div>
@@ -392,7 +392,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
             </div>
 
             {/* Spacer for center timer */}
-            <div className="w-28" />
+            <div className="w-24" />
 
             {/* Tiger Side */}
             <div className="text-center flex-1">
@@ -400,21 +400,21 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 <span className="text-blue-400 font-bold text-lg">TIGER</span>
                 <span className="text-2xl">🐯</span>
               </div>
-              <div className={`relative mx-auto w-20 h-28 rounded-lg overflow-hidden transform transition-all duration-500
+              <div className={`relative mx-auto w-16 h-22 rounded-lg overflow-hidden transform transition-all duration-500
                 ${tigerCard ? 'rotate-0' : 'rotate-y-180'}
                 ${winner === 'tiger' && showResult ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 scale-110' : ''}`}>
                 {tigerCard ? (
                   <div className="w-full h-full bg-white rounded-lg flex flex-col items-center justify-center shadow-xl">
-                    <span className={`text-4xl font-bold ${tigerCard.suit === '♥' || tigerCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                    <span className={`text-3xl font-bold ${tigerCard.suit === '♥' || tigerCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
                       {tigerCard.value}
                     </span>
-                    <span className={`text-2xl ${tigerCard.suit === '♥' || tigerCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
+                    <span className={`text-xl ${tigerCard.suit === '♥' || tigerCard.suit === '♦' ? 'text-red-500' : 'text-black'}`}>
                       {tigerCard.suit}
                     </span>
                   </div>
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center border-2 border-blue-400/50">
-                    <span className="text-4xl">🐯</span>
+                    <span className="text-3xl">🐯</span>
                   </div>
                 )}
               </div>
@@ -432,7 +432,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
             <button
               onClick={() => placeBet('dragon')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-3 rounded-xl transition-all duration-300 min-h-[100px]
+              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[80px]
                 ${winner === 'dragon' && showResult 
                   ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
                   : 'bg-gradient-to-b from-orange-600/80 to-orange-800/80 hover:from-orange-500 hover:to-orange-700'}
@@ -440,9 +440,9 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 border-2 ${winner === 'dragon' && showResult ? 'border-yellow-300' : 'border-orange-500/50'}`}
             >
               <div className="text-center">
-                <span className="text-3xl">🐲</span>
-                <div className="text-sm font-bold mt-1">Dragon</div>
-                <div className="text-xs text-orange-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:1</div>
+                <span className="text-2xl">🐲</span>
+                <div className="text-xs font-bold mt-1">Dragon</div>
+                <div className="text-[10px] text-orange-200 bg-black/30 rounded px-1 py-0.5 mt-1">1:1</div>
                 {dragonBet > 0 && (
                   <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{dragonBet}
@@ -455,7 +455,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
             <button
               onClick={() => placeBet('tie')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-3 rounded-xl transition-all duration-300 min-h-[100px]
+              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[80px]
                 ${winner === 'tie' && showResult 
                   ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
                   : 'bg-gradient-to-b from-green-600/80 to-green-800/80 hover:from-green-500 hover:to-green-700'}
@@ -463,9 +463,9 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 border-2 ${winner === 'tie' && showResult ? 'border-yellow-300' : 'border-green-500/50'}`}
             >
               <div className="text-center">
-                <span className="text-3xl">🤝</span>
-                <div className="text-sm font-bold mt-1">Tie</div>
-                <div className="text-xs text-green-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:8</div>
+                <span className="text-2xl">🤝</span>
+                <div className="text-xs font-bold mt-1">Tie</div>
+                <div className="text-[10px] text-green-200 bg-black/30 rounded px-1 py-0.5 mt-1">1:8</div>
                 {tieBet > 0 && (
                   <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{tieBet}
@@ -478,7 +478,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
             <button
               onClick={() => placeBet('tiger')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-3 rounded-xl transition-all duration-300 min-h-[100px]
+              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[80px]
                 ${winner === 'tiger' && showResult 
                   ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
                   : 'bg-gradient-to-b from-blue-600/80 to-blue-800/80 hover:from-blue-500 hover:to-blue-700'}
@@ -486,9 +486,9 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 border-2 ${winner === 'tiger' && showResult ? 'border-yellow-300' : 'border-blue-500/50'}`}
             >
               <div className="text-center">
-                <span className="text-3xl">🐯</span>
-                <div className="text-sm font-bold mt-1">Tiger</div>
-                <div className="text-xs text-blue-200 bg-black/30 rounded px-2 py-0.5 mt-1">1:1</div>
+                <span className="text-2xl">🐯</span>
+                <div className="text-xs font-bold mt-1">Tiger</div>
+                <div className="text-[10px] text-blue-200 bg-black/30 rounded px-1 py-0.5 mt-1">1:1</div>
                 {tigerBet > 0 && (
                   <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{tigerBet}
@@ -518,7 +518,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 key={value}
                 onClick={() => setSelectedChip(value)}
                 disabled={gamePhase !== 'betting'}
-                className={`relative w-14 h-14 rounded-full flex flex-col items-center justify-center text-xs font-bold
+                className={`relative w-12 h-12 rounded-full flex flex-col items-center justify-center text-xs font-bold
                   transition-all duration-200 border-4
                   ${selectedChip === value 
                     ? 'ring-4 ring-yellow-400 scale-110 shadow-lg shadow-yellow-400/30' 
