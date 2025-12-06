@@ -29,11 +29,14 @@ const Wallet = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
   const paymentMethods = [
-    { id: "paytm", name: "Paytm", color: "#00BAF2" },
-    { id: "phonepe", name: "PhonePe", color: "#5F259F" },
-    { id: "googlepay", name: "Google Pay", color: "#4285F4" },
-    { id: "upi", name: "UPI", color: "#FF6B00" },
+    { id: "paytm", name: "Paytm", color: "#00BAF2", deepLink: "paytmmp://pay" },
+    { id: "phonepe", name: "PhonePe", color: "#5F259F", deepLink: "phonepe://pay" },
+    { id: "googlepay", name: "Google Pay", color: "#4285F4", deepLink: "tez://upi/pay" },
+    { id: "upi", name: "UPI", color: "#FF6B00", deepLink: "upi://pay" },
   ];
+
+  // Merchant UPI ID - replace with your actual merchant UPI ID
+  const merchantUpiId = "merchant@paytm";
 
   // Load wallet data from localStorage
   useEffect(() => {
@@ -65,8 +68,39 @@ const Wallet = () => {
 
   const handlePaymentMethodSelect = (methodId: string) => {
     setSelectedPaymentMethod(methodId);
-    setShowPaymentMethodDialog(false);
-    setShowUpiInputDialog(true);
+    const method = paymentMethods.find(m => m.id === methodId);
+    const addAmount = Number(amount);
+    
+    if (methodId === "upi") {
+      // For generic UPI, show UPI ID input
+      setShowPaymentMethodDialog(false);
+      setShowUpiInputDialog(true);
+    } else if (method) {
+      // For specific apps (Paytm, PhonePe, Google Pay), redirect to app
+      const upiUrl = `${method.deepLink}?pa=${merchantUpiId}&pn=LudoGame&am=${addAmount}&cu=INR&tn=AddChips`;
+      
+      setShowPaymentMethodDialog(false);
+      setShowProcessingDialog(true);
+      
+      // Try to open the app
+      window.location.href = upiUrl;
+      
+      // Simulate payment completion after delay (in real app, use webhook/callback)
+      setTimeout(() => {
+        const newDeposit = depositChips + addAmount;
+        setDepositChips(newDeposit);
+        saveWalletData(newDeposit, winningChips);
+        setShowProcessingDialog(false);
+        
+        toast({
+          title: "Payment Successful!",
+          description: `₹${addAmount} added via ${method.name}`,
+        });
+        
+        setAmount("");
+        setSelectedPaymentMethod("");
+      }, 5000);
+    }
   };
 
   const handleUpiSubmit = () => {
