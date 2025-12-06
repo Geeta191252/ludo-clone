@@ -1,15 +1,38 @@
 <?php
-// Pay0.shop Configuration
-define('PAY0_API_KEY', 'YOUR_PAY0_API_KEY_HERE'); // अपना API key यहाँ डालो
+/**
+ * ==========================================
+ *   HOSTINGER CONFIGURATION FILE
+ *   इस file को Hostinger पर edit करो
+ * ==========================================
+ */
+
+// ============================================
+// 🔑 PAY0.SHOP API SETTINGS
+// Pay0.shop dashboard से API key लो
+// ============================================
+define('PAY0_API_KEY', 'YOUR_PAY0_API_KEY_HERE');  // <-- यहाँ Pay0 API key डालो
 define('PAY0_API_URL', 'https://pay0.shop/api/create-order');
 define('PAY0_STATUS_URL', 'https://pay0.shop/api/check-order-status');
-define('SITE_URL', 'https://yoursite.com'); // अपनी site का URL यहाँ डालो
 
-// Database Configuration (Hostinger MySQL)
-define('DB_HOST', 'localhost');
-define('DB_USER', 'your_db_username'); // Hostinger database username
-define('DB_PASS', 'your_db_password'); // Hostinger database password
-define('DB_NAME', 'your_db_name'); // Hostinger database name
+// ============================================
+// 🌐 SITE URL
+// अपनी website का URL डालो (बिना trailing slash)
+// Example: https://mygaming.com
+// ============================================
+define('SITE_URL', 'https://yoursite.com');  // <-- यहाँ अपना domain डालो
+
+// ============================================
+// 🗄️ DATABASE SETTINGS (HOSTINGER MYSQL)
+// Hostinger > Databases > MySQL से details लो
+// ============================================
+define('DB_HOST', 'localhost');              // <-- Usually 'localhost' ही रहने दो
+define('DB_USER', 'your_db_username');       // <-- Hostinger database username
+define('DB_PASS', 'your_db_password');       // <-- Hostinger database password  
+define('DB_NAME', 'your_db_name');           // <-- Hostinger database name
+
+// ============================================
+// ⚙️ SYSTEM SETTINGS (इन्हें मत छुओ)
+// ============================================
 
 // CORS Headers
 header('Access-Control-Allow-Origin: *');
@@ -26,6 +49,7 @@ function getDBConnection() {
     if ($conn->connect_error) {
         die(json_encode(['status' => false, 'message' => 'Database connection failed']));
     }
+    $conn->set_charset('utf8mb4');
     return $conn;
 }
 ?>
