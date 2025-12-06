@@ -23,10 +23,10 @@ const Wallet = () => {
   const [amount, setAmount] = useState("");
   const [upiId, setUpiId] = useState("");
 
-  // Pay0.shop Configuration - Yahan apna user_token daalo
-  const PAY0_USER_TOKEN = "YOUR_PAY0_USER_TOKEN"; // Pay0.shop dashboard se le
+  // Pay0.shop Configuration
+  const PAY0_USER_TOKEN = "472229be3b0340b2667f61fb25b3da17";
   const PAY0_BASE_URL = "https://pay0.shop/pay";
-  const REDIRECT_URL = "https://rajasthanludo.com/wallet"; // Aapka domain
+  const REDIRECT_URL = "https://rajasthanludo.com/wallet";
 
   // Generate unique transaction ID
   const generateTxnId = () => {
