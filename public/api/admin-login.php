@@ -56,8 +56,7 @@ try {
                 $stmt->execute();
             }
             
-            // Try to update last login (ignore if column doesn't exist)
-            $conn->query("UPDATE admins SET last_login = NOW() WHERE id = " . intval($row['id']));
+            // Skip last_login update - column may not exist
             
             echo json_encode([
                 'status' => true,
