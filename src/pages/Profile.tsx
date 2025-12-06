@@ -1,9 +1,52 @@
+import { useState } from "react";
 import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  
+  // Profile state
+  const [profile, setProfile] = useState({
+    name: "RockyPlayer",
+    username: "RockyPlayer",
+    email: "",
+    phone: "9876543210"
+  });
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({ ...profile });
+
+  const handleSave = () => {
+    // Validate
+    if (!editForm.name.trim()) {
+      toast({ title: "Error", description: "Name cannot be empty", variant: "destructive" });
+      return;
+    }
+    if (!editForm.username.trim()) {
+      toast({ title: "Error", description: "Username cannot be empty", variant: "destructive" });
+      return;
+    }
+    if (!editForm.phone.trim() || editForm.phone.length < 10) {
+      toast({ title: "Error", description: "Please enter a valid phone number", variant: "destructive" });
+      return;
+    }
+    
+    setProfile({ ...editForm });
+    setIsEditOpen(false);
+    toast({ title: "Success", description: "Profile updated successfully!" });
+  };
+
+  const handleCancel = () => {
+    setEditForm({ ...profile });
+    setIsEditOpen(false);
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5D547' }}>
@@ -36,15 +79,15 @@ const Profile = () => {
             <div className="space-y-2 text-white">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                <span className="font-semibold">RockyPlayer</span>
+                <span className="font-semibold">{profile.name}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4" />
-                <span className="text-sm">9876543210</span>
+                <span className="text-sm">{profile.phone}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                <span className="text-sm">Email</span>
+                <span className="text-sm">{profile.email || "Email"}</span>
               </div>
             </div>
 
@@ -57,6 +100,10 @@ const Profile = () => {
             <Button 
               variant="secondary" 
               size="sm"
+              onClick={() => {
+                setEditForm({ ...profile });
+                setIsEditOpen(true);
+              }}
               className="bg-white text-black hover:bg-white/90 font-semibold rounded-full px-4"
             >
               Edit Profile
@@ -134,6 +181,85 @@ const Profile = () => {
           LOG OUT
         </Button>
       </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="bg-white max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-black">Edit Profile</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-gray-500">Name</Label>
+              <Input
+                id="name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                className="border-gray-300 text-black text-lg py-6"
+                maxLength={50}
+              />
+            </div>
+
+            {/* Username */}
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-gray-500">Username</Label>
+              <Input
+                id="username"
+                value={editForm.username}
+                onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                className="border-gray-300 text-gray-400 text-lg py-6"
+                disabled
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-gray-500">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="border-gray-300 text-black text-lg py-6"
+                maxLength={100}
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-gray-500">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                className="border-gray-300 text-gray-400 text-lg py-6"
+                disabled
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-4">
+            <Button
+              variant="ghost"
+              onClick={handleCancel}
+              className="flex-1 text-purple-600 font-bold text-lg hover:bg-purple-50"
+            >
+              CANCEL
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg py-6"
+            >
+              SAVE CHANGES
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
