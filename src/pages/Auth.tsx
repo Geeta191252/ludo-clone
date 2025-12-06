@@ -58,10 +58,11 @@ const Auth = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error?.message || "Network error - check internet connection",
         variant: "destructive",
       });
     } finally {
@@ -111,10 +112,11 @@ const Auth = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Signup error:', error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error?.message || "Network error - check internet connection",
         variant: "destructive",
       });
     } finally {
