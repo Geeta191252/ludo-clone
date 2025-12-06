@@ -35,8 +35,8 @@ const Wallet = () => {
     { id: "upi", name: "UPI", color: "#FF6B00", deepLink: "upi://pay" },
   ];
 
-  // Merchant UPI ID - replace with your actual merchant UPI ID
-  const merchantUpiId = "merchant@paytm";
+  // Merchant UPI ID
+  const merchantUpiId = "8504021912@slc";
 
   // Load wallet data from localStorage
   useEffect(() => {
