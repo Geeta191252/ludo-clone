@@ -17,6 +17,26 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Fetch balance from server
+  const fetchBalance = async (mobile: string) => {
+    try {
+      const response = await fetch(`/api/get-balance.php?mobile=${mobile}`);
+      const data = await response.json();
+      if (data.status && data.wallet_balance !== undefined) {
+        setWalletBalance(data.wallet_balance);
+        // Update localStorage too
+        const user = localStorage.getItem("user");
+        if (user) {
+          const userData = JSON.parse(user);
+          userData.wallet_balance = data.wallet_balance;
+          localStorage.setItem("user", JSON.stringify(userData));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+    }
+  };
+
   // Check if user is logged in
   useEffect(() => {
     const user = localStorage.getItem("user");
@@ -31,6 +51,10 @@ const Index = () => {
     try {
       const userData = JSON.parse(user);
       setWalletBalance(userData.wallet_balance || 0);
+      // Fetch fresh balance from server
+      if (userData.mobile) {
+        fetchBalance(userData.mobile);
+      }
     } catch {
       navigate("/auth");
       return;
