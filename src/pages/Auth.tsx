@@ -8,6 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Phone, User, Lock, Gamepad2 } from "lucide-react";
 
+// API Base URL - change this to your Hostinger domain
+const API_BASE = "https://chethanludo.com";
+
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +32,7 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/user-login.php", {
+      const response = await fetch(`${API_BASE}/api/user-login.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -81,7 +84,7 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/user-register.php", {
+      const response = await fetch(`${API_BASE}/api/user-register.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
