@@ -14,6 +14,35 @@ interface WinPopup {
   visible: boolean;
 }
 
+// Helper function to update balance on server
+const updateServerBalance = async (amount: number, type: 'deduct' | 'add') => {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user) return null;
+    const userData = JSON.parse(user);
+    const mobile = userData.mobile;
+    if (!mobile) return null;
+
+    const response = await fetch('/api/update-balance.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile, amount, type })
+    });
+    const data = await response.json();
+    if (data.status) {
+      // Update localStorage with new balance
+      userData.wallet_balance = data.wallet_balance;
+      userData.winning_balance = data.winning_balance;
+      localStorage.setItem('user', JSON.stringify(userData));
+      return data.wallet_balance + data.winning_balance;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error updating balance:', error);
+    return null;
+  }
+};
+
 const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBalance, onBalanceChange }) => {
   const [internalBalance, setInternalBalance] = useState(10000);
   const balance = externalBalance !== undefined ? externalBalance : internalBalance;
@@ -253,13 +282,21 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     ctx.stroke();
   }, [pathPoints]);
 
-  const placeBet = (betNum: 1 | 2) => {
+  const placeBet = async (betNum: 1 | 2) => {
     if (gamePhase !== 'waiting') return;
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     if (balance < amount) return;
     
     playChipSound();
-    setBalance(prev => prev - amount);
+    
+    // Update server balance
+    const newBalance = await updateServerBalance(amount, 'deduct');
+    if (newBalance !== null) {
+      setBalance(newBalance);
+    } else {
+      setBalance(prev => prev - amount);
+    }
+    
     if (betNum === 1) setBet1Active(true);
     else setBet2Active(true);
     
@@ -275,14 +312,22 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setLiveBets(prev => [userBet, ...prev.filter(b => !((b as any).isUser && (b as any).betNum === betNum))]);
   };
 
-  const cancelBet = (betNum: 1 | 2) => {
+  const cancelBet = async (betNum: 1 | 2) => {
     if (gamePhase !== 'waiting') return;
     const isActive = betNum === 1 ? bet1Active : bet2Active;
     if (!isActive) return;
     
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     playChipSound();
-    setBalance(prev => prev + amount);
+    
+    // Refund to server
+    const newBalance = await updateServerBalance(amount, 'add');
+    if (newBalance !== null) {
+      setBalance(newBalance);
+    } else {
+      setBalance(prev => prev + amount);
+    }
+    
     if (betNum === 1) setBet1Active(false);
     else setBet2Active(false);
     
@@ -290,7 +335,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setLiveBets(prev => prev.filter(b => !((b as any).isUser && (b as any).betNum === betNum)));
   };
 
-  const cashOut = (betNum: 1 | 2) => {
+  const cashOut = async (betNum: 1 | 2) => {
     if (gamePhase !== 'flying') return;
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     const isActive = betNum === 1 ? bet1Active : bet2Active;
@@ -300,7 +345,14 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     
     playWinSound();
     const winnings = amount * multiplier;
-    setBalance(prev => prev + winnings);
+    
+    // Add winnings to server
+    const newBalance = await updateServerBalance(winnings, 'add');
+    if (newBalance !== null) {
+      setBalance(newBalance);
+    } else {
+      setBalance(prev => prev + winnings);
+    }
     
     setWinPopup({ amount: winnings, mult: multiplier, visible: true });
     setTimeout(() => setWinPopup(prev => ({ ...prev, visible: false })), 2000);

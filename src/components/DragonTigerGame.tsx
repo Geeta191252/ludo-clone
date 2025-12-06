@@ -17,6 +17,35 @@ const CARD_VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q'
 const CARD_SUITS = ['♠', '♥', '♦', '♣'];
 const CHIP_VALUES = [10, 50, 100, 500, 1000];
 
+// Helper function to update balance on server
+const updateServerBalance = async (amount: number, type: 'deduct' | 'add') => {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user) return null;
+    const userData = JSON.parse(user);
+    const mobile = userData.mobile;
+    if (!mobile) return null;
+
+    const response = await fetch('/api/update-balance.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile, amount, type })
+    });
+    const data = await response.json();
+    if (data.status) {
+      // Update localStorage with new balance
+      userData.wallet_balance = data.wallet_balance;
+      userData.winning_balance = data.winning_balance;
+      localStorage.setItem('user', JSON.stringify(userData));
+      return data.wallet_balance + data.winning_balance;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error updating balance:', error);
+    return null;
+  }
+};
+
 const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: externalBalance, onBalanceChange }) => {
   const [internalBalance, setInternalBalance] = useState(10000);
   const balance = externalBalance !== undefined ? externalBalance : internalBalance;
@@ -84,20 +113,36 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
     }
   }, [timer, gamePhase, isMuted]);
 
-  const placeBet = (area: 'dragon' | 'tiger' | 'tie') => {
+  const placeBet = async (area: 'dragon' | 'tiger' | 'tie') => {
     if (gamePhase !== 'betting' || balance < selectedChip) return;
 
     if (!isMuted) playChipSound();
-    setBalance(prev => prev - selectedChip);
+    
+    // Update server balance
+    const newBalance = await updateServerBalance(selectedChip, 'deduct');
+    if (newBalance !== null) {
+      setBalance(newBalance);
+    } else {
+      setBalance(prev => prev - selectedChip);
+    }
+    
     if (area === 'dragon') setDragonBet(prev => prev + selectedChip);
     else if (area === 'tiger') setTigerBet(prev => prev + selectedChip);
     else setTieBet(prev => prev + selectedChip);
   };
 
-  const clearBets = () => {
+  const clearBets = async () => {
     if (gamePhase !== 'betting') return;
     const totalBet = dragonBet + tigerBet + tieBet;
-    setBalance(prev => prev + totalBet);
+    if (totalBet > 0) {
+      // Refund bets to server
+      const newBalance = await updateServerBalance(totalBet, 'add');
+      if (newBalance !== null) {
+        setBalance(newBalance);
+      } else {
+        setBalance(prev => prev + totalBet);
+      }
+    }
     setDragonBet(0);
     setTigerBet(0);
     setTieBet(0);
@@ -205,7 +250,14 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
           if (!isMuted) playWinSound();
         }, 500);
         setShowWinPopup(true);
-        setBalance(prev => prev + win);
+        // Add winnings to server
+        updateServerBalance(win, 'add').then((newBalance) => {
+          if (newBalance !== null) {
+            setBalance(newBalance);
+          } else {
+            setBalance(prev => prev + win);
+          }
+        });
       } else if (dragonBet > 0 || tigerBet > 0 || tieBet > 0) {
         setTimeout(() => {
           if (!isMuted) playLoseSound();

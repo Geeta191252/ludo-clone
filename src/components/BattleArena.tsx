@@ -44,6 +44,35 @@ const generateRandomName = () => {
   return result;
 };
 
+// Helper function to update balance on server
+const updateServerBalance = async (amount: number, type: 'deduct' | 'add') => {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user) return null;
+    const userData = JSON.parse(user);
+    const mobile = userData.mobile;
+    if (!mobile) return null;
+
+    const response = await fetch('/api/update-balance.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile, amount, type })
+    });
+    const data = await response.json();
+    if (data.status) {
+      // Update localStorage with new balance
+      userData.wallet_balance = data.wallet_balance;
+      userData.winning_balance = data.winning_balance;
+      localStorage.setItem('user', JSON.stringify(userData));
+      return data.wallet_balance + data.winning_balance;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error updating balance:', error);
+    return null;
+  }
+};
+
 const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: BattleArenaProps) => {
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
@@ -160,7 +189,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     });
   };
 
-  const handlePlayBattle = (battle: OpenBattle) => {
+  const handlePlayBattle = async (battle: OpenBattle) => {
     // Check if user has enough balance
     if (balance < battle.entryFee) {
       toast({
@@ -171,9 +200,14 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
       return;
     }
 
-    // Deduct entry fee from wallet immediately
-    const newBalance = balance - battle.entryFee;
-    onBalanceChange?.(newBalance);
+    // Deduct entry fee from server
+    const newBalance = await updateServerBalance(battle.entryFee, 'deduct');
+    if (newBalance !== null) {
+      onBalanceChange?.(newBalance);
+    } else {
+      // Fallback to local update
+      onBalanceChange?.(balance - battle.entryFee);
+    }
 
     setOpenBattles(openBattles.filter(b => b.id !== battle.id));
     
