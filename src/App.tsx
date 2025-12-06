@@ -10,6 +10,12 @@ import GameHistory from "./pages/GameHistory";
 import ReferEarn from "./pages/ReferEarn";
 import WithdrawHistory from "./pages/WithdrawHistory";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminTransactions from "./pages/admin/AdminTransactions";
+import AdminGames from "./pages/admin/AdminGames";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +32,13 @@ const App = () => (
           <Route path="/game-history" element={<GameHistory />} />
           <Route path="/refer-earn" element={<ReferEarn />} />
           <Route path="/withdraw-history" element={<WithdrawHistory />} />
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/transactions" element={<AdminTransactions />} />
+          <Route path="/admin/games" element={<AdminGames />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
