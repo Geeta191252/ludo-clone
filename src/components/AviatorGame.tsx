@@ -388,7 +388,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       )}
 
       {/* Game Area */}
-      <div className="relative flex-1 mx-3 rounded-xl overflow-hidden" style={{ minHeight: '150px', maxHeight: '180px' }}>
+      <div className="relative mx-3 rounded-xl overflow-hidden" style={{ height: '140px' }}>
         {/* Sunburst Background */}
         <div className="absolute inset-0 bg-[#1a1a1a]">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -437,9 +437,9 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           {gamePhase === 'waiting' ? (
             <div className="text-center">
-              <div className="text-6xl font-black text-white mb-2">{countdown}</div>
-              <div className="text-xl font-bold text-gray-400">PLACE YOUR BET</div>
-              <div className="mt-4 w-32 h-2 bg-gray-700 rounded-full overflow-hidden mx-auto">
+              <div className="text-5xl font-black text-white mb-1">{countdown}</div>
+              <div className="text-sm font-bold text-gray-400">PLACE YOUR BET</div>
+              <div className="mt-2 w-24 h-1.5 bg-gray-700 rounded-full overflow-hidden mx-auto">
                 <div 
                   className="h-full bg-green-500 transition-all duration-1000"
                   style={{ width: `${(countdown / 5) * 100}%` }}
@@ -448,12 +448,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             </div>
           ) : gamePhase === 'crashed' ? (
             <div className="text-center">
-              <div className="text-5xl font-black text-red-500">FLEW AWAY!</div>
-              <div className="text-3xl font-bold text-white mt-2">{multiplier.toFixed(2)}x</div>
+              <div className="text-4xl font-black text-red-500">FLEW AWAY!</div>
+              <div className="text-2xl font-bold text-white mt-1">{multiplier.toFixed(2)}x</div>
             </div>
           ) : (
             <div 
-              className="text-7xl sm:text-8xl font-black text-white"
+              className="text-5xl font-black text-white"
               style={{ 
                 fontFamily: 'Arial Black, sans-serif',
                 textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
@@ -475,7 +475,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))'
             }}
           >
-            <svg width="80" height="50" viewBox="0 0 120 70" fill="none">
+            <svg width="60" height="38" viewBox="0 0 120 70" fill="none">
               <defs>
                 <linearGradient id="bodyGold" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#FFD93D" />
@@ -680,7 +680,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
         </div>
 
         {/* Table Body */}
-        <div className="bg-[#151d28] max-h-64 overflow-y-auto">
+        <div className="bg-[#151d28] max-h-40 overflow-y-auto">
           {[...liveBets]
             .sort((a, b) => {
               // User bets first, Bet 1 before Bet 2
