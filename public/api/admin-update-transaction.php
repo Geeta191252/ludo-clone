@@ -32,6 +32,13 @@ $stmt = $conn->prepare("UPDATE transactions SET status = ?, updated_at = NOW() W
 $stmt->bind_param("si", $status, $transaction_id);
 $stmt->execute();
 
+// If deposit approved, add to wallet balance
+if ($tx['type'] === 'DEPOSIT' && $status === 'SUCCESS') {
+    $stmt = $conn->prepare("UPDATE users SET wallet_balance = wallet_balance + ? WHERE mobile = ?");
+    $stmt->bind_param("ds", $tx['amount'], $tx['mobile']);
+    $stmt->execute();
+}
+
 // If withdrawal approved, deduct from winning balance
 if ($tx['type'] === 'WITHDRAWAL' && $status === 'SUCCESS') {
     $stmt = $conn->prepare("UPDATE users SET winning_balance = winning_balance - ? WHERE mobile = ?");
@@ -39,9 +46,8 @@ if ($tx['type'] === 'WITHDRAWAL' && $status === 'SUCCESS') {
     $stmt->execute();
 }
 
-// If withdrawal rejected, no balance change needed (already deducted during request)
+// If withdrawal rejected, refund the winning balance
 if ($tx['type'] === 'WITHDRAWAL' && $status === 'FAILED') {
-    // Refund the winning balance
     $stmt = $conn->prepare("UPDATE users SET winning_balance = winning_balance + ? WHERE mobile = ?");
     $stmt->bind_param("ds", $tx['amount'], $tx['mobile']);
     $stmt->execute();
