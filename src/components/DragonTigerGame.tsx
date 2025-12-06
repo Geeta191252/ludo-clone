@@ -59,6 +59,32 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
     }
   };
 
+  // Fetch fresh balance from server on mount
+  useEffect(() => {
+    const fetchFreshBalance = async () => {
+      try {
+        const user = localStorage.getItem('user');
+        if (!user) return;
+        const userData = JSON.parse(user);
+        if (!userData.mobile) return;
+        
+        const response = await fetch(`/api/get-balance.php?mobile=${userData.mobile}`);
+        const data = await response.json();
+        if (data.status) {
+          const totalBalance = (data.wallet_balance || 0) + (data.winning_balance || 0);
+          setBalance(totalBalance);
+          // Update localStorage
+          userData.wallet_balance = data.wallet_balance || 0;
+          userData.winning_balance = data.winning_balance || 0;
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+      }
+    };
+    fetchFreshBalance();
+  }, []);
+
   const [selectedChip, setSelectedChip] = useState(100);
   const [dragonBet, setDragonBet] = useState(0);
   const [tigerBet, setTigerBet] = useState(0);
