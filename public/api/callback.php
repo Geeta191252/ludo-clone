@@ -73,7 +73,7 @@ try {
         
         // Update transaction to SUCCESS
         $utr_escaped = $conn->real_escape_string($utr);
-        $update_tx = "UPDATE transactions SET status = 'SUCCESS', utr = '$utr_escaped', updated_at = NOW() WHERE order_id = '$order_id_escaped' AND status = 'PENDING'";
+        $update_tx = "UPDATE transactions SET status = 'SUCCESS', utr = '$utr_escaped' WHERE order_id = '$order_id_escaped' AND status = 'PENDING'";
         
         logMsg("Running TX update: $update_tx");
         
@@ -115,7 +115,7 @@ try {
     } else {
         logMsg("Processing FAILED status");
         
-        $update_fail = "UPDATE transactions SET status = 'FAILED', updated_at = NOW() WHERE order_id = '$order_id_escaped' AND status = 'PENDING'";
+        $update_fail = "UPDATE transactions SET status = 'FAILED' WHERE order_id = '$order_id_escaped' AND status = 'PENDING'";
         $conn->query($update_fail);
         
         logMsg("FAILED COMPLETE");
