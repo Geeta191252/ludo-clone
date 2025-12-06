@@ -19,9 +19,18 @@ const Wallet = () => {
   const [depositChips, setDepositChips] = useState(134);
   const [winningChips, setWinningChips] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [amount, setAmount] = useState("");
   const [upiId, setUpiId] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+
+  const paymentMethods = [
+    { id: "paytm", name: "Paytm", color: "#00BAF2" },
+    { id: "phonepe", name: "PhonePe", color: "#5F259F" },
+    { id: "googlepay", name: "Google Pay", color: "#4285F4" },
+    { id: "upi", name: "UPI", color: "#FF6B00" },
+  ];
 
   // Load wallet data from localStorage
   useEffect(() => {
@@ -37,7 +46,7 @@ const Wallet = () => {
     localStorage.setItem("winningChips", winning.toString());
   };
 
-  const handleAddChips = () => {
+  const handleProceedToPayment = () => {
     const addAmount = Number(amount);
     if (isNaN(addAmount) || addAmount <= 0) {
       toast({
@@ -47,16 +56,24 @@ const Wallet = () => {
       });
       return;
     }
+    setShowAddDialog(false);
+    setShowPaymentMethodDialog(true);
+  };
 
+  const handlePaymentMethodSelect = (methodId: string) => {
+    setSelectedPaymentMethod(methodId);
+    const addAmount = Number(amount);
     const newDeposit = depositChips + addAmount;
     setDepositChips(newDeposit);
     saveWalletData(newDeposit, winningChips);
-    setShowAddDialog(false);
+    setShowPaymentMethodDialog(false);
     setAmount("");
+    setSelectedPaymentMethod("");
     
+    const methodName = paymentMethods.find(m => m.id === methodId)?.name || "UPI";
     toast({
-      title: "Chips Added!",
-      description: `₹${addAmount} chips added successfully`,
+      title: "Payment Initiated!",
+      description: `₹${addAmount} payment via ${methodName} - Chips will be added shortly`,
     });
   };
 
@@ -187,7 +204,7 @@ const Wallet = () => {
         </div>
       </div>
 
-      {/* Add Chips Dialog */}
+      {/* Add Chips Dialog - Amount Selection */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
           <DialogHeader>
@@ -220,12 +237,63 @@ const Wallet = () => {
             </div>
 
             <Button
-              onClick={handleAddChips}
+              onClick={handleProceedToPayment}
               className="w-full py-6 text-lg font-bold text-white rounded-xl"
               style={{ backgroundColor: '#1D6B6B' }}
             >
               Add ₹{amount || 0}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={showPaymentMethodDialog} onOpenChange={setShowPaymentMethodDialog}>
+        <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-black">Select Payment Method</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Notice Box */}
+            <div className="p-3 rounded-lg bg-black text-white text-sm">
+              <p>ध्यान दें जिस नंबर से केवाईसी हो उसी नंबर से पेमेंट डालें और विड्रॉल उसी नंबर पर लेवे अदर नंबर से पेमेंट डालने पर आईडी 0 कर दी जाए ही</p>
+            </div>
+
+            {/* Amount Display */}
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-bold text-black">Amount to be added ₹{amount}</p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPaymentMethodDialog(false);
+                  setShowAddDialog(true);
+                }}
+                className="bg-teal-600 text-white hover:bg-teal-700 border-none"
+              >
+                Edit
+              </Button>
+            </div>
+
+            {/* UPI Logo Section */}
+            <div className="bg-gray-200 rounded-xl p-6 flex flex-col items-center justify-center">
+              <div className="text-4xl font-bold text-gray-500 tracking-wider">UPI</div>
+              <p className="text-gray-600 text-sm mt-1">UNIFIED PAYMENTS INTERFACE</p>
+            </div>
+
+            {/* Payment Method Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              {paymentMethods.map((method) => (
+                <button
+                  key={method.id}
+                  onClick={() => handlePaymentMethodSelect(method.id)}
+                  className="py-4 px-4 rounded-xl text-white font-bold text-lg transition-transform hover:scale-105 active:scale-95"
+                  style={{ backgroundColor: method.color }}
+                >
+                  {method.name}
+                </button>
+              ))}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
