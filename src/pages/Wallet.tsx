@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,10 +26,6 @@ const Wallet = () => {
   // Pay0.shop Configuration
   const PAY0_USER_TOKEN = "472229be3b0340b2667f61fb25b3da17";
   const REDIRECT_URL = "https://rajasthanludo.com/wallet";
-  
-  // Form ref for POST submission
-  const formRef = useRef<HTMLFormElement>(null);
-  const [txnId, setTxnId] = useState("");
 
   // Generate unique transaction ID
   const generateTxnId = () => {
@@ -85,7 +81,7 @@ const Wallet = () => {
     localStorage.setItem("winningChips", winning.toString());
   };
 
-  const handleProceedToPayment = () => {
+  const handleProceedToPayment = async () => {
     const addAmount = Number(amount);
     if (isNaN(addAmount) || addAmount < 10) {
       toast({
@@ -98,7 +94,6 @@ const Wallet = () => {
     
     // Generate unique transaction ID
     const clientTxnId = generateTxnId();
-    setTxnId(clientTxnId);
     
     // Save pending transaction to localStorage
     localStorage.setItem("pendingTxn", JSON.stringify({
@@ -106,13 +101,47 @@ const Wallet = () => {
       amount: addAmount,
       timestamp: Date.now()
     }));
+
+    toast({
+      title: "Processing...",
+      description: "Redirecting to payment page",
+    });
     
-    // Submit form after state update
-    setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.submit();
+    try {
+      // Create order via Pay0.shop API
+      const response = await fetch("https://pay0.shop/api/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_token: PAY0_USER_TOKEN,
+          amount: addAmount,
+          txn_id: clientTxnId,
+          redirect_url: REDIRECT_URL,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.status && data.result?.payment_url) {
+        // Redirect to payment URL
+        window.location.href = data.result.payment_url;
+      } else {
+        toast({
+          title: "Payment Error",
+          description: data.message || "Could not create payment order",
+          variant: "destructive",
+        });
       }
-    }, 100);
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Error", 
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
 
@@ -294,19 +323,6 @@ const Wallet = () => {
             >
               Pay ₹{amount || 0} via UPI
             </Button>
-            
-            {/* Hidden form for POST submission to Pay0.shop */}
-            <form 
-              ref={formRef}
-              action="https://pay0.shop/api/create-order" 
-              method="POST"
-              style={{ display: 'none' }}
-            >
-              <input type="hidden" name="user_token" value={PAY0_USER_TOKEN} />
-              <input type="hidden" name="amount" value={amount} />
-              <input type="hidden" name="txn_id" value={txnId} />
-              <input type="hidden" name="redirect_url" value={REDIRECT_URL} />
-            </form>
           </div>
         </DialogContent>
       </Dialog>
