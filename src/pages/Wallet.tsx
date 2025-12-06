@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,17 +23,6 @@ const Wallet = () => {
   const [amount, setAmount] = useState("");
   const [upiId, setUpiId] = useState("");
 
-  // Pay0.shop Configuration
-  const PAY0_USER_TOKEN = "472229be3b0340b2667f61fb25b3da17";
-  const REDIRECT_URL = "https://rajasthanludo.com/wallet";
-  
-  const formRef = useRef<HTMLFormElement>(null);
-  const [txnId, setTxnId] = useState("");
-
-  // Generate unique transaction ID
-  const generateTxnId = () => {
-    return `TXN${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  };
 
   // Load wallet data from localStorage
   useEffect(() => {
@@ -41,41 +30,6 @@ const Wallet = () => {
     const savedWinning = localStorage.getItem("winningChips");
     if (savedDeposit) setDepositChips(Number(savedDeposit));
     if (savedWinning) setWinningChips(Number(savedWinning));
-
-    // Check for payment callback from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const status = urlParams.get('status');
-    const txnId = urlParams.get('client_txn_id');
-    const paidAmount = urlParams.get('amount');
-
-    if (status && txnId) {
-      // Clear URL params
-      window.history.replaceState({}, '', '/wallet');
-      
-      if (status === 'success' || status === 'SUCCESS') {
-        const addAmount = Number(paidAmount) || 0;
-        const currentDeposit = Number(localStorage.getItem("depositChips")) || 0;
-        const newDeposit = currentDeposit + addAmount;
-        setDepositChips(newDeposit);
-        localStorage.setItem("depositChips", newDeposit.toString());
-        
-        toast({
-          title: "Payment Successful!",
-          description: `₹${addAmount} added to your wallet`,
-        });
-      } else if (status === 'failed' || status === 'FAILED') {
-        toast({
-          title: "Payment Failed",
-          description: "Payment was not completed. Please try again.",
-          variant: "destructive",
-        });
-      } else if (status === 'pending' || status === 'PENDING') {
-        toast({
-          title: "Payment Pending",
-          description: "Your payment is being processed. It will be added shortly.",
-        });
-      }
-    }
   }, []);
 
   // Save wallet data to localStorage
@@ -84,7 +38,7 @@ const Wallet = () => {
     localStorage.setItem("winningChips", winning.toString());
   };
 
-  const handleProceedToPayment = () => {
+  const handleAddChips = () => {
     const addAmount = Number(amount);
     if (isNaN(addAmount) || addAmount < 10) {
       toast({
@@ -95,23 +49,17 @@ const Wallet = () => {
       return;
     }
     
-    // Generate unique transaction ID
-    const clientTxnId = generateTxnId();
-    setTxnId(clientTxnId);
+    // Add chips directly (no payment gateway)
+    const newDeposit = depositChips + addAmount;
+    setDepositChips(newDeposit);
+    saveWalletData(newDeposit, winningChips);
+    setShowAddDialog(false);
+    setAmount("");
     
-    // Save pending transaction to localStorage
-    localStorage.setItem("pendingTxn", JSON.stringify({
-      txnId: clientTxnId,
-      amount: addAmount,
-      timestamp: Date.now()
-    }));
-    
-    // Submit form after state update
-    setTimeout(() => {
-      if (formRef.current) {
-        formRef.current.submit();
-      }
-    }, 100);
+    toast({
+      title: "Chips Added!",
+      description: `₹${addAmount} chips added to your wallet`,
+    });
   };
 
 
@@ -280,32 +228,13 @@ const Wallet = () => {
               ))}
             </div>
 
-            {/* UPI Logo Section */}
-            <div className="bg-gray-200 rounded-xl p-4 flex flex-col items-center justify-center">
-              <div className="text-2xl font-bold text-gray-600 tracking-wider">Pay0.shop</div>
-              <p className="text-gray-500 text-xs mt-1">Secure UPI Payment Gateway</p>
-            </div>
-
             <Button
-              onClick={handleProceedToPayment}
+              onClick={handleAddChips}
               className="w-full py-6 text-lg font-bold text-white rounded-xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
               style={{ backgroundColor: '#1D6B6B' }}
             >
-              Pay ₹{amount || 0} via UPI
+              Add ₹{amount || 0} Chips
             </Button>
-            
-            {/* Hidden form for POST submission to Pay0.shop */}
-            <form 
-              ref={formRef}
-              action="https://pay0.shop/api/create-order" 
-              method="POST"
-              style={{ display: 'none' }}
-            >
-              <input type="hidden" name="user_token" value={PAY0_USER_TOKEN} />
-              <input type="hidden" name="amount" value={amount} />
-              <input type="hidden" name="txn_id" value={txnId} />
-              <input type="hidden" name="redirect_url" value={REDIRECT_URL} />
-            </form>
           </div>
         </DialogContent>
       </Dialog>
