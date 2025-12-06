@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import GameCard, { gameNames } from "./GameCard";
 import BattleArena from "./BattleArena";
 import DragonTigerGame from "./DragonTigerGame";
@@ -23,6 +23,13 @@ const GamesSection = ({
   
   const selectedGame = externalSelectedGame !== undefined ? externalSelectedGame : internalSelectedGame;
   const setSelectedGame = onGameSelect || setInternalSelectedGame;
+
+  // Scroll to top when a game is selected
+  useEffect(() => {
+    if (selectedGame) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedGame]);
 
   // Show Dragon Tiger game
   if (selectedGame === 'dragon-tiger') {
