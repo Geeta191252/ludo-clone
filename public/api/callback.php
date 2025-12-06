@@ -2,20 +2,28 @@
 // Pay0.shop Webhook Callback Handler
 require_once 'config.php';
 
-// Get raw input for JSON data
+// Get raw input
 $raw_input = file_get_contents('php://input');
-$json_data = json_decode($raw_input, true);
 
 // Log all incoming requests for debugging
 $log_data = date('Y-m-d H:i:s') . " - START CALLBACK\n";
 $log_data .= "RAW: " . $raw_input . "\n";
 file_put_contents('webhook_log.txt', $log_data, FILE_APPEND);
 
-// Try JSON first, then POST, then GET
-$status = $json_data['status'] ?? $_POST['status'] ?? $_GET['status'] ?? '';
-$order_id = $json_data['order_id'] ?? $_POST['order_id'] ?? $_GET['order_id'] ?? '';
-$amount = floatval($json_data['amount'] ?? $_POST['amount'] ?? $_GET['amount'] ?? 0);
-$utr = $json_data['utr'] ?? $_POST['utr'] ?? $_GET['utr'] ?? '';
+// Try to parse as JSON first
+$json_data = json_decode($raw_input, true);
+
+// If not JSON, try URL-encoded (query string format)
+$url_data = [];
+if (!$json_data) {
+    parse_str($raw_input, $url_data);
+}
+
+// Get values from JSON, URL-encoded, POST, or GET
+$status = $json_data['status'] ?? $url_data['status'] ?? $_POST['status'] ?? $_GET['status'] ?? '';
+$order_id = $json_data['order_id'] ?? $url_data['order_id'] ?? $_POST['order_id'] ?? $_GET['order_id'] ?? '';
+$amount = floatval($json_data['amount'] ?? $url_data['amount'] ?? $_POST['amount'] ?? $_GET['amount'] ?? 0);
+$utr = $json_data['utr'] ?? $url_data['utr'] ?? $_POST['utr'] ?? $_GET['utr'] ?? '';
 
 file_put_contents('webhook_log.txt', "Parsed - Status: $status, Order: $order_id, Amount: $amount, UTR: $utr\n", FILE_APPEND);
 
