@@ -1,5 +1,9 @@
 <?php
 // Pay0.shop Webhook Callback Handler
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 require_once 'config.php';
 
 // Get raw input
@@ -34,17 +38,20 @@ if (empty($order_id)) {
 }
 
 $conn = getDBConnection();
+file_put_contents('webhook_log.txt', "DB Connected\n", FILE_APPEND);
 
 // First get the transaction details
-$stmt = $conn->prepare("SELECT * FROM transactions WHERE order_id = ?");
-$stmt->bind_param("s", $order_id);
-$stmt->execute();
-$result = $stmt->get_result();
+$select_stmt = $conn->prepare("SELECT * FROM transactions WHERE order_id = ?");
+$select_stmt->bind_param("s", $order_id);
+$select_stmt->execute();
+$result = $select_stmt->get_result();
 $transaction = $result->fetch_assoc();
+$select_stmt->close(); // Close statement to free resources
 
 if (!$transaction) {
     file_put_contents('webhook_log.txt', "ERROR: Transaction not found for order_id: $order_id\n", FILE_APPEND);
     echo 'Transaction not found';
+    $conn->close();
     exit;
 }
 
