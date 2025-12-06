@@ -13,8 +13,6 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
   const [walletBalance, setWalletBalance] = useState(10000);
-  
-  console.log("Index component rendering");
 
   // When a game is selected, show only the battle arena
   if (selectedGame) {
