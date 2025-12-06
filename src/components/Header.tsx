@@ -1,35 +1,65 @@
-import { Menu, Wallet } from "lucide-react";
+import { Menu, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   onMenuClick: () => void;
   walletBalance?: number;
+  earningBalance?: number;
 }
 
-const Header = ({ onMenuClick, walletBalance = 100 }: HeaderProps) => {
+const Header = ({ onMenuClick, walletBalance = 100, earningBalance = 0 }: HeaderProps) => {
+  const navigate = useNavigate();
+
   return (
-    <header className="header-gradient flex items-center justify-between px-4 py-3">
-      <div className="flex items-center gap-3">
+    <header className="header-gradient flex items-center justify-between px-3 py-3">
+      <div className="flex items-center gap-2">
         <button 
           onClick={onMenuClick}
           className="p-1"
         >
-          <Menu className="w-7 h-7 text-foreground" />
+          <Menu className="w-6 h-6 text-foreground" />
         </button>
-        <div className="flex items-center gap-2">
-          <LudoLogo />
-          <span className="font-display text-lg gold-text">RockyLudo</span>
-        </div>
+        <LudoLogo />
       </div>
-      <div className="wallet-badge">
-        <Wallet className="w-5 h-5" />
-        <span>₹{walletBalance}</span>
+      
+      <div className="flex items-center gap-2">
+        {/* Cash Button */}
+        <button 
+          onClick={() => navigate('/wallet')}
+          className="flex items-center gap-1 bg-gradient-to-r from-zinc-800 to-zinc-900 rounded-full pl-1 pr-1 py-1 border border-red-600"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
+            <span className="text-white font-bold text-xs">₹</span>
+          </div>
+          <div className="flex flex-col items-start px-1">
+            <span className="text-red-500 text-xs font-bold leading-tight">Cash</span>
+            <span className="text-white text-sm font-bold leading-tight">{walletBalance}</span>
+          </div>
+          <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center mr-1">
+            <Plus className="w-4 h-4 text-black" />
+          </div>
+        </button>
+
+        {/* Earning Button */}
+        <button 
+          onClick={() => navigate('/refer-earn')}
+          className="flex items-center gap-1 bg-gradient-to-r from-zinc-800 to-zinc-900 rounded-full pl-1 pr-2 py-1 border border-red-600"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-700 flex items-center justify-center">
+            <span className="text-2xl">💰</span>
+          </div>
+          <div className="flex flex-col items-start px-1">
+            <span className="text-red-500 text-xs font-bold leading-tight">Earning</span>
+            <span className="text-white text-sm font-bold leading-tight">{earningBalance}</span>
+          </div>
+        </button>
       </div>
     </header>
   );
 };
 
 const LudoLogo = () => (
-  <svg width="45" height="45" viewBox="0 0 100 100" className="drop-shadow-lg">
+  <svg width="40" height="40" viewBox="0 0 100 100" className="drop-shadow-lg">
     {/* Dice */}
     <rect x="30" y="25" width="40" height="40" rx="8" fill="#FFD700" stroke="#B8860B" strokeWidth="2"/>
     <circle cx="42" cy="37" r="4" fill="#1a1a2e"/>
