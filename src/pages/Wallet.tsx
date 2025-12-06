@@ -12,34 +12,60 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 
+// API Base URL - Hostinger पर deploy करने के बाद अपनी site का URL डालो
+const API_BASE_URL = window.location.origin;
+
 const Wallet = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [depositChips, setDepositChips] = useState(134);
+  const [depositChips, setDepositChips] = useState(0);
   const [winningChips, setWinningChips] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [amount, setAmount] = useState("");
   const [upiId, setUpiId] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [playerName, setPlayerName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-
-  // Load wallet data from localStorage
+  // Load user data
   useEffect(() => {
+    const savedMobile = localStorage.getItem("userMobile");
+    const savedName = localStorage.getItem("userName");
+    if (savedMobile) setMobileNumber(savedMobile);
+    if (savedName) setPlayerName(savedName);
+    
+    // Load balance from localStorage (fallback)
     const savedDeposit = localStorage.getItem("depositChips");
     const savedWinning = localStorage.getItem("winningChips");
     if (savedDeposit) setDepositChips(Number(savedDeposit));
     if (savedWinning) setWinningChips(Number(savedWinning));
+
+    // Try to get balance from server
+    if (savedMobile) {
+      fetchBalance(savedMobile);
+    }
   }, []);
 
-  // Save wallet data to localStorage
-  const saveWalletData = (deposit: number, winning: number) => {
-    localStorage.setItem("depositChips", deposit.toString());
-    localStorage.setItem("winningChips", winning.toString());
+  const fetchBalance = async (mobile: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/get-balance.php?mobile=${mobile}`);
+      const data = await response.json();
+      if (data.status) {
+        setDepositChips(data.wallet_balance);
+        setWinningChips(data.winning_balance);
+        localStorage.setItem("depositChips", data.wallet_balance.toString());
+        localStorage.setItem("winningChips", data.winning_balance.toString());
+      }
+    } catch (error) {
+      console.log("Using local balance");
+    }
   };
 
-  const handleAddChips = () => {
+  const handleProceedToPayment = async () => {
     const addAmount = Number(amount);
+    
     if (isNaN(addAmount) || addAmount < 10) {
       toast({
         title: "Invalid Amount",
@@ -48,20 +74,61 @@ const Wallet = () => {
       });
       return;
     }
-    
-    // Add chips directly (no payment gateway)
-    const newDeposit = depositChips + addAmount;
-    setDepositChips(newDeposit);
-    saveWalletData(newDeposit, winningChips);
-    setShowAddDialog(false);
-    setAmount("");
-    
-    toast({
-      title: "Chips Added!",
-      description: `₹${addAmount} chips added to your wallet`,
-    });
-  };
 
+    if (!mobileNumber || mobileNumber.length < 10) {
+      toast({
+        title: "Mobile Required",
+        description: "Please enter valid mobile number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Save user data
+    localStorage.setItem("userMobile", mobileNumber);
+    localStorage.setItem("userName", playerName || "Player");
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/create-order.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: addAmount,
+          mobile: mobileNumber,
+          name: playerName || "Player"
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.status && data.payment_url) {
+        // Save pending order
+        localStorage.setItem("pendingOrderId", data.order_id);
+        localStorage.setItem("pendingAmount", addAmount.toString());
+        
+        // Redirect to payment page
+        window.location.href = data.payment_url;
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to create order",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Payment gateway not available. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleWithdraw = () => {
     const withdrawAmount = Number(amount);
@@ -94,14 +161,14 @@ const Wallet = () => {
 
     const newWinning = winningChips - withdrawAmount;
     setWinningChips(newWinning);
-    saveWalletData(depositChips, newWinning);
+    localStorage.setItem("winningChips", newWinning.toString());
     setShowWithdrawDialog(false);
     setAmount("");
     setUpiId("");
     
     toast({
       title: "Withdrawal Requested!",
-      description: `₹${withdrawAmount} will be sent to ${upiId}`,
+      description: `₹${withdrawAmount} will be sent to ${upiId} within 24 hours`,
     });
   };
 
@@ -149,7 +216,7 @@ const Wallet = () => {
               className="w-full py-6 text-lg font-bold text-white rounded-xl"
               style={{ backgroundColor: '#1D6B6B' }}
             >
-              Add
+              Add Chips
             </Button>
           </div>
         </div>
@@ -190,7 +257,7 @@ const Wallet = () => {
         </div>
       </div>
 
-      {/* Add Chips Dialog - Amount Selection */}
+      {/* Add Chips Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-sm" style={{ backgroundColor: '#F5D547' }}>
           <DialogHeader>
@@ -200,11 +267,34 @@ const Wallet = () => {
           <div className="space-y-4">
             {/* Notice Box */}
             <div className="p-3 rounded-lg bg-black text-white text-sm">
-              <p>ध्यान दें जिस नंबर से केवाईसी हो उसी नंबर से पेमेंट डालें और विड्रॉल उसी नंबर पर लेवे अदर नंबर से पेमेंट डालने पर आईडी 0 कर दी जाए ही</p>
+              <p>ध्यान दें: जिस नंबर से payment करोगे उसी नंबर पर withdrawal मिलेगा</p>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-black">Enter Amount (Min ₹10)</label>
+              <label className="text-sm font-medium text-black">Mobile Number *</label>
+              <Input
+                type="tel"
+                placeholder="Enter mobile number"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                maxLength={10}
+                className="mt-1 bg-white border-2 border-black/20 text-black"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-black">Your Name</label>
+              <Input
+                type="text"
+                placeholder="Enter your name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="mt-1 bg-white border-2 border-black/20 text-black"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-black">Amount (Min ₹10)</label>
               <Input
                 type="number"
                 placeholder="₹ Enter amount"
@@ -229,16 +319,16 @@ const Wallet = () => {
             </div>
 
             <Button
-              onClick={handleAddChips}
+              onClick={handleProceedToPayment}
+              disabled={isLoading}
               className="w-full py-6 text-lg font-bold text-white rounded-xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
               style={{ backgroundColor: '#1D6B6B' }}
             >
-              Add ₹{amount || 0} Chips
+              {isLoading ? 'Processing...' : `Pay ₹${amount || 0} via UPI`}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
 
       {/* Withdrawal Dialog */}
       <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
@@ -280,7 +370,7 @@ const Wallet = () => {
                 <button
                   key={amt}
                   onClick={() => setAmount(amt.toString())}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50"
                   style={{ backgroundColor: '#1D6B6B' }}
                   disabled={amt > winningChips}
                 >
