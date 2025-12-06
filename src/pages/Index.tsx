@@ -22,13 +22,15 @@ const Index = () => {
     try {
       const response = await fetch(`/api/get-balance.php?mobile=${mobile}`);
       const data = await response.json();
-      if (data.status && data.wallet_balance !== undefined) {
-        setWalletBalance(data.wallet_balance);
+      if (data.status) {
+        const totalBalance = (data.wallet_balance || 0) + (data.winning_balance || 0);
+        setWalletBalance(totalBalance);
         // Update localStorage too
         const user = localStorage.getItem("user");
         if (user) {
           const userData = JSON.parse(user);
-          userData.wallet_balance = data.wallet_balance;
+          userData.wallet_balance = data.wallet_balance || 0;
+          userData.winning_balance = data.winning_balance || 0;
           localStorage.setItem("user", JSON.stringify(userData));
         }
       }
@@ -50,7 +52,8 @@ const Index = () => {
     // Load wallet balance from user data
     try {
       const userData = JSON.parse(user);
-      setWalletBalance(userData.wallet_balance || 0);
+      const totalBalance = (userData.wallet_balance || 0) + (userData.winning_balance || 0);
+      setWalletBalance(totalBalance);
       // Fetch fresh balance from server
       if (userData.mobile) {
         fetchBalance(userData.mobile);
