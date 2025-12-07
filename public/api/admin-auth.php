@@ -6,37 +6,45 @@ function verifyAdminToken() {
     
     // Handle case-insensitive header lookup
     $authHeader = '';
-    foreach ($headers as $key => $value) {
-        if (strtolower($key) === 'authorization') {
-            $authHeader = $value;
-            break;
+    if ($headers) {
+        foreach ($headers as $key => $value) {
+            if (strtolower($key) === 'authorization') {
+                $authHeader = $value;
+                break;
+            }
         }
     }
     
-    if (empty($authHeader) || !str_starts_with($authHeader, 'Bearer ')) {
+    // PHP 7 compatible check for "Bearer " prefix
+    if (empty($authHeader) || strpos($authHeader, 'Bearer ') !== 0) {
         return false;
     }
     
     $token = substr($authHeader, 7);
-    $conn = getDBConnection();
     
-    $stmt = $conn->prepare("
-        SELECT a.id, a.username, a.name 
-        FROM admin_tokens t 
-        JOIN admins a ON t.admin_id = a.id 
-        WHERE t.token = ? AND t.expires_at > NOW() AND a.status = 'active'
-    ");
-    $stmt->bind_param("s", $token);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($row = $result->fetch_assoc()) {
+    try {
+        $conn = getDBConnection();
+        
+        $stmt = $conn->prepare("
+            SELECT a.id, a.username, a.name 
+            FROM admin_tokens t 
+            JOIN admins a ON t.admin_id = a.id 
+            WHERE t.token = ? AND t.expires_at > NOW() AND a.status = 'active'
+        ");
+        $stmt->bind_param("s", $token);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($row = $result->fetch_assoc()) {
+            $conn->close();
+            return $row;
+        }
+        
         $conn->close();
-        return $row;
+        return false;
+    } catch (Exception $e) {
+        return false;
     }
-    
-    $conn->close();
-    return false;
 }
 
 function requireAdmin() {
