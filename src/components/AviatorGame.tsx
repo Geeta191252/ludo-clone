@@ -600,29 +600,27 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           )}
         </div>
 
-        {/* Full Screen Plane Video Animation */}
+        {/* Animated Plane */}
         {(gamePhase === 'flying' || gamePhase === 'crashed') && (
           <div 
-            className="absolute inset-0 z-30 flex items-center justify-center"
+            className="absolute z-30"
             style={{ 
-              filter: gamePhase === 'crashed' ? 'brightness(0.5) saturate(0)' : 'none',
+              left: `${planePosition.x}%`, 
+              top: `${planePosition.y}%`,
+              transform: `translate(-50%, -50%) ${gamePhase === 'crashed' ? 'rotate(45deg) scale(0.8)' : `rotate(${planeRotation}deg)`}`,
+              filter: gamePhase === 'crashed' ? 'brightness(0.5) saturate(0)' : 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))',
               transition: gamePhase === 'crashed' ? 'all 0.5s ease-out' : 'none'
             }}
           >
-            <video 
-              autoPlay 
-              loop={gamePhase === 'flying'}
-              muted 
-              playsInline
-              className="w-full h-full object-cover"
+            <img 
+              src="/lovable-uploads/f3f3c773-1e30-4f2c-a739-b498c2880ad5.png" 
+              alt="Plane" 
+              className="w-24 h-auto"
               style={{
                 opacity: gamePhase === 'crashed' ? 0.6 : 1,
-                transition: 'opacity 0.3s ease-out',
-                transform: gamePhase === 'crashed' ? 'rotate(45deg) scale(1.2)' : 'none'
+                transition: 'opacity 0.3s ease-out'
               }}
-            >
-              <source src="/videos/plane-animation.mp4" type="video/mp4" />
-            </video>
+            />
           </div>
         )}
         
