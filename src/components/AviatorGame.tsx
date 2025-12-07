@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, History, ChevronDown, Users, Coins, DollarSign } from 'lucide-react';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useGameSync } from '@/hooks/useGameSync';
 
 interface AviatorGameProps {
   onClose: () => void;
@@ -56,195 +57,103 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     }
   };
 
+  // Use game sync hook for real-time multiplayer
+  const { gameState, liveBets: syncedBets, livePlayerCount } = useGameSync('aviator');
+
   const [betAmount1, setBetAmount1] = useState(10);
   const [betAmount2, setBetAmount2] = useState(10);
-  const [multiplier, setMultiplier] = useState(1.00);
-  const [gamePhase, setGamePhase] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
-  const [countdown, setCountdown] = useState(5);
   const [bet1Active, setBet1Active] = useState(false);
   const [bet2Active, setBet2Active] = useState(false);
   const [bet1CashedOut, setBet1CashedOut] = useState(false);
   const [bet2CashedOut, setBet2CashedOut] = useState(false);
-  const [history, setHistory] = useState<number[]>([5.01, 2.60, 3.45, 1.23, 8.92, 1.05]);
-  const [planePosition, setPlanePosition] = useState({ x: 10, y: 80 });
-  const [planeRotation, setPlaneRotation] = useState(-20);
   const [pathPoints, setPathPoints] = useState<{x: number, y: number}[]>([]);
   const [winPopup, setWinPopup] = useState<WinPopup>({ amount: 0, mult: 0, visible: false });
-  const [liveUsers, setLiveUsers] = useState(2847);
   const [showHistory, setShowHistory] = useState(false);
-  const [liveBets, setLiveBets] = useState<{username: string, odds: string, bet: number, win: number}[]>([]);
+  const [localBets, setLocalBets] = useState<{username: string, odds: string, bet: number, win: number, isUser?: boolean, betNum?: number}[]>([]);
+  const prevPhaseRef = useRef<string | null>(null);
   
-  // Generate random bets for each round
-  const generateRandomBets = () => {
-    const numBets = Math.floor(Math.random() * 15) + 20; // 20-35 bets
-    const newBets = [];
-    for (let i = 0; i < numBets; i++) {
-      const randomNum = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-      newBets.push({
-        username: `*******${randomNum}`,
-        odds: 'x0',
-        bet: Math.floor(Math.random() * 5000) + 100, // 100-5100 INR
-        win: 0
-      });
-    }
-    // Sort by bet amount descending
-    return newBets.sort((a, b) => b.bet - a.bet);
-  };
+  // Get synced state values
+  const multiplier = gameState?.multiplier || 1.00;
+  const gamePhase = (gameState?.phase || 'waiting') as 'waiting' | 'flying' | 'crashed';
+  const countdown = gameState?.timer || 5;
+  const history = (gameState?.history || [5.01, 2.60, 3.45, 1.23, 8.92, 1.05]) as number[];
+  const planePosition = { x: gameState?.plane_x || 10, y: gameState?.plane_y || 80 };
+  const liveUsers = Math.max(livePlayerCount + 50, 100); // Show at least 100 users
+  const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
-  // Initialize bets on first load
-  useEffect(() => {
-    setLiveBets(generateRandomBets());
-  }, []);
+  // Combine synced bets with local user bets
+  const liveBets = [
+    ...localBets.filter(b => b.isUser),
+    ...syncedBets.map(b => ({
+      username: b.username || `***${b.mobile?.slice(-4) || '****'}`,
+      odds: b.odds || 'x0',
+      bet: Number(b.bet_amount) || 0,
+      win: Number(b.win_amount) || 0,
+      isUser: false
+    }))
+  ].sort((a, b) => b.bet - a.bet);
   
   // Calculated stats from actual bets (with safety checks)
   const validBets = liveBets.filter(b => b && typeof b.bet === 'number');
   const numberOfBets = validBets.length;
   const totalBetsAmount = validBets.reduce((sum, b) => sum + b.bet, 0);
-  const totalWinningsAmount = validBets.reduce((sum, b) => sum + (b.win || 0), 0); // Total INR won
+  const totalWinningsAmount = validBets.reduce((sum, b) => sum + (b.win || 0), 0);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
-  // Add users one by one during waiting phase (when countdown starts)
-  const betsToAddRef = useRef<{username: string, odds: string, bet: number, win: number}[]>([]);
-  const addIndexRef = useRef(0);
-  const waitingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+  // Handle phase transitions for sounds
   useEffect(() => {
-    if (gamePhase === 'waiting') {
-      // Generate bets for waiting phase - users placing bets
-      betsToAddRef.current = generateRandomBets();
-      addIndexRef.current = 0;
-      
-      waitingIntervalRef.current = setInterval(() => {
-        if (addIndexRef.current < betsToAddRef.current.length) {
-          const betToAdd = betsToAddRef.current[addIndexRef.current];
-          if (betToAdd) {
-            setLiveBets(prev => [...prev, betToAdd]);
-          }
-          addIndexRef.current++;
-        } else {
-          if (waitingIntervalRef.current) {
-            clearInterval(waitingIntervalRef.current);
-          }
-        }
-      }, 500); // Add user every 500ms during waiting
+    if (prevPhaseRef.current !== gamePhase) {
+      if (gamePhase === 'flying' && prevPhaseRef.current === 'waiting') {
+        playTakeoffSound();
+        setPathPoints([{ x: 0, y: 100 }]);
+      } else if (gamePhase === 'crashed' && prevPhaseRef.current === 'flying') {
+        playCrashSound();
+        playLoseSound();
+        // Reset user bets on crash
+        setBet1Active(false);
+        setBet2Active(false);
+        setBet1CashedOut(false);
+        setBet2CashedOut(false);
+        setLocalBets([]);
+        setPathPoints([]);
+      } else if (gamePhase === 'waiting' && prevPhaseRef.current === 'crashed') {
+        setPathPoints([]);
+      }
+      prevPhaseRef.current = gamePhase;
     }
-    
-    return () => {
-      if (waitingIntervalRef.current) {
-        clearInterval(waitingIntervalRef.current);
-      }
-    };
-  }, [gamePhase]);
+  }, [gamePhase, playCrashSound, playLoseSound, playTakeoffSound]);
 
-  // Simulate live user count and odds updates during flight
+  // Update path points during flight
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveUsers(prev => {
-        const change = Math.floor(Math.random() * 21) - 10;
-        return Math.max(2500, Math.min(3500, prev + change));
-      });
-      // Update odds during flying phase - users cash out
-      if (gamePhase === 'flying') {
-        setLiveBets(prev => {
-          const newBets = [...prev];
-          // Randomly cash out some users
-          for (let i = 0; i < 2; i++) {
-            const randomIndex = Math.floor(Math.random() * newBets.length);
-            if (newBets[randomIndex] && newBets[randomIndex].odds === 'x0' && Math.random() > 0.5) {
-              const mult = (Math.random() * (multiplier - 1) + 1).toFixed(2);
-              newBets[randomIndex] = { 
-                ...newBets[randomIndex], 
-                odds: `x${mult}`, 
-                win: Math.floor(newBets[randomIndex].bet * parseFloat(mult)) 
-              };
-            }
-          }
-          return newBets;
-        });
-      }
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [gamePhase, multiplier]);
+    if (gamePhase === 'flying') {
+      setPathPoints(prev => [...prev, { x: planePosition.x, y: planePosition.y }]);
+    }
+  }, [gamePhase, planePosition.x, planePosition.y]);
 
-  // Game loop
+  // Play countdown beep
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    if (gamePhase === 'waiting' && countdown > 0 && countdown <= 5) {
+      playCountdownBeep();
+    }
+  }, [countdown, gamePhase, playCountdownBeep]);
+
+  // Engine sound during flight
+  useEffect(() => {
     let engineCleanup: (() => void) | null = null;
     
-    if (gamePhase === 'waiting') {
-      // 5 second countdown
-      interval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            playTakeoffSound();
-            setGamePhase('flying');
-            setMultiplier(1.00);
-            setPathPoints([{ x: 0, y: 100 }]);
-            setPlanePosition({ x: 10, y: 80 });
-            return 5;
-          }
-          // Play countdown beep sound
-          playCountdownBeep();
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-    
     if (gamePhase === 'flying') {
-      // Start continuous engine sound
       engineCleanup = startEngineSound();
-      
-      interval = setInterval(() => {
-        setMultiplier(prev => {
-          const increment = Math.random() * 0.06 + 0.02;
-          const newMultiplier = prev + increment;
-          
-          const crashChance = (newMultiplier - 1) * 0.012;
-          if (Math.random() < crashChance || newMultiplier > 20) {
-            stopEngineSound();
-            playCrashSound();
-            playLoseSound();
-            setGamePhase('crashed');
-            setHistory(h => [parseFloat(newMultiplier.toFixed(2)), ...h.slice(0, 5)]);
-            
-            setTimeout(() => {
-              setBet1Active(false);
-              setBet2Active(false);
-              setBet1CashedOut(false);
-              setBet2CashedOut(false);
-              setCountdown(5);
-              setLiveBets([]); // Reset all bets to 0 for new round
-              setPathPoints([]); // Clear the trail line
-              setGamePhase('waiting');
-            }, 2500);
-            
-            return newMultiplier;
-          }
-          
-          const progress = Math.min((newMultiplier - 1) / 10, 1);
-          const curve = Math.pow(progress, 0.5);
-          const newX = 5 + curve * 70;
-          const newY = 95 - curve * 65;
-          
-          setPlanePosition({ x: newX, y: newY });
-          setPlaneRotation(-25 + curve * 10);
-          
-          setPathPoints(prev => [...prev, { x: newX, y: newY }]);
-          
-          return newMultiplier;
-        });
-      }, 80);
+    } else {
+      stopEngineSound();
     }
     
     return () => {
-      if (interval) clearInterval(interval);
       if (engineCleanup) engineCleanup();
       stopEngineSound();
     };
-  }, [gamePhase]);
+  }, [gamePhase, startEngineSound, stopEngineSound]);
 
   // Canvas rendering
   useEffect(() => {
@@ -309,7 +218,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       isUser: true,
       betNum: betNum
     };
-    setLiveBets(prev => [userBet, ...prev.filter(b => !((b as any).isUser && (b as any).betNum === betNum))]);
+    setLocalBets(prev => [userBet, ...prev.filter(b => !(b.isUser && b.betNum === betNum))]);
   };
 
   const cancelBet = async (betNum: 1 | 2) => {
@@ -332,7 +241,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     else setBet2Active(false);
     
     // Remove user's bet from table
-    setLiveBets(prev => prev.filter(b => !((b as any).isUser && (b as any).betNum === betNum)));
+    setLocalBets(prev => prev.filter(b => !(b.isUser && b.betNum === betNum)));
   };
 
   const cashOut = async (betNum: 1 | 2) => {
@@ -361,8 +270,8 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     else setBet2CashedOut(true);
     
     // Update user's bet in table with win
-    setLiveBets(prev => prev.map(b => {
-      if ((b as any).isUser && (b as any).betNum === betNum) {
+    setLocalBets(prev => prev.map(b => {
+      if (b.isUser && b.betNum === betNum) {
         return { ...b, odds: `x${multiplier.toFixed(2)}`, win: Math.floor(winnings) };
       }
       return b;
