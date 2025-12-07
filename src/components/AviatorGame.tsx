@@ -96,10 +96,52 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     ? { x: Number(gameState.plane_x || 10), y: Number(gameState.plane_y || 80) }
     : localPlanePos;
   
-  // Direct values - no interpolation to avoid stuttering
-  // Use CSS transitions for smooth visual movement instead
+  // CLIENT-SIDE SMOOTH ANIMATION - completely independent of server updates
+  // This runs at 60fps and never stutters because it doesn't depend on server polling
+  const animationFrameRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const [animatedPlanePos, setAnimatedPlanePos] = useState({ x: 10, y: 80 });
+  
+  // Continuous smooth plane animation during flying phase
+  useEffect(() => {
+    if (gamePhase !== 'flying') {
+      // Reset plane position when not flying
+      setAnimatedPlanePos({ x: 10, y: 80 });
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      return;
+    }
+    
+    startTimeRef.current = performance.now();
+    
+    const animate = () => {
+      const elapsed = performance.now() - startTimeRef.current;
+      // Calculate smooth position based on time elapsed (creates constant smooth movement)
+      const progress = elapsed / 1000; // seconds
+      
+      // Smooth continuous movement - plane flies from left-bottom to right-top
+      const newX = Math.min(10 + progress * 8, 85); // Move right at constant speed
+      const newY = Math.max(80 - progress * 7, 15); // Move up at constant speed
+      
+      setAnimatedPlanePos({ x: newX, y: newY });
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [gamePhase]);
+  
+  // Use server multiplier for display, but client-side position for smooth animation
   const multiplier = rawMultiplier;
-  const planePosition = rawPlanePosition;
+  const planePosition = animatedPlanePos; // Use client-animated position - never stutters!
   const liveUsers = livePlayerCount || 1;
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
@@ -503,7 +545,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           )}
         </div>
 
-        {/* Golden Propeller Airplane */}
+        {/* Golden Propeller Airplane - Uses client-side animation for butter-smooth movement */}
         {gamePhase === 'flying' && (
           <div 
             className="absolute z-30"
@@ -511,9 +553,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               left: `${planePosition.x}%`, 
               top: `${planePosition.y}%`,
               transform: `translate(-50%, -50%) rotate(${planeRotation}deg)`,
-              filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))',
-              transition: 'left 0.5s linear, top 0.5s linear, transform 0.3s ease-out',
-              willChange: 'left, top, transform'
+              filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))'
             }}
           >
             <svg width="60" height="38" viewBox="0 0 120 70" fill="none">
