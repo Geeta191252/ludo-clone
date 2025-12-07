@@ -72,27 +72,37 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [localBets, setLocalBets] = useState<{username: string, odds: string, bet: number, win: number, isUser?: boolean, betNum?: number}[]>([]);
   const prevPhaseRef = useRef<string | null>(null);
   
-  // Local game state for when server is not available
+  // Local game state - always runs for standalone game
   const [localGamePhase, setLocalGamePhase] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
   const [localMultiplier, setLocalMultiplier] = useState(1.00);
   const [localCountdown, setLocalCountdown] = useState(5);
   const [localHistory, setLocalHistory] = useState<number[]>([5.01, 2.60, 3.45, 1.23, 8.92]);
   const [localPlanePos, setLocalPlanePos] = useState({ x: 10, y: 80 });
+  const [localCrashPoint, setLocalCrashPoint] = useState(0);
+  const [gameInitialized, setGameInitialized] = useState(false);
 
-  // Use server state if available, otherwise use local state
-  const multiplier = gameState?.multiplier || localMultiplier;
-  const gamePhase = (gameState?.phase || localGamePhase) as 'waiting' | 'flying' | 'crashed';
-  const countdown = gameState?.timer || localCountdown;
-  const history = (gameState?.history?.length ? gameState.history : localHistory) as number[];
-  const planePosition = gameState?.plane_x ? { x: gameState.plane_x, y: gameState.plane_y || 80 } : localPlanePos;
+  // Initialize game on mount
+  useEffect(() => {
+    setGameInitialized(true);
+    // Generate initial crash point
+    setLocalCrashPoint(1.2 + Math.random() * 13.8);
+  }, []);
+
+  // Use local state always (server sync can override later)
+  const multiplier = localMultiplier;
+  const gamePhase = localGamePhase;
+  const countdown = localCountdown;
+  const history = localHistory;
+  const planePosition = localPlanePos;
   const liveUsers = livePlayerCount || 1;
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
-  // Run local game simulation if no server connection
+  // Run local game simulation - always runs
   useEffect(() => {
-    if (gameState) return; // Server connected, don't run local sim
+    if (!gameInitialized) return;
 
     let interval: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout;
     
     if (localGamePhase === 'waiting') {
       interval = setInterval(() => {
@@ -101,6 +111,8 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             setLocalGamePhase('flying');
             setLocalMultiplier(1.00);
             setLocalPlanePos({ x: 10, y: 80 });
+            // Generate new crash point for this round
+            setLocalCrashPoint(1.2 + Math.random() * 13.8);
             return 5;
           }
           return prev - 1;
@@ -109,16 +121,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     } else if (localGamePhase === 'flying') {
       interval = setInterval(() => {
         setLocalMultiplier(prev => {
-          const newMult = prev + 0.05 + Math.random() * 0.1;
-          // Random crash between 1.2x and 15x
-          const crashPoint = 1.2 + Math.random() * 13.8;
-          if (newMult >= crashPoint) {
+          const newMult = prev + 0.03 + Math.random() * 0.05;
+          if (newMult >= localCrashPoint) {
             setLocalGamePhase('crashed');
             setLocalHistory(h => [Number(newMult.toFixed(2)), ...h.slice(0, 19)]);
-            setTimeout(() => {
-              setLocalGamePhase('waiting');
-              setLocalCountdown(5);
-            }, 3000);
             return newMult;
           }
           // Update plane position
@@ -129,10 +135,20 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           return newMult;
         });
       }, 100);
+    } else if (localGamePhase === 'crashed') {
+      timeout = setTimeout(() => {
+        setLocalGamePhase('waiting');
+        setLocalCountdown(5);
+        setLocalMultiplier(1.00);
+        setLocalPlanePos({ x: 10, y: 80 });
+      }, 3000);
     }
 
-    return () => clearInterval(interval);
-  }, [localGamePhase, gameState]);
+    return () => {
+      if (interval) clearInterval(interval);
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [localGamePhase, gameInitialized, localCrashPoint]);
 
   // Combine synced bets with local user bets - ONLY REAL USERS
   const liveBets = [
