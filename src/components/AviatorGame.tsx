@@ -72,14 +72,67 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [localBets, setLocalBets] = useState<{username: string, odds: string, bet: number, win: number, isUser?: boolean, betNum?: number}[]>([]);
   const prevPhaseRef = useRef<string | null>(null);
   
-  // Get synced state values
-  const multiplier = gameState?.multiplier || 1.00;
-  const gamePhase = (gameState?.phase || 'waiting') as 'waiting' | 'flying' | 'crashed';
-  const countdown = gameState?.timer || 5;
-  const history = (gameState?.history || []) as number[];
-  const planePosition = { x: gameState?.plane_x || 10, y: gameState?.plane_y || 80 };
-  const liveUsers = livePlayerCount; // Show real player count only
+  // Local game state for when server is not available
+  const [localGamePhase, setLocalGamePhase] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
+  const [localMultiplier, setLocalMultiplier] = useState(1.00);
+  const [localCountdown, setLocalCountdown] = useState(5);
+  const [localHistory, setLocalHistory] = useState<number[]>([5.01, 2.60, 3.45, 1.23, 8.92]);
+  const [localPlanePos, setLocalPlanePos] = useState({ x: 10, y: 80 });
+
+  // Use server state if available, otherwise use local state
+  const multiplier = gameState?.multiplier || localMultiplier;
+  const gamePhase = (gameState?.phase || localGamePhase) as 'waiting' | 'flying' | 'crashed';
+  const countdown = gameState?.timer || localCountdown;
+  const history = (gameState?.history?.length ? gameState.history : localHistory) as number[];
+  const planePosition = gameState?.plane_x ? { x: gameState.plane_x, y: gameState.plane_y || 80 } : localPlanePos;
+  const liveUsers = livePlayerCount || 1;
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
+
+  // Run local game simulation if no server connection
+  useEffect(() => {
+    if (gameState) return; // Server connected, don't run local sim
+
+    let interval: NodeJS.Timeout;
+    
+    if (localGamePhase === 'waiting') {
+      interval = setInterval(() => {
+        setLocalCountdown(prev => {
+          if (prev <= 1) {
+            setLocalGamePhase('flying');
+            setLocalMultiplier(1.00);
+            setLocalPlanePos({ x: 10, y: 80 });
+            return 5;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (localGamePhase === 'flying') {
+      interval = setInterval(() => {
+        setLocalMultiplier(prev => {
+          const newMult = prev + 0.05 + Math.random() * 0.1;
+          // Random crash between 1.2x and 15x
+          const crashPoint = 1.2 + Math.random() * 13.8;
+          if (newMult >= crashPoint) {
+            setLocalGamePhase('crashed');
+            setLocalHistory(h => [Number(newMult.toFixed(2)), ...h.slice(0, 19)]);
+            setTimeout(() => {
+              setLocalGamePhase('waiting');
+              setLocalCountdown(5);
+            }, 3000);
+            return newMult;
+          }
+          // Update plane position
+          setLocalPlanePos({
+            x: Math.min(10 + (newMult - 1) * 15, 85),
+            y: Math.max(80 - (newMult - 1) * 12, 15)
+          });
+          return newMult;
+        });
+      }, 100);
+    }
+
+    return () => clearInterval(interval);
+  }, [localGamePhase, gameState]);
 
   // Combine synced bets with local user bets - ONLY REAL USERS
   const liveBets = [
@@ -284,18 +337,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     return 'bg-blue-500';
   };
 
-  // Loading state
-  if (!gameState) {
-    return (
-      <div className="min-h-screen bg-[#1a1a1a] text-white flex flex-col items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full mb-4 mx-auto" />
-          <div className="text-xl font-bold text-orange-400">Loading Aviator...</div>
-          <div className="text-sm text-gray-400 mt-2">Connecting to game server</div>
-        </div>
-      </div>
-    );
-  }
+  // No loading state needed - game runs locally if server unavailable
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white flex flex-col">
