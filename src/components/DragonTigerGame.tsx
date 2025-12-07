@@ -104,7 +104,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const roundNumber = gameState?.round_number || 1;
   const winner = gameState?.winner as 'dragon' | 'tiger' | 'tie' | null;
   const showResult = gamePhase === 'result';
-  const livePlayerCount2 = Math.max(livePlayerCount + 100, 200);
+  const livePlayerCount2 = livePlayerCount; // Show real players only - no fake count
   
   // Get cards from server state
   const dragonCard = gameState?.dragon_card_value ? {
@@ -234,6 +234,19 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const timerProgress = (timer / 15) * 100;
   const circumference = 2 * Math.PI * 40;
   const strokeDashoffset = circumference - (timerProgress / 100) * circumference;
+
+  // Loading state when game not connected
+  if (!gameState) {
+    return (
+      <div className="min-h-screen bg-[#1a1a2e] text-white flex flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mb-4 mx-auto" />
+          <div className="text-xl font-bold text-blue-400">Loading Dragon Tiger...</div>
+          <div className="text-sm text-gray-400 mt-2">Connecting to game server</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#1a1a2e] text-white relative overflow-hidden">
