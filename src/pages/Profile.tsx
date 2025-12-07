@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,21 +7,78 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://rajasthanludo.com/api';
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Profile state
   const [profile, setProfile] = useState({
-    name: "RockyPlayer",
-    username: "RockyPlayer",
+    name: "Player",
+    username: "Player",
     email: "",
-    phone: "9876543210"
+    phone: ""
+  });
+  
+  // Stats state
+  const [stats, setStats] = useState({
+    coinWon: 0,
+    battlePlayed: 0,
+    referralCount: 0
   });
   
   // Edit form state
   const [editForm, setEditForm] = useState({ ...profile });
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const mobile = localStorage.getItem('userMobile');
+      const playerName = localStorage.getItem('playerName');
+      
+      if (!mobile) {
+        navigate('/auth');
+        return;
+      }
+
+      // Set initial data from localStorage
+      setProfile(prev => ({
+        ...prev,
+        phone: mobile,
+        name: playerName || 'Player',
+        username: playerName || 'Player'
+      }));
+
+      // Fetch real stats from API
+      const response = await fetch(`${API_BASE_URL}/get-user-stats.php?mobile=${mobile}`);
+      const data = await response.json();
+      
+      if (data.status) {
+        setProfile({
+          name: data.user.name || playerName || 'Player',
+          username: data.user.name || playerName || 'Player',
+          email: data.user.email || '',
+          phone: data.user.mobile
+        });
+        
+        setStats({
+          coinWon: data.stats.coin_won || 0,
+          battlePlayed: data.stats.battle_played || 0,
+          referralCount: data.stats.referral_count || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = () => {
     // Validate
@@ -39,6 +96,7 @@ const Profile = () => {
     }
     
     setProfile({ ...editForm });
+    localStorage.setItem('playerName', editForm.name);
     setIsEditOpen(false);
     toast({ title: "Success", description: "Profile updated successfully!" });
   };
@@ -47,6 +105,23 @@ const Profile = () => {
     setEditForm({ ...profile });
     setIsEditOpen(false);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userMobile');
+    localStorage.removeItem('playerName');
+    localStorage.removeItem('depositChips');
+    localStorage.removeItem('winningChips');
+    toast({ title: "Logged Out", description: "You have been logged out successfully" });
+    navigate('/auth');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5D547' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5D547' }}>
@@ -139,42 +214,47 @@ const Profile = () => {
             </div>
             <div>
               <p className="text-lg font-bold text-teal-700">Coin Won</p>
-              <p className="text-xl font-bold text-teal-700">134</p>
+              <p className="text-xl font-bold text-teal-700">₹{stats.coinWon}</p>
             </div>
           </div>
 
           {/* Battle Played */}
-          <div 
-            className="flex items-center gap-4 p-4 rounded-xl border-2"
-            style={{ backgroundColor: '#E57373', borderColor: '#8B7355' }}
-          >
-            <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center">
-              <Swords className="w-6 h-6 text-gray-800" />
+          <Link to="/game-history?tab=Game">
+            <div 
+              className="flex items-center gap-4 p-4 rounded-xl border-2 mt-3"
+              style={{ backgroundColor: '#E57373', borderColor: '#8B7355' }}
+            >
+              <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center">
+                <Swords className="w-6 h-6 text-gray-800" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-teal-700">Battle Played</p>
+                <p className="text-xl font-bold text-teal-700">{stats.battlePlayed}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-bold text-teal-700">Battle Played</p>
-              <p className="text-xl font-bold text-teal-700">21</p>
-            </div>
-          </div>
+          </Link>
 
           {/* Referral */}
-          <div 
-            className="flex items-center gap-4 p-4 rounded-xl border-2"
-            style={{ backgroundColor: '#FFF8DC', borderColor: '#8B7355' }}
-          >
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <Users className="w-6 h-6 text-green-600" />
+          <Link to="/refer-earn">
+            <div 
+              className="flex items-center gap-4 p-4 rounded-xl border-2 mt-3"
+              style={{ backgroundColor: '#FFF8DC', borderColor: '#8B7355' }}
+            >
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <Users className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-teal-700">Referral</p>
+                <p className="text-xl font-bold text-teal-700">{stats.referralCount}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-bold text-teal-700">Referral</p>
-              <p className="text-xl font-bold text-teal-700">0</p>
-            </div>
-          </div>
+          </Link>
         </div>
 
         {/* Logout Button */}
         <Button 
           variant="outline" 
+          onClick={handleLogout}
           className="w-full mt-6 bg-white text-black border-2 border-black font-bold py-6 text-lg hover:bg-gray-100"
         >
           <LogOut className="w-5 h-5 mr-2" />
