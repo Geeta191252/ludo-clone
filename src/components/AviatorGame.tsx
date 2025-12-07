@@ -81,18 +81,26 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [localCrashPoint] = useState(() => 1.2 + Math.random() * 13.8);
   const [currentCrashPoint, setCurrentCrashPoint] = useState(localCrashPoint);
 
-  // ALWAYS use local state for display - server is only for sync/live count
-  // This ensures game always works even if server fails
-  const multiplier = localMultiplier;
-  const gamePhase = localGamePhase;
-  const countdown = localCountdown;
-  const history = localHistory;
-  const planePosition = localPlanePos;
+  // USE SERVER STATE when available for TRUE synchronization across devices
+  // Only fallback to local simulation if server is not available
+  const hasValidServerState = serverAvailable && gameState && gameState.phase;
+  
+  const multiplier = hasValidServerState ? Number(gameState.multiplier || 1.00) : localMultiplier;
+  const gamePhase = hasValidServerState ? (gameState.phase as 'waiting' | 'flying' | 'crashed') : localGamePhase;
+  const countdown = hasValidServerState ? Number(gameState.timer || 5) : localCountdown;
+  const history = hasValidServerState && Array.isArray(gameState.history) 
+    ? gameState.history.map((h: any) => typeof h === 'number' ? h : (h.crash_point || h)) 
+    : localHistory;
+  const planePosition = hasValidServerState 
+    ? { x: Number(gameState.plane_x || 10), y: Number(gameState.plane_y || 80) }
+    : localPlanePos;
   const liveUsers = livePlayerCount || 1;
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
-  // Run local game simulation - ALWAYS runs
+  // Run local game simulation ONLY when server is not available (fallback mode)
   useEffect(() => {
+    // If server is providing valid state, don't run local simulation
+    if (hasValidServerState) return;
 
     let interval: NodeJS.Timeout;
     let timeout: NodeJS.Timeout;
@@ -141,7 +149,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       if (interval) clearInterval(interval);
       if (timeout) clearTimeout(timeout);
     };
-  }, [localGamePhase, currentCrashPoint]);
+  }, [localGamePhase, currentCrashPoint, hasValidServerState]);
 
   // Combine synced bets with local user bets - ONLY REAL USERS
   const liveBets = [
