@@ -600,15 +600,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           )}
         </div>
 
-        {/* Plane Video Animation - Uses client-side animation for butter-smooth movement */}
+        {/* Full Screen Plane Video Animation */}
         {(gamePhase === 'flying' || gamePhase === 'crashed') && (
           <div 
-            className="absolute z-30"
+            className="absolute inset-0 z-30 flex items-center justify-center"
             style={{ 
-              left: `${gamePhase === 'crashed' ? planePosition.x : planePosition.x}%`, 
-              top: `${gamePhase === 'crashed' ? planePosition.y : planePosition.y}%`,
-              transform: `translate(-50%, -50%) ${gamePhase === 'crashed' ? 'rotate(45deg) scale(0.8)' : `rotate(${planeRotation}deg)`}`,
-              filter: gamePhase === 'crashed' ? 'brightness(0.5) saturate(0)' : 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))',
+              filter: gamePhase === 'crashed' ? 'brightness(0.5) saturate(0)' : 'none',
               transition: gamePhase === 'crashed' ? 'all 0.5s ease-out' : 'none'
             }}
           >
@@ -617,10 +614,11 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
               loop={gamePhase === 'flying'}
               muted 
               playsInline
-              className="w-24 h-auto"
+              className="w-full h-full object-cover"
               style={{
                 opacity: gamePhase === 'crashed' ? 0.6 : 1,
-                transition: 'opacity 0.3s ease-out'
+                transition: 'opacity 0.3s ease-out',
+                transform: gamePhase === 'crashed' ? 'rotate(45deg) scale(1.2)' : 'none'
               }}
             >
               <source src="/videos/plane-animation.mp4" type="video/mp4" />
