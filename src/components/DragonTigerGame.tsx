@@ -98,7 +98,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const [isMuted, setIsMuted] = useState(false);
   const [showWinPopup, setShowWinPopup] = useState(false);
 
-  // Local game state for when server is not available
+  // Local game state - always runs for standalone game
   const [localTimer, setLocalTimer] = useState(15);
   const [localPhase, setLocalPhase] = useState<'betting' | 'dealing' | 'result'>('betting');
   const [localRoundNumber, setLocalRoundNumber] = useState(1);
@@ -109,36 +109,34 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
     { id: 1, winner: 'dragon' }, { id: 2, winner: 'tiger' }, { id: 3, winner: 'tie' },
     { id: 4, winner: 'dragon' }, { id: 5, winner: 'tiger' }
   ]);
+  const [gameInitialized, setGameInitialized] = useState(false);
 
-  // Use server state if available, otherwise use local state
-  const timer = gameState?.timer || localTimer;
-  const gamePhase = (gameState?.phase || localPhase) as 'betting' | 'dealing' | 'result';
-  const roundNumber = gameState?.round_number || localRoundNumber;
-  const winner = (gameState?.winner || localWinner) as 'dragon' | 'tiger' | 'tie' | null;
+  // Initialize game on mount
+  useEffect(() => {
+    setGameInitialized(true);
+  }, []);
+
+  // Use local state always (server sync can override later)
+  const timer = localTimer;
+  const gamePhase = localPhase;
+  const roundNumber = localRoundNumber;
+  const winner = localWinner;
   const showResult = gamePhase === 'result';
   const livePlayerCount2 = livePlayerCount || 1;
   
-  // Get cards from server state or local
-  const dragonCard = gameState?.dragon_card_value ? {
-    value: gameState.dragon_card_value,
-    suit: gameState.dragon_card_suit || '♠',
-    numValue: CARD_VALUES.indexOf(gameState.dragon_card_value) + 1
-  } : localDragonCard;
-  
-  const tigerCard = gameState?.tiger_card_value ? {
-    value: gameState.tiger_card_value,
-    suit: gameState.tiger_card_suit || '♠',
-    numValue: CARD_VALUES.indexOf(gameState.tiger_card_value) + 1
-  } : localTigerCard;
+  // Get cards from local state
+  const dragonCard = localDragonCard;
+  const tigerCard = localTigerCard;
 
-  // History from server or local
-  const history = (gameState?.history?.length ? gameState.history : localHistory) as { id: number; winner: 'dragon' | 'tiger' | 'tie' }[];
+  // History from local state
+  const history = localHistory;
 
-  // Local game simulation if no server connection
+  // Local game simulation - always runs
   useEffect(() => {
-    if (gameState) return; // Server connected, don't run local sim
+    if (!gameInitialized) return;
 
     let interval: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout;
 
     if (localPhase === 'betting') {
       interval = setInterval(() => {
@@ -165,7 +163,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
         });
       }, 1000);
     } else if (localPhase === 'dealing') {
-      setTimeout(() => {
+      timeout = setTimeout(() => {
         // Determine winner
         const dNum = localDragonCard?.numValue || 0;
         const tNum = localTigerCard?.numValue || 0;
@@ -177,7 +175,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
         setLocalPhase('result');
       }, 2000);
     } else if (localPhase === 'result') {
-      setTimeout(() => {
+      timeout = setTimeout(() => {
         setLocalPhase('betting');
         setLocalTimer(15);
         setLocalRoundNumber(r => r + 1);
@@ -187,8 +185,11 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
       }, 4000);
     }
 
-    return () => clearInterval(interval);
-  }, [localPhase, gameState, localRoundNumber, localDragonCard, localTigerCard]);
+    return () => {
+      if (interval) clearInterval(interval);
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [localPhase, gameInitialized, localRoundNumber, localDragonCard, localTigerCard]);
 
   const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playTigerRoarSound, playDragonRoarSound, playLoseSound } = useGameSounds();
 
