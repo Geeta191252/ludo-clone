@@ -2,6 +2,16 @@
 // This file runs the game logic server-side
 // Should be called every second via cron or long-polling from first connected user
 
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Accept');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 require_once 'config.php';
 
 $conn = getDBConnection();
@@ -19,14 +29,15 @@ $stmt->execute();
 $state = $stmt->get_result()->fetch_assoc();
 
 if (!$state) {
-    // Initialize
+    // Initialize with correct phase
     $history = json_encode([5.01, 2.60, 3.45, 1.23, 8.92, 1.05]);
-    $initialTimer = $gameType === 'dragon-tiger' ? 15 : 5;
-    $stmt = $conn->prepare("INSERT INTO game_state (game_type, phase, timer, multiplier, round_number, history) VALUES (?, 'waiting', ?, 1.00, 1, ?)");
-    $stmt->bind_param("sis", $gameType, $initialTimer, $history);
+    $initialPhase = $gameType === 'dragon-tiger' ? 'betting' : 'waiting';
+    $initialTimer = 15;
+    $stmt = $conn->prepare("INSERT INTO game_state (game_type, phase, timer, multiplier, round_number, history) VALUES (?, ?, ?, 1.00, 1, ?)");
+    $stmt->bind_param("ssis", $gameType, $initialPhase, $initialTimer, $history);
     $stmt->execute();
     
-    echo json_encode(['status' => true, 'message' => 'Initialized']);
+    echo json_encode(['status' => true, 'message' => 'Initialized', 'phase' => $initialPhase]);
     exit;
 }
 
@@ -72,10 +83,10 @@ if ($action === 'tick') {
                 $crashPoint = round($multiplier, 2);
                 array_unshift($history, $crashPoint);
                 $history = array_slice($history, 0, 20);
+                $historyJson = json_encode($history);
                 
                 $stmt = $conn->prepare("UPDATE game_state SET phase = 'crashed', multiplier = ?, crash_point = ?, history = ?, plane_x = ?, plane_y = ? WHERE game_type = ?");
-                $historyJson = json_encode($history);
-                $stmt->bind_param("ddsdd s", $multiplier, $crashPoint, $historyJson, $planeX, $planeY, $gameType);
+                $stmt->bind_param("ddsdds", $multiplier, $crashPoint, $historyJson, $planeX, $planeY, $gameType);
                 $stmt->execute();
             } else {
                 $stmt = $conn->prepare("UPDATE game_state SET multiplier = ?, plane_x = ?, plane_y = ? WHERE game_type = ?");
@@ -97,14 +108,21 @@ if ($action === 'tick') {
             }
         }
     } elseif ($gameType === 'dragon-tiger') {
-        if ($phase === 'betting') {
+        if ($phase === 'betting' || $phase === 'waiting') {
+            // Fix: treat 'waiting' as 'betting' for dragon-tiger
+            if ($phase === 'waiting') {
+                $phase = 'betting';
+                $stmt = $conn->prepare("UPDATE game_state SET phase = 'betting' WHERE game_type = ?");
+                $stmt->bind_param("s", $gameType);
+                $stmt->execute();
+            }
+            
             $timer--;
             if ($timer <= 0) {
                 // Deal cards
                 $phase = 'dealing';
                 
                 // Determine winner (random for now, could be based on bets)
-                $outcomes = ['dragon', 'tiger', 'tie'];
                 $weights = [45, 45, 10]; // Weighted probability
                 $rand = mt_rand(1, 100);
                 if ($rand <= $weights[0]) {
@@ -135,9 +153,9 @@ if ($action === 'tick') {
                 // Update history
                 array_unshift($history, ['id' => time(), 'winner' => $winner]);
                 $history = array_slice($history, 0, 20);
+                $historyJson = json_encode($history);
                 
                 $stmt = $conn->prepare("UPDATE game_state SET phase = 'dealing', timer = 0, dragon_card_value = ?, dragon_card_suit = ?, tiger_card_value = ?, tiger_card_suit = ?, winner = ?, history = ? WHERE game_type = ?");
-                $historyJson = json_encode($history);
                 $stmt->bind_param("sssssss", $dragonCardValue, $dragonCardSuit, $tigerCardValue, $tigerCardSuit, $winner, $historyJson, $gameType);
                 $stmt->execute();
             } else {

@@ -33,18 +33,37 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [livePlayerCount, setLivePlayerCount] = useState(0);
+  const [livePlayerCount, setLivePlayerCount] = useState(1);
   const [serverAvailable, setServerAvailable] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const masterIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const connectionCheckRef = useRef<boolean>(false);
+  const sessionId = useRef<string>(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+
+  // Register this session as active
+  const registerSession = useCallback(async () => {
+    try {
+      await fetch(`/api/game-state.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game_type: gameType,
+          action: 'heartbeat',
+          session_id: sessionId.current
+        })
+      });
+    } catch (error) {
+      // Silently fail
+    }
+  }, [gameType]);
 
   // Fetch game state from server
   const fetchGameState = useCallback(async () => {
     try {
-      const response = await fetch(`/api/game-state.php?game_type=${gameType}`, {
+      const response = await fetch(`/api/game-state.php?game_type=${gameType}&session_id=${sessionId.current}`, {
         method: 'GET',
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
       });
       
       if (!response.ok) {
@@ -57,7 +76,8 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
       if (data.status && data.state) {
         setGameState(data.state);
         setLiveBets(data.state.live_bets || []);
-        setLivePlayerCount(data.state.live_bets?.length || 0);
+        // Use active_players count from server if available, otherwise count unique sessions
+        setLivePlayerCount(data.state.active_players || Math.max(1, data.state.live_bets?.length || 1));
         setIsConnected(true);
         setServerAvailable(true);
         connectionCheckRef.current = true;
@@ -144,16 +164,20 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
   useEffect(() => {
     // Initial fetch to check if server is available
     fetchGameState();
+    registerSession();
     
-    // Poll for state updates every 300ms for smooth sync
+    // Poll for state updates every 500ms for smooth sync
     intervalRef.current = setInterval(() => {
-      if (serverAvailable || !connectionCheckRef.current) {
-        fetchGameState();
-      }
-    }, 300);
+      fetchGameState();
+    }, 500);
+    
+    // Send heartbeat every 3 seconds to track active users
+    const heartbeatInterval = setInterval(() => {
+      registerSession();
+    }, 3000);
     
     // Run game tick based on game type (only if server available)
-    const tickInterval = gameType === 'aviator' ? 80 : 1000;
+    const tickInterval = gameType === 'aviator' ? 100 : 1000;
     masterIntervalRef.current = setInterval(() => {
       if (serverAvailable) {
         runGameTick();
@@ -163,8 +187,9 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (masterIntervalRef.current) clearInterval(masterIntervalRef.current);
+      clearInterval(heartbeatInterval);
     };
-  }, [fetchGameState, runGameTick, gameType, serverAvailable]);
+  }, [fetchGameState, runGameTick, registerSession, gameType, serverAvailable]);
 
   return {
     gameState,
