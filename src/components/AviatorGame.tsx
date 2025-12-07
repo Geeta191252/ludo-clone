@@ -383,10 +383,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
         </div>
         <div className="flex items-center gap-3">
           {/* Live User Count */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/50">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-green-400 text-sm font-semibold">{liveUsers.toLocaleString()}</span>
-            <span className="text-green-400/70 text-xs">LIVE</span>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${serverAvailable ? 'bg-green-500/20 border-green-500/50' : 'bg-yellow-500/20 border-yellow-500/50'}`}>
+            <div className={`w-2 h-2 rounded-full animate-pulse ${serverAvailable ? 'bg-green-500' : 'bg-yellow-500'}`} />
+            <span className={`text-sm font-semibold ${serverAvailable ? 'text-green-400' : 'text-yellow-400'}`}>{liveUsers.toLocaleString()}</span>
+            <span className={`text-xs ${serverAvailable ? 'text-green-400/70' : 'text-yellow-400/70'}`}>{serverAvailable ? 'LIVE SYNC' : 'LOCAL'}</span>
           </div>
           <button 
             onClick={() => setShowHistory(!showHistory)}

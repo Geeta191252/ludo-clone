@@ -344,10 +344,10 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
       <div className="relative z-10 flex justify-between items-center px-4 py-2 bg-black/30">
         <div className="flex items-center gap-2">
           <div className="relative flex items-center gap-1">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <Users className="w-4 h-4 text-green-400" />
-            <span className="text-sm text-green-400 font-medium">{livePlayerCount2.toLocaleString()}</span>
-            <span className="text-xs text-gray-500">LIVE</span>
+            <span className={`w-2 h-2 rounded-full animate-pulse ${serverAvailable ? 'bg-green-500' : 'bg-yellow-500'}`} />
+            <Users className={`w-4 h-4 ${serverAvailable ? 'text-green-400' : 'text-yellow-400'}`} />
+            <span className={`text-sm font-medium ${serverAvailable ? 'text-green-400' : 'text-yellow-400'}`}>{livePlayerCount2.toLocaleString()}</span>
+            <span className="text-xs text-gray-500">{serverAvailable ? 'LIVE SYNC' : 'LOCAL'}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-600 to-yellow-500 px-4 py-1.5 rounded-full">
