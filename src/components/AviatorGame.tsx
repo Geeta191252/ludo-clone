@@ -85,12 +85,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   // Smooth interpolation for plane animation to avoid stuttering
   const hasValidServerState = serverAvailable && gameState && gameState.phase;
   
-  // Smooth multiplier interpolation to avoid stuttering
-  const [smoothMultiplier, setSmoothMultiplier] = useState(1.00);
-  const [smoothPlanePos, setSmoothPlanePos] = useState({ x: 10, y: 80 });
-  const targetMultiplierRef = useRef(1.00);
-  const targetPlanePosRef = useRef({ x: 10, y: 80 });
-  
   // Get raw values from server or local
   const rawMultiplier = hasValidServerState ? Number(gameState.multiplier || 1.00) : localMultiplier;
   const gamePhase = hasValidServerState ? (gameState.phase as 'waiting' | 'flying' | 'crashed') : localGamePhase;
@@ -102,45 +96,79 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     ? { x: Number(gameState.plane_x || 10), y: Number(gameState.plane_y || 80) }
     : localPlanePos;
   
-  // Smooth animation loop - runs at 60fps for smooth plane movement
+  // Use refs for smooth animation to avoid re-renders causing stuttering
+  const smoothMultiplierRef = useRef(1.00);
+  const smoothPlanePosRef = useRef({ x: 10, y: 80 });
+  const animationFrameRef = useRef<number | null>(null);
+  const lastTimeRef = useRef(0);
+  const [displayMultiplier, setDisplayMultiplier] = useState(1.00);
+  const [displayPlanePos, setDisplayPlanePos] = useState({ x: 10, y: 80 });
+  
+  // Update target values when server sends new data
+  useEffect(() => {
+    if (gamePhase === 'flying') {
+      // Store target values - animation loop will interpolate to these
+    } else {
+      // Reset immediately when not flying
+      smoothMultiplierRef.current = rawMultiplier;
+      smoothPlanePosRef.current = rawPlanePosition;
+      setDisplayMultiplier(rawMultiplier);
+      setDisplayPlanePos(rawPlanePosition);
+    }
+  }, [gamePhase, rawMultiplier, rawPlanePosition.x, rawPlanePosition.y]);
+  
+  // Continuous smooth animation using requestAnimationFrame
   useEffect(() => {
     if (gamePhase !== 'flying') {
-      setSmoothMultiplier(rawMultiplier);
-      setSmoothPlanePos(rawPlanePosition);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
       return;
     }
     
-    targetMultiplierRef.current = rawMultiplier;
-    targetPlanePosRef.current = rawPlanePosition;
-    
-    const animationFrame = () => {
-      setSmoothMultiplier(prev => {
-        const target = targetMultiplierRef.current;
-        const diff = target - prev;
-        // Smooth interpolation - move 20% towards target each frame
-        if (Math.abs(diff) < 0.001) return target;
-        return prev + diff * 0.2;
-      });
+    const animate = (currentTime: number) => {
+      const deltaTime = currentTime - lastTimeRef.current;
+      lastTimeRef.current = currentTime;
       
-      setSmoothPlanePos(prev => {
-        const target = targetPlanePosRef.current;
-        const diffX = target.x - prev.x;
-        const diffY = target.y - prev.y;
-        // Smooth interpolation for position
-        return {
-          x: Math.abs(diffX) < 0.1 ? target.x : prev.x + diffX * 0.15,
-          y: Math.abs(diffY) < 0.1 ? target.y : prev.y + diffY * 0.15
-        };
-      });
+      // Interpolation factor based on time for consistent speed
+      const factor = Math.min(deltaTime * 0.008, 0.3); // Smooth ~8% per frame at 60fps
+      
+      // Interpolate multiplier
+      const targetMult = rawMultiplier;
+      const currentMult = smoothMultiplierRef.current;
+      const newMult = currentMult + (targetMult - currentMult) * factor;
+      smoothMultiplierRef.current = newMult;
+      
+      // Interpolate plane position
+      const targetPos = rawPlanePosition;
+      const currentPos = smoothPlanePosRef.current;
+      const newPos = {
+        x: currentPos.x + (targetPos.x - currentPos.x) * factor,
+        y: currentPos.y + (targetPos.y - currentPos.y) * factor
+      };
+      smoothPlanePosRef.current = newPos;
+      
+      // Update display state less frequently to reduce re-renders
+      setDisplayMultiplier(newMult);
+      setDisplayPlanePos(newPos);
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
     
-    const intervalId = setInterval(animationFrame, 16); // ~60fps
-    return () => clearInterval(intervalId);
+    lastTimeRef.current = performance.now();
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, [gamePhase, rawMultiplier, rawPlanePosition.x, rawPlanePosition.y]);
   
   // Use smooth values for display
-  const multiplier = gamePhase === 'flying' ? smoothMultiplier : rawMultiplier;
-  const planePosition = gamePhase === 'flying' ? smoothPlanePos : rawPlanePosition;
+  const multiplier = gamePhase === 'flying' ? displayMultiplier : rawMultiplier;
+  const planePosition = gamePhase === 'flying' ? displayPlanePos : rawPlanePosition;
   const liveUsers = livePlayerCount || 1;
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
