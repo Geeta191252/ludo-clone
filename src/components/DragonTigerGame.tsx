@@ -98,7 +98,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const [isMuted, setIsMuted] = useState(false);
   const [showWinPopup, setShowWinPopup] = useState(false);
 
-  // Local game state - fallback when server not available
+  // Local game state - always active for immediate display
   const [localTimer, setLocalTimer] = useState(15);
   const [localPhase, setLocalPhase] = useState<'betting' | 'dealing' | 'result'>('betting');
   const [localRoundNumber, setLocalRoundNumber] = useState(1);
@@ -109,12 +109,6 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
     { id: 1, winner: 'dragon' }, { id: 2, winner: 'tiger' }, { id: 3, winner: 'tie' },
     { id: 4, winner: 'dragon' }, { id: 5, winner: 'tiger' }
   ]);
-  const [gameInitialized, setGameInitialized] = useState(false);
-
-  // Initialize game on mount
-  useEffect(() => {
-    setGameInitialized(true);
-  }, []);
 
   // Use server state if available, otherwise use local state
   const timer = serverAvailable && gameState ? (gameState.timer || 15) : localTimer;
@@ -144,9 +138,10 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
       winner: h.winner || h
     })) : localHistory;
 
-  // Local game simulation - only runs when server NOT available
+  // Local game simulation - always runs for immediate display
   useEffect(() => {
-    if (!gameInitialized || serverAvailable) return;
+    // Don't run local sim if server is providing state
+    if (serverAvailable) return;
 
     let interval: NodeJS.Timeout;
     let timeout: NodeJS.Timeout;
@@ -202,7 +197,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
       if (interval) clearInterval(interval);
       if (timeout) clearTimeout(timeout);
     };
-  }, [localPhase, gameInitialized, localRoundNumber, localDragonCard, localTigerCard, serverAvailable]);
+  }, [localPhase, localRoundNumber, localDragonCard, localTigerCard, serverAvailable]);
 
   const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playTigerRoarSound, playDragonRoarSound, playLoseSound } = useGameSounds();
 
