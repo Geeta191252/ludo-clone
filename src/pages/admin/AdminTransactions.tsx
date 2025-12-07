@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { Search, Check, X, Download } from "lucide-react";
+import { Search, Check, X, Download, RefreshCw } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 
 interface Transaction {
@@ -24,6 +24,7 @@ const AdminTransactions = () => {
   const [filter, setFilter] = useState<'all' | 'DEPOSIT' | 'WITHDRAWAL'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'SUCCESS' | 'FAILED'>('all');
   const [loading, setLoading] = useState(true);
+  const [verifyingOrder, setVerifyingOrder] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTransactions();
@@ -78,6 +79,36 @@ const AdminTransactions = () => {
     } catch (error) {
       console.error("Request error:", error);
       toast({ title: "Error", description: "Network error: " + String(error), variant: "destructive" });
+    }
+  };
+
+  const handleVerifyPayment = async (orderId: string) => {
+    setVerifyingOrder(orderId);
+    try {
+      const token = localStorage.getItem("admin_token");
+      const response = await fetch("/api/verify-payment.php", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.status && data.payment_status === 'SUCCESS') {
+        toast({ title: "✅ Payment Verified!", description: `₹${data.amount} added to wallet` });
+        fetchTransactions();
+      } else if (data.status) {
+        toast({ title: "⏳ Payment Pending", description: data.message });
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to verify payment", variant: "destructive" });
+    } finally {
+      setVerifyingOrder(null);
     }
   };
 
@@ -189,6 +220,17 @@ const AdminTransactions = () => {
                       </td>
                       <td className="py-4 px-4 text-slate-400 text-sm">{tx.created_at}</td>
                       <td className="py-4 px-4">
+                        {tx.status === 'PENDING' && tx.type === 'DEPOSIT' && (
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleVerifyPayment(tx.order_id)}
+                            disabled={verifyingOrder === tx.order_id}
+                          >
+                            <RefreshCw className={`w-4 h-4 mr-1 ${verifyingOrder === tx.order_id ? 'animate-spin' : ''}`} />
+                            Verify
+                          </Button>
+                        )}
                         {tx.status === 'PENDING' && tx.type === 'WITHDRAWAL' && (
                           <div className="flex gap-2">
                             <Button
