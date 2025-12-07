@@ -81,22 +81,18 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [localCrashPoint] = useState(() => 1.2 + Math.random() * 13.8);
   const [currentCrashPoint, setCurrentCrashPoint] = useState(localCrashPoint);
 
-  // Use server state if available AND valid, otherwise use local state
-  const hasValidServerState = serverAvailable && gameState && gameState.phase;
-  const multiplier = hasValidServerState ? (gameState.multiplier || 1.00) : localMultiplier;
-  const gamePhase = hasValidServerState ? (gameState.phase as 'waiting' | 'flying' | 'crashed') : localGamePhase;
-  const countdown = hasValidServerState ? (gameState.timer || 5) : localCountdown;
-  const history = hasValidServerState && gameState?.history ? 
-    gameState.history.map((h: any) => typeof h === 'number' ? h : (h.crash_point || h)) : localHistory;
-  const planePosition = hasValidServerState ? 
-    { x: gameState.plane_x || 10, y: gameState.plane_y || 80 } : localPlanePos;
+  // ALWAYS use local state for display - server is only for sync/live count
+  // This ensures game always works even if server fails
+  const multiplier = localMultiplier;
+  const gamePhase = localGamePhase;
+  const countdown = localCountdown;
+  const history = localHistory;
+  const planePosition = localPlanePos;
   const liveUsers = livePlayerCount || 1;
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
-  // Run local game simulation - always runs for immediate display
+  // Run local game simulation - ALWAYS runs
   useEffect(() => {
-    // Don't run local sim if server is providing VALID state
-    if (hasValidServerState) return;
 
     let interval: NodeJS.Timeout;
     let timeout: NodeJS.Timeout;
@@ -145,7 +141,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       if (interval) clearInterval(interval);
       if (timeout) clearTimeout(timeout);
     };
-  }, [localGamePhase, currentCrashPoint, hasValidServerState]);
+  }, [localGamePhase, currentCrashPoint]);
 
   // Combine synced bets with local user bets - ONLY REAL USERS
   const liveBets = [
