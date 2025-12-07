@@ -76,12 +76,12 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const multiplier = gameState?.multiplier || 1.00;
   const gamePhase = (gameState?.phase || 'waiting') as 'waiting' | 'flying' | 'crashed';
   const countdown = gameState?.timer || 5;
-  const history = (gameState?.history || [5.01, 2.60, 3.45, 1.23, 8.92, 1.05]) as number[];
+  const history = (gameState?.history || []) as number[];
   const planePosition = { x: gameState?.plane_x || 10, y: gameState?.plane_y || 80 };
-  const liveUsers = Math.max(livePlayerCount + 50, 100); // Show at least 100 users
+  const liveUsers = livePlayerCount; // Show real player count only
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
-  // Combine synced bets with local user bets
+  // Combine synced bets with local user bets - ONLY REAL USERS
   const liveBets = [
     ...localBets.filter(b => b.isUser),
     ...syncedBets.map(b => ({
@@ -283,6 +283,19 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     if (mult >= 2) return 'bg-purple-500';
     return 'bg-blue-500';
   };
+
+  // Loading state
+  if (!gameState) {
+    return (
+      <div className="min-h-screen bg-[#1a1a1a] text-white flex flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full mb-4 mx-auto" />
+          <div className="text-xl font-bold text-orange-400">Loading Aviator...</div>
+          <div className="text-sm text-gray-400 mt-2">Connecting to game server</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white flex flex-col">
