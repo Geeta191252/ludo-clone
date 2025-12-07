@@ -61,7 +61,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   };
 
   // Use game sync hook for real-time multiplayer
-  const { gameState, liveBets: syncedBets, livePlayerCount } = useGameSync('dragon-tiger');
+  const { gameState, liveBets: syncedBets, livePlayerCount, serverAvailable } = useGameSync('dragon-tiger');
   const prevPhaseRef = useRef<string | null>(null);
 
   // Fetch fresh balance from server on mount
@@ -98,7 +98,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const [isMuted, setIsMuted] = useState(false);
   const [showWinPopup, setShowWinPopup] = useState(false);
 
-  // Local game state - always runs for standalone game
+  // Local game state - fallback when server not available
   const [localTimer, setLocalTimer] = useState(15);
   const [localPhase, setLocalPhase] = useState<'betting' | 'dealing' | 'result'>('betting');
   const [localRoundNumber, setLocalRoundNumber] = useState(1);
@@ -116,24 +116,37 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
     setGameInitialized(true);
   }, []);
 
-  // Use local state always (server sync can override later)
-  const timer = localTimer;
-  const gamePhase = localPhase;
-  const roundNumber = localRoundNumber;
-  const winner = localWinner;
+  // Use server state if available, otherwise use local state
+  const timer = serverAvailable && gameState ? (gameState.timer || 15) : localTimer;
+  const gamePhase = serverAvailable && gameState ? (gameState.phase as 'betting' | 'dealing' | 'result') : localPhase;
+  const roundNumber = serverAvailable && gameState ? (gameState.round_number || 1) : localRoundNumber;
+  const winner = serverAvailable && gameState ? (gameState.winner as 'dragon' | 'tiger' | 'tie' | null) : localWinner;
   const showResult = gamePhase === 'result';
   const livePlayerCount2 = livePlayerCount || 1;
   
-  // Get cards from local state
-  const dragonCard = localDragonCard;
-  const tigerCard = localTigerCard;
+  // Get cards from server or local state
+  const dragonCard = serverAvailable && gameState?.dragon_card_value ? {
+    value: gameState.dragon_card_value,
+    suit: gameState.dragon_card_suit || '♠',
+    numValue: CARD_VALUES.indexOf(gameState.dragon_card_value) + 1
+  } : localDragonCard;
+  
+  const tigerCard = serverAvailable && gameState?.tiger_card_value ? {
+    value: gameState.tiger_card_value,
+    suit: gameState.tiger_card_suit || '♠',
+    numValue: CARD_VALUES.indexOf(gameState.tiger_card_value) + 1
+  } : localTigerCard;
 
-  // History from local state
-  const history = localHistory;
+  // History from server or local state
+  const history = serverAvailable && gameState?.history ? 
+    gameState.history.map((h: any, i: number) => ({
+      id: i + 1,
+      winner: h.winner || h
+    })) : localHistory;
 
-  // Local game simulation - always runs
+  // Local game simulation - only runs when server NOT available
   useEffect(() => {
-    if (!gameInitialized) return;
+    if (!gameInitialized || serverAvailable) return;
 
     let interval: NodeJS.Timeout;
     let timeout: NodeJS.Timeout;
@@ -189,7 +202,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
       if (interval) clearInterval(interval);
       if (timeout) clearTimeout(timeout);
     };
-  }, [localPhase, gameInitialized, localRoundNumber, localDragonCard, localTigerCard]);
+  }, [localPhase, gameInitialized, localRoundNumber, localDragonCard, localTigerCard, serverAvailable]);
 
   const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playTigerRoarSound, playDragonRoarSound, playLoseSound } = useGameSounds();
 

@@ -34,37 +34,54 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [livePlayerCount, setLivePlayerCount] = useState(0);
+  const [serverAvailable, setServerAvailable] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const masterIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstUserRef = useRef(false);
+  const connectionCheckRef = useRef<boolean>(false);
 
-  // Fetch game state
+  // Fetch game state from server
   const fetchGameState = useCallback(async () => {
     try {
-      const response = await fetch(`/api/game-state.php?game_type=${gameType}`);
+      const response = await fetch(`/api/game-state.php?game_type=${gameType}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        setServerAvailable(false);
+        setIsConnected(false);
+        return null;
+      }
+      
       const data = await response.json();
       if (data.status && data.state) {
         setGameState(data.state);
         setLiveBets(data.state.live_bets || []);
         setLivePlayerCount(data.state.live_bets?.length || 0);
         setIsConnected(true);
+        setServerAvailable(true);
+        connectionCheckRef.current = true;
+        return data.state;
       }
     } catch (error) {
-      console.error('Error fetching game state:', error);
+      console.log('Server not available, using local mode');
+      setServerAvailable(false);
       setIsConnected(false);
     }
+    return null;
   }, [gameType]);
 
-  // Run game tick (master controller)
+  // Run game tick (master controller) - only runs if server available
   const runGameTick = useCallback(async () => {
+    if (!serverAvailable) return;
     try {
       await fetch(`/api/game-master.php?game_type=${gameType}&action=tick`);
     } catch (error) {
-      console.error('Error running game tick:', error);
+      console.log('Tick failed - server may be unavailable');
     }
-  }, [gameType]);
+  }, [gameType, serverAvailable]);
 
-  // Place bet
+  // Place bet on server
   const placeBet = useCallback(async (betAmount: number, betArea?: string) => {
     try {
       const user = localStorage.getItem('user');
@@ -85,12 +102,16 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
         })
       });
       const data = await response.json();
+      if (data.status) {
+        // Immediately refetch to get updated bets
+        fetchGameState();
+      }
       return data.status;
     } catch (error) {
       console.error('Error placing bet:', error);
       return false;
     }
-  }, [gameType, gameState?.round_number]);
+  }, [gameType, gameState?.round_number, fetchGameState]);
 
   // Cash out
   const cashOut = useCallback(async (odds: string, winAmount: number) => {
@@ -119,35 +140,38 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
     }
   }, [gameType, gameState?.round_number]);
 
-  // Start polling
+  // Start polling - check server first
   useEffect(() => {
-    // Initial fetch
+    // Initial fetch to check if server is available
     fetchGameState();
     
-    // Poll for state updates every 500ms for smooth sync
-    intervalRef.current = setInterval(fetchGameState, 500);
+    // Poll for state updates every 300ms for smooth sync
+    intervalRef.current = setInterval(() => {
+      if (serverAvailable || !connectionCheckRef.current) {
+        fetchGameState();
+      }
+    }, 300);
     
-    // Run game tick every second (first user becomes master)
-    const checkAndRunMaster = async () => {
-      // Simple: all clients run the master tick, server handles state
-      await runGameTick();
-    };
-    
-    // Run tick based on game type
+    // Run game tick based on game type (only if server available)
     const tickInterval = gameType === 'aviator' ? 80 : 1000;
-    masterIntervalRef.current = setInterval(checkAndRunMaster, tickInterval);
+    masterIntervalRef.current = setInterval(() => {
+      if (serverAvailable) {
+        runGameTick();
+      }
+    }, tickInterval);
     
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (masterIntervalRef.current) clearInterval(masterIntervalRef.current);
     };
-  }, [fetchGameState, runGameTick, gameType]);
+  }, [fetchGameState, runGameTick, gameType, serverAvailable]);
 
   return {
     gameState,
     liveBets,
     livePlayerCount,
     isConnected,
+    serverAvailable,
     placeBet,
     cashOut,
     refetch: fetchGameState

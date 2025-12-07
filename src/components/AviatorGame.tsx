@@ -58,7 +58,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   };
 
   // Use game sync hook for real-time multiplayer
-  const { gameState, liveBets: syncedBets, livePlayerCount } = useGameSync('aviator');
+  const { gameState, liveBets: syncedBets, livePlayerCount, serverAvailable } = useGameSync('aviator');
 
   const [betAmount1, setBetAmount1] = useState(10);
   const [betAmount2, setBetAmount2] = useState(10);
@@ -72,7 +72,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const [localBets, setLocalBets] = useState<{username: string, odds: string, bet: number, win: number, isUser?: boolean, betNum?: number}[]>([]);
   const prevPhaseRef = useRef<string | null>(null);
   
-  // Local game state - always runs for standalone game
+  // Local game state - fallback when server not available
   const [localGamePhase, setLocalGamePhase] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
   const [localMultiplier, setLocalMultiplier] = useState(1.00);
   const [localCountdown, setLocalCountdown] = useState(5);
@@ -88,18 +88,20 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     setLocalCrashPoint(1.2 + Math.random() * 13.8);
   }, []);
 
-  // Use local state always (server sync can override later)
-  const multiplier = localMultiplier;
-  const gamePhase = localGamePhase;
-  const countdown = localCountdown;
-  const history = localHistory;
-  const planePosition = localPlanePos;
+  // Use server state if available, otherwise use local state
+  const multiplier = serverAvailable && gameState ? (gameState.multiplier || 1.00) : localMultiplier;
+  const gamePhase = serverAvailable && gameState ? (gameState.phase as 'waiting' | 'flying' | 'crashed') : localGamePhase;
+  const countdown = serverAvailable && gameState ? (gameState.timer || 5) : localCountdown;
+  const history = serverAvailable && gameState?.history ? 
+    gameState.history.map((h: any) => typeof h === 'number' ? h : (h.crash_point || h)) : localHistory;
+  const planePosition = serverAvailable && gameState ? 
+    { x: gameState.plane_x || 10, y: gameState.plane_y || 80 } : localPlanePos;
   const liveUsers = livePlayerCount || 1;
   const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
 
-  // Run local game simulation - always runs
+  // Run local game simulation - only runs when server NOT available
   useEffect(() => {
-    if (!gameInitialized) return;
+    if (!gameInitialized || serverAvailable) return;
 
     let interval: NodeJS.Timeout;
     let timeout: NodeJS.Timeout;
@@ -148,7 +150,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       if (interval) clearInterval(interval);
       if (timeout) clearTimeout(timeout);
     };
-  }, [localGamePhase, gameInitialized, localCrashPoint]);
+  }, [localGamePhase, gameInitialized, localCrashPoint, serverAvailable]);
 
   // Combine synced bets with local user bets - ONLY REAL USERS
   const liveBets = [
