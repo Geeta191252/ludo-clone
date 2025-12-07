@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface PlaneModelProps {
@@ -11,145 +10,235 @@ interface PlaneModelProps {
 const PlaneModel = ({ rotation, isCrashed }: PlaneModelProps) => {
   const meshRef = useRef<THREE.Group>(null);
   const propellerRef = useRef<THREE.Group>(null);
+  const exhaustFlameRef = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
     if (meshRef.current) {
-      // Subtle bobbing animation
+      // Smooth bobbing animation when flying
       if (!isCrashed) {
-        meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 3) * 0.05;
-        meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.03;
+        meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 2.5) * 0.08;
+        meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 1.5) * 0.04;
+        meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 2) * 0.02;
       }
     }
-    // Spin propeller
+    // Spin propeller fast
     if (propellerRef.current && !isCrashed) {
-      propellerRef.current.rotation.z += delta * 25;
+      propellerRef.current.rotation.z += delta * 35;
+    }
+    // Animate exhaust flames
+    if (exhaustFlameRef.current && !isCrashed) {
+      exhaustFlameRef.current.scale.setScalar(0.8 + Math.sin(state.clock.elapsedTime * 20) * 0.2);
     }
   });
 
-  const crashRotation = isCrashed ? Math.PI / 4 : 0;
+  const crashRotation = isCrashed ? Math.PI / 3 : 0;
   const baseRotation = (rotation * Math.PI) / 180;
 
   return (
     <group 
       ref={meshRef} 
-      rotation={[0.2, Math.PI + 0.3, baseRotation + crashRotation]}
-      scale={isCrashed ? 0.8 : 1}
+      rotation={[0.15, -0.2, baseRotation + crashRotation]}
+      scale={isCrashed ? 0.7 : 1}
+      position={[0, 0, 0]}
     >
-      {/* Fuselage (Body) */}
-      <mesh position={[0, 0, 0]}>
-        <capsuleGeometry args={[0.25, 1.2, 8, 16]} />
+      {/* Main Fuselage (Body) - Sleek aerodynamic shape */}
+      <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <capsuleGeometry args={[0.18, 1.4, 12, 24]} />
         <meshStandardMaterial 
-          color="#e74c3c" 
-          metalness={0.7} 
-          roughness={0.3}
+          color="#dc2626" 
+          metalness={0.85} 
+          roughness={0.15}
+          envMapIntensity={1.2}
         />
       </mesh>
 
-      {/* Cockpit */}
-      <mesh position={[0, 0.15, -0.3]}>
-        <sphereGeometry args={[0.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+      {/* Fuselage Accent Stripe */}
+      <mesh position={[0, 0.12, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <capsuleGeometry args={[0.04, 1.35, 8, 16]} />
         <meshStandardMaterial 
-          color="#3498db" 
+          color="#fbbf24" 
           metalness={0.9} 
           roughness={0.1}
+        />
+      </mesh>
+
+      {/* Cockpit Glass - Bubble canopy */}
+      <mesh position={[0.45, 0.12, 0]}>
+        <sphereGeometry args={[0.16, 24, 24, 0, Math.PI * 2, 0, Math.PI / 1.8]} />
+        <meshPhysicalMaterial 
+          color="#60a5fa" 
+          metalness={0.1} 
+          roughness={0.05}
           transparent
-          opacity={0.8}
+          opacity={0.85}
+          transmission={0.4}
+          thickness={0.1}
         />
       </mesh>
 
-      {/* Wings */}
-      <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <boxGeometry args={[0.08, 2.2, 0.5]} />
+      {/* Cockpit Frame */}
+      <mesh position={[0.45, 0.08, 0]}>
+        <torusGeometry args={[0.14, 0.015, 8, 24]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.2} />
+      </mesh>
+
+      {/* Main Wings - Swept back design */}
+      <mesh position={[0, -0.02, 0]}>
+        <boxGeometry args={[0.45, 0.04, 2.4]} />
         <meshStandardMaterial 
-          color="#c0392b" 
-          metalness={0.6} 
-          roughness={0.4}
+          color="#b91c1c" 
+          metalness={0.7} 
+          roughness={0.25}
         />
       </mesh>
 
-      {/* Wing tips - Left */}
-      <mesh position={[-1.1, 0, 0.1]} rotation={[0.2, 0, 0]}>
-        <boxGeometry args={[0.1, 0.08, 0.15]} />
-        <meshStandardMaterial color="#f39c12" metalness={0.8} roughness={0.2} />
+      {/* Wing Leading Edge - Left */}
+      <mesh position={[0.12, -0.02, -0.9]} rotation={[0, 0.3, 0]}>
+        <boxGeometry args={[0.15, 0.035, 0.6]} />
+        <meshStandardMaterial color="#991b1b" metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Wing tips - Right */}
-      <mesh position={[1.1, 0, 0.1]} rotation={[-0.2, 0, 0]}>
-        <boxGeometry args={[0.1, 0.08, 0.15]} />
-        <meshStandardMaterial color="#f39c12" metalness={0.8} roughness={0.2} />
+      {/* Wing Leading Edge - Right */}
+      <mesh position={[0.12, -0.02, 0.9]} rotation={[0, -0.3, 0]}>
+        <boxGeometry args={[0.15, 0.035, 0.6]} />
+        <meshStandardMaterial color="#991b1b" metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Tail Fin (Vertical) */}
-      <mesh position={[0, 0.25, 0.7]} rotation={[0, 0, 0]}>
-        <boxGeometry args={[0.05, 0.4, 0.3]} />
+      {/* Wing Tips with Lights - Left */}
+      <mesh position={[0, -0.02, -1.25]}>
+        <boxGeometry args={[0.12, 0.025, 0.15]} />
+        <meshStandardMaterial color="#22c55e" metalness={0.9} roughness={0.1} emissive="#22c55e" emissiveIntensity={0.5} />
+      </mesh>
+
+      {/* Wing Tips with Lights - Right */}
+      <mesh position={[0, -0.02, 1.25]}>
+        <boxGeometry args={[0.12, 0.025, 0.15]} />
+        <meshStandardMaterial color="#ef4444" metalness={0.9} roughness={0.1} emissive="#ef4444" emissiveIntensity={0.5} />
+      </mesh>
+
+      {/* Vertical Tail Fin */}
+      <mesh position={[-0.75, 0.22, 0]}>
+        <boxGeometry args={[0.35, 0.45, 0.03]} />
         <meshStandardMaterial 
-          color="#c0392b" 
-          metalness={0.6} 
-          roughness={0.4}
+          color="#b91c1c" 
+          metalness={0.7} 
+          roughness={0.25}
         />
       </mesh>
 
-      {/* Tail Wings (Horizontal) */}
-      <mesh position={[0, 0, 0.7]} rotation={[0, 0, Math.PI / 2]}>
-        <boxGeometry args={[0.05, 0.7, 0.2]} />
+      {/* Tail Fin Accent */}
+      <mesh position={[-0.68, 0.32, 0]}>
+        <boxGeometry args={[0.18, 0.15, 0.035]} />
+        <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
+      </mesh>
+
+      {/* Horizontal Tail Wings */}
+      <mesh position={[-0.72, 0.02, 0]}>
+        <boxGeometry args={[0.25, 0.025, 0.9]} />
         <meshStandardMaterial 
-          color="#c0392b" 
-          metalness={0.6} 
-          roughness={0.4}
+          color="#b91c1c" 
+          metalness={0.7} 
+          roughness={0.25}
         />
       </mesh>
 
-      {/* Nose Cone */}
-      <mesh position={[0, 0, -0.75]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.25, 0.3, 16]} />
+      {/* Nose Cone - Aerodynamic */}
+      <mesh position={[0.88, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.18, 0.35, 24]} />
         <meshStandardMaterial 
-          color="#f1c40f" 
-          metalness={0.8} 
-          roughness={0.2}
+          color="#fbbf24" 
+          metalness={0.9} 
+          roughness={0.1}
         />
       </mesh>
 
-      {/* Propeller Hub */}
-      <mesh position={[0, 0, -0.92]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.05, 16]} />
-        <meshStandardMaterial color="#2c3e50" metalness={0.9} roughness={0.1} />
+      {/* Spinner/Propeller Hub */}
+      <mesh position={[1.08, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.08, 0.12, 16]} />
+        <meshStandardMaterial color="#374151" metalness={0.95} roughness={0.05} />
       </mesh>
 
-      {/* Propeller Blades */}
-      <group ref={propellerRef} position={[0, 0, -0.95]}>
+      {/* Propeller Assembly */}
+      <group ref={propellerRef} position={[1.02, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        {/* 3-Blade Propeller */}
         <mesh rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.8, 0.1, 0.02]} />
-          <meshStandardMaterial color="#34495e" metalness={0.7} roughness={0.3} />
+          <boxGeometry args={[0.08, 0.9, 0.015]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.8} roughness={0.2} />
         </mesh>
-        <mesh rotation={[0, 0, Math.PI / 2]}>
-          <boxGeometry args={[0.8, 0.1, 0.02]} />
-          <meshStandardMaterial color="#34495e" metalness={0.7} roughness={0.3} />
+        <mesh rotation={[0, 0, Math.PI / 3]}>
+          <boxGeometry args={[0.08, 0.9, 0.015]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh rotation={[0, 0, -Math.PI / 3]}>
+          <boxGeometry args={[0.08, 0.9, 0.015]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.8} roughness={0.2} />
         </mesh>
       </group>
 
-      {/* Engine exhausts */}
-      <mesh position={[0.15, -0.15, 0.2]}>
-        <cylinderGeometry args={[0.05, 0.04, 0.15, 8]} />
-        <meshStandardMaterial color="#2c3e50" metalness={0.9} roughness={0.1} />
-      </mesh>
-      <mesh position={[-0.15, -0.15, 0.2]}>
-        <cylinderGeometry args={[0.05, 0.04, 0.15, 8]} />
-        <meshStandardMaterial color="#2c3e50" metalness={0.9} roughness={0.1} />
+      {/* Engine Cowling */}
+      <mesh position={[0.6, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.2, 0.18, 0.3, 24]} />
+        <meshStandardMaterial color="#4b5563" metalness={0.85} roughness={0.15} />
       </mesh>
 
-      {/* Engine Fire/Thrust Effect */}
+      {/* Engine Air Intakes */}
+      <mesh position={[0.5, -0.12, 0.08]}>
+        <boxGeometry args={[0.15, 0.06, 0.08]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.5, -0.12, -0.08]}>
+        <boxGeometry args={[0.15, 0.06, 0.08]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.1} />
+      </mesh>
+
+      {/* Exhaust Pipes */}
+      <mesh position={[-0.35, -0.12, 0.1]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.035, 0.04, 0.18, 12]} />
+        <meshStandardMaterial color="#374151" metalness={0.95} roughness={0.05} />
+      </mesh>
+      <mesh position={[-0.35, -0.12, -0.1]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.035, 0.04, 0.18, 12]} />
+        <meshStandardMaterial color="#374151" metalness={0.95} roughness={0.05} />
+      </mesh>
+
+      {/* Exhaust Flames Effect */}
       {!isCrashed && (
-        <>
-          <mesh position={[0.15, -0.15, 0.35]}>
-            <coneGeometry args={[0.04, 0.2, 8]} />
-            <meshBasicMaterial color="#ff6b35" transparent opacity={0.8} />
+        <group ref={exhaustFlameRef}>
+          <mesh position={[-0.48, -0.12, 0.1]} rotation={[0, 0, Math.PI / 2]}>
+            <coneGeometry args={[0.03, 0.25, 8]} />
+            <meshBasicMaterial color="#f97316" transparent opacity={0.9} />
           </mesh>
-          <mesh position={[-0.15, -0.15, 0.35]}>
-            <coneGeometry args={[0.04, 0.2, 8]} />
-            <meshBasicMaterial color="#ff6b35" transparent opacity={0.8} />
+          <mesh position={[-0.48, -0.12, -0.1]} rotation={[0, 0, Math.PI / 2]}>
+            <coneGeometry args={[0.03, 0.25, 8]} />
+            <meshBasicMaterial color="#f97316" transparent opacity={0.9} />
           </mesh>
-        </>
+          {/* Inner flame */}
+          <mesh position={[-0.45, -0.12, 0.1]} rotation={[0, 0, Math.PI / 2]}>
+            <coneGeometry args={[0.015, 0.15, 8]} />
+            <meshBasicMaterial color="#fef08a" transparent opacity={0.95} />
+          </mesh>
+          <mesh position={[-0.45, -0.12, -0.1]} rotation={[0, 0, Math.PI / 2]}>
+            <coneGeometry args={[0.015, 0.15, 8]} />
+            <meshBasicMaterial color="#fef08a" transparent opacity={0.95} />
+          </mesh>
+        </group>
       )}
+
+      {/* Landing Gear - Retracted style bumps */}
+      <mesh position={[0.2, -0.18, 0.25]}>
+        <sphereGeometry args={[0.05, 12, 12]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.2, -0.18, -0.25]}>
+        <sphereGeometry args={[0.05, 12, 12]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.9} roughness={0.1} />
+      </mesh>
+
+      {/* Antenna */}
+      <mesh position={[0.1, 0.22, 0]}>
+        <cylinderGeometry args={[0.008, 0.005, 0.12, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.9} roughness={0.1} />
+      </mesh>
     </group>
   );
 };
@@ -161,16 +250,17 @@ interface Plane3DProps {
 
 const Plane3D = ({ rotation, isCrashed }: Plane3DProps) => {
   return (
-    <div className="w-32 h-24">
+    <div className="w-40 h-32">
       <Canvas
-        camera={{ position: [0, 0.5, 3], fov: 50 }}
+        camera={{ position: [2.5, 1, 2], fov: 45 }}
         style={{ background: 'transparent' }}
         gl={{ alpha: true, antialias: true }}
       >
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 5, 5]} intensity={1.2} castShadow />
-        <directionalLight position={[-3, 3, -3]} intensity={0.5} color="#ff9f43" />
-        <pointLight position={[0, -2, 0]} intensity={0.3} color="#e74c3c" />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[5, 5, 5]} intensity={1.5} castShadow />
+        <directionalLight position={[-3, 2, -3]} intensity={0.4} color="#fef3c7" />
+        <pointLight position={[2, -1, 0]} intensity={0.6} color="#f97316" />
+        <spotLight position={[0, 5, 0]} intensity={0.3} angle={0.5} />
         
         <PlaneModel rotation={rotation} isCrashed={isCrashed} />
       </Canvas>
