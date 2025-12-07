@@ -43,7 +43,7 @@ try {
     }
     
     // Update transaction status
-    $stmt = $conn->prepare("UPDATE transactions SET status = ?, updated_at = NOW() WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE transactions SET status = ? WHERE id = ?");
     if (!$stmt) {
         echo json_encode(['status' => false, 'message' => 'DB prepare error: ' . $conn->error]);
         exit;
