@@ -3,7 +3,15 @@ require_once 'config.php';
 
 function verifyAdminToken() {
     $headers = getallheaders();
-    $authHeader = $headers['Authorization'] ?? '';
+    
+    // Handle case-insensitive header lookup
+    $authHeader = '';
+    foreach ($headers as $key => $value) {
+        if (strtolower($key) === 'authorization') {
+            $authHeader = $value;
+            break;
+        }
+    }
     
     if (empty($authHeader) || !str_starts_with($authHeader, 'Bearer ')) {
         return false;
