@@ -104,20 +104,36 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   
   // Flying background sound ref
   const flyingSoundRef = useRef<HTMLAudioElement | null>(null);
+  const crashSoundRef = useRef<HTMLAudioElement | null>(null);
   
-  // Initialize flying sound
+  // Initialize sounds
   useEffect(() => {
     flyingSoundRef.current = new Audio('/sounds/plane-flying.mp3');
     flyingSoundRef.current.loop = true;
     flyingSoundRef.current.volume = 0.4;
+    
+    crashSoundRef.current = new Audio('/sounds/plane-crash.mp3');
+    crashSoundRef.current.volume = 0.6;
     
     return () => {
       if (flyingSoundRef.current) {
         flyingSoundRef.current.pause();
         flyingSoundRef.current = null;
       }
+      if (crashSoundRef.current) {
+        crashSoundRef.current.pause();
+        crashSoundRef.current = null;
+      }
     };
   }, []);
+  
+  // Play crash sound when plane crashes
+  useEffect(() => {
+    if (gamePhase === 'crashed' && crashSoundRef.current) {
+      crashSoundRef.current.currentTime = 0;
+      crashSoundRef.current.play().catch(() => {});
+    }
+  }, [gamePhase]);
   
   // Continuous smooth plane animation during flying phase
   useEffect(() => {
