@@ -102,6 +102,23 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const startTimeRef = useRef<number>(0);
   const [animatedPlanePos, setAnimatedPlanePos] = useState({ x: 10, y: 80 });
   
+  // Flying background sound ref
+  const flyingSoundRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Initialize flying sound
+  useEffect(() => {
+    flyingSoundRef.current = new Audio('/sounds/plane-flying.mp3');
+    flyingSoundRef.current.loop = true;
+    flyingSoundRef.current.volume = 0.4;
+    
+    return () => {
+      if (flyingSoundRef.current) {
+        flyingSoundRef.current.pause();
+        flyingSoundRef.current = null;
+      }
+    };
+  }, []);
+  
   // Continuous smooth plane animation during flying phase
   useEffect(() => {
     if (gamePhase !== 'flying') {
@@ -111,7 +128,18 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      // Stop flying sound when not flying
+      if (flyingSoundRef.current) {
+        flyingSoundRef.current.pause();
+        flyingSoundRef.current.currentTime = 0;
+      }
       return;
+    }
+    
+    // Play flying sound when plane takes off
+    if (flyingSoundRef.current) {
+      flyingSoundRef.current.currentTime = 0;
+      flyingSoundRef.current.play().catch(() => {});
     }
     
     startTimeRef.current = performance.now();
