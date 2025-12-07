@@ -50,25 +50,14 @@ if ($tx['type'] === 'DEPOSIT' && $status === 'SUCCESS') {
     $stmt->execute();
 }
 
-// If withdrawal approved, deduct from winning balance
-if ($tx['type'] === 'WITHDRAWAL' && $status === 'SUCCESS') {
-    $stmt = $conn->prepare("UPDATE users SET winning_balance = winning_balance - ? WHERE mobile = ?");
-    $stmt->bind_param("ds", $tx['amount'], $tx['mobile']);
-    $stmt->execute();
-}
-
-// If withdrawal rejected, refund the winning balance
+// For WITHDRAWAL: balance was already deducted when request was made
+// If SUCCESS - nothing to do, balance already deducted
+// If FAILED - refund the balance
 if ($tx['type'] === 'WITHDRAWAL' && $status === 'FAILED') {
     $stmt = $conn->prepare("UPDATE users SET winning_balance = winning_balance + ? WHERE mobile = ?");
     $stmt->bind_param("ds", $tx['amount'], $tx['mobile']);
     $stmt->execute();
 }
-
-// Log the action
-$stmt = $conn->prepare("INSERT INTO admin_logs (admin_id, action, details, created_at) VALUES (?, 'UPDATE_TRANSACTION', ?, NOW())");
-$details = json_encode(['transaction_id' => $transaction_id, 'status' => $status]);
-$stmt->bind_param("is", $admin['id'], $details);
-$stmt->execute();
 
 echo json_encode(['status' => true, 'message' => 'Transaction updated']);
 $conn->close();
