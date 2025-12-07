@@ -209,17 +209,15 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       const elapsed = performance.now() - startTimeRef.current;
       const progress = elapsed / 1000; // seconds
       
-      // Aviator style - plane flies UPWARD from bottom-left
-      // X stays mostly fixed, Y goes up following multiplier curve
-      const t = Math.min(progress / 15, 1); // 15 seconds full animation
+      // Aviator style - exponential curve like reference image
+      const t = Math.min(progress / 20, 1); // 20 seconds full animation
       
-      // Slight X movement to the right (small curve)
-      const newX = 15 + t * 25; // Move from 15% to 40% (subtle)
+      // X movement - accelerates to the right following exponential curve
+      const curveT = 1 - Math.pow(1 - t, 2.5); // Smooth exponential easing
+      const newX = 5 + curveT * 70; // Move from 5% to 75%
       
-      // Y movement - exponential curve going UP (like multiplier graph)
-      // Starts slow, accelerates upward
-      const curveProgress = Math.pow(t, 0.5); // Smooth exponential rise
-      const newY = 85 - curveProgress * 75; // Move from 85% to 10% (bottom to top)
+      // Y movement - starts slow at bottom, curves up exponentially
+      const newY = 95 - curveT * 75; // Move from 95% to 20%
       
       setAnimatedPlanePos({ x: newX, y: newY });
       
@@ -240,10 +238,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const planePosition = animatedPlanePos; // Use client-animated position - never stutters!
   const liveUsers = livePlayerCount || 1;
   
-  // Plane rotation - nose pointing UP as it climbs
-  // -90 = straight up, we want it tilted up at about -70 to -50 degrees
-  const climbProgress = Math.min((85 - planePosition.y) / 75, 1);
-  const planeRotation = -75 + climbProgress * 25; // -75deg to -50deg (nose up, climbing)
+  // Plane rotation - follows the curve angle, tilted up as it climbs
+  // Starts at around -45deg, gets steeper as it climbs up
+  const climbProgress = Math.min((95 - planePosition.y) / 75, 1);
+  const planeRotation = -55 + climbProgress * 15; // -55deg to -40deg (nose up, following curve)
 
   // Run local game simulation ONLY when server is not available (fallback mode)
   useEffect(() => {
@@ -611,60 +609,42 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           )}
         </div>
 
-        {/* Trail Line - connects from bottom to plane */}
+        {/* Trail Line - smooth exponential curve like reference */}
         {(gamePhase === 'flying' || gamePhase === 'crashed') && (
           <svg 
             className="absolute inset-0 w-full h-full z-20 pointer-events-none"
-            style={{ overflow: 'visible' }}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
           >
             <defs>
-              <linearGradient id="trailGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" />
-                <stop offset="50%" stopColor="#f97316" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#eab308" stopOpacity="1" />
+              <linearGradient id="goldTrail" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#b8860b" stopOpacity="1" />
+                <stop offset="40%" stopColor="#daa520" stopOpacity="1" />
+                <stop offset="100%" stopColor="#ffd700" stopOpacity="1" />
               </linearGradient>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <filter id="trailGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="0.5" result="blur"/>
                 <feMerge>
-                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="blur"/>
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
             </defs>
-            {/* Curved trail path from bottom-left to plane */}
+            {/* Smooth exponential curve from bottom-left to plane */}
             <path
-              d={`M 0 100 Q ${planePosition.x * 0.3} ${100 - (100 - planePosition.y) * 0.5}, ${planePosition.x} ${planePosition.y}`}
+              d={`M 0 98 
+                  C ${planePosition.x * 0.2} 98,
+                    ${planePosition.x * 0.5} ${98 - (98 - planePosition.y) * 0.3},
+                    ${planePosition.x} ${planePosition.y}`}
               fill="none"
-              stroke="url(#trailGradient)"
-              strokeWidth="4"
+              stroke="url(#goldTrail)"
+              strokeWidth="1.5"
               strokeLinecap="round"
-              filter="url(#glow)"
+              filter="url(#trailGlow)"
               style={{
-                opacity: gamePhase === 'crashed' ? 0.3 : 1,
+                opacity: gamePhase === 'crashed' ? 0.4 : 1,
                 transition: 'opacity 0.5s ease-out'
               }}
-            />
-            {/* Glowing dots along the trail */}
-            <circle 
-              cx={`${planePosition.x * 0.15}%`} 
-              cy={`${100 - (100 - planePosition.y) * 0.15}%`} 
-              r="3" 
-              fill="#ef4444" 
-              opacity={gamePhase === 'crashed' ? 0.2 : 0.6}
-            />
-            <circle 
-              cx={`${planePosition.x * 0.4}%`} 
-              cy={`${100 - (100 - planePosition.y) * 0.35}%`} 
-              r="4" 
-              fill="#f97316" 
-              opacity={gamePhase === 'crashed' ? 0.2 : 0.7}
-            />
-            <circle 
-              cx={`${planePosition.x * 0.7}%`} 
-              cy={`${100 - (100 - planePosition.y) * 0.6}%`} 
-              r="5" 
-              fill="#eab308" 
-              opacity={gamePhase === 'crashed' ? 0.2 : 0.8}
             />
           </svg>
         )}
