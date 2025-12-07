@@ -209,18 +209,17 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       const elapsed = performance.now() - startTimeRef.current;
       const progress = elapsed / 1000; // seconds
       
-      // Curved exponential path - like real Aviator game
-      // Plane starts slow, then accelerates upward following a curve
-      const t = Math.min(progress / 12, 1); // Normalize to 0-1 over 12 seconds
+      // Aviator style - plane flies UPWARD from bottom-left
+      // X stays mostly fixed, Y goes up following multiplier curve
+      const t = Math.min(progress / 15, 1); // 15 seconds full animation
       
-      // Exponential curve for X movement (starts slow, speeds up)
-      const easeOutCubic = 1 - Math.pow(1 - t, 3);
-      const newX = 5 + easeOutCubic * 80; // Move from 5% to 85%
+      // Slight X movement to the right (small curve)
+      const newX = 15 + t * 25; // Move from 15% to 40% (subtle)
       
-      // Curved Y movement - exponential rise like multiplier graph
-      // This creates the signature Aviator curve
-      const curveProgress = Math.pow(t, 0.6); // Faster initial rise, then levels
-      const newY = 85 - curveProgress * 70; // Move from 85% to 15% (bottom to top)
+      // Y movement - exponential curve going UP (like multiplier graph)
+      // Starts slow, accelerates upward
+      const curveProgress = Math.pow(t, 0.5); // Smooth exponential rise
+      const newY = 85 - curveProgress * 75; // Move from 85% to 10% (bottom to top)
       
       setAnimatedPlanePos({ x: newX, y: newY });
       
@@ -241,10 +240,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const planePosition = animatedPlanePos; // Use client-animated position - never stutters!
   const liveUsers = livePlayerCount || 1;
   
-  // Dynamic plane rotation - tilts up as it climbs the curve
-  // Starts at -15deg (nose up), gradually levels out as it reaches higher
-  const climbProgress = Math.min((85 - planePosition.y) / 70, 1);
-  const planeRotation = -20 + climbProgress * 15; // -20deg to -5deg (always nose slightly up)
+  // Plane rotation - nose pointing UP as it climbs
+  // -90 = straight up, we want it tilted up at about -70 to -50 degrees
+  const climbProgress = Math.min((85 - planePosition.y) / 75, 1);
+  const planeRotation = -75 + climbProgress * 25; // -75deg to -50deg (nose up, climbing)
 
   // Run local game simulation ONLY when server is not available (fallback mode)
   useEffect(() => {
@@ -612,6 +611,64 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           )}
         </div>
 
+        {/* Trail Line - connects from bottom to plane */}
+        {(gamePhase === 'flying' || gamePhase === 'crashed') && (
+          <svg 
+            className="absolute inset-0 w-full h-full z-20 pointer-events-none"
+            style={{ overflow: 'visible' }}
+          >
+            <defs>
+              <linearGradient id="trailGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" />
+                <stop offset="50%" stopColor="#f97316" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#eab308" stopOpacity="1" />
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            {/* Curved trail path from bottom-left to plane */}
+            <path
+              d={`M 0 100 Q ${planePosition.x * 0.3} ${100 - (100 - planePosition.y) * 0.5}, ${planePosition.x} ${planePosition.y}`}
+              fill="none"
+              stroke="url(#trailGradient)"
+              strokeWidth="4"
+              strokeLinecap="round"
+              filter="url(#glow)"
+              style={{
+                opacity: gamePhase === 'crashed' ? 0.3 : 1,
+                transition: 'opacity 0.5s ease-out'
+              }}
+            />
+            {/* Glowing dots along the trail */}
+            <circle 
+              cx={`${planePosition.x * 0.15}%`} 
+              cy={`${100 - (100 - planePosition.y) * 0.15}%`} 
+              r="3" 
+              fill="#ef4444" 
+              opacity={gamePhase === 'crashed' ? 0.2 : 0.6}
+            />
+            <circle 
+              cx={`${planePosition.x * 0.4}%`} 
+              cy={`${100 - (100 - planePosition.y) * 0.35}%`} 
+              r="4" 
+              fill="#f97316" 
+              opacity={gamePhase === 'crashed' ? 0.2 : 0.7}
+            />
+            <circle 
+              cx={`${planePosition.x * 0.7}%`} 
+              cy={`${100 - (100 - planePosition.y) * 0.6}%`} 
+              r="5" 
+              fill="#eab308" 
+              opacity={gamePhase === 'crashed' ? 0.2 : 0.8}
+            />
+          </svg>
+        )}
+
         {/* 3D Animated Plane */}
         {(gamePhase === 'flying' || gamePhase === 'crashed') && (
           <div 
@@ -619,9 +676,9 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             style={{ 
               left: `${planePosition.x}%`, 
               top: `${planePosition.y}%`,
-              transform: `translate(-50%, -50%) rotate(${gamePhase === 'crashed' ? '60' : planeRotation}deg) ${gamePhase === 'crashed' ? 'scale(0.6)' : 'scale(1)'}`,
-              filter: gamePhase === 'crashed' ? 'brightness(0.4) saturate(0) blur(1px)' : 'drop-shadow(4px 8px 16px rgba(0,0,0,0.6))',
-              transition: gamePhase === 'crashed' ? 'all 0.8s ease-out' : 'transform 0.1s ease-out'
+              transform: `translate(-50%, -50%) rotate(${gamePhase === 'crashed' ? '120' : planeRotation}deg) ${gamePhase === 'crashed' ? 'scale(0.5)' : 'scale(1.2)'}`,
+              filter: gamePhase === 'crashed' ? 'brightness(0.3) saturate(0) blur(2px)' : 'drop-shadow(0 0 20px rgba(234, 179, 8, 0.6))',
+              transition: gamePhase === 'crashed' ? 'all 1s ease-out' : 'transform 0.15s ease-out'
             }}
           >
             <Plane3D 
