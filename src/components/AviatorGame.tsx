@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, History, ChevronDown, Users, Coins, DollarSign } from 'lucide-react';
 import { useGameSync } from '@/hooks/useGameSync';
-
+import Plane3D from './Plane3D';
 interface AviatorGameProps {
   onClose: () => void;
   balance?: number;
@@ -600,26 +600,21 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           )}
         </div>
 
-        {/* Animated Plane */}
+        {/* 3D Animated Plane */}
         {(gamePhase === 'flying' || gamePhase === 'crashed') && (
           <div 
             className="absolute z-30"
             style={{ 
               left: `${planePosition.x}%`, 
               top: `${planePosition.y}%`,
-              transform: `translate(-50%, -50%) ${gamePhase === 'crashed' ? 'rotate(45deg) scale(0.8)' : `rotate(${planeRotation}deg)`}`,
-              filter: gamePhase === 'crashed' ? 'brightness(0.5) saturate(0)' : 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))',
+              transform: `translate(-50%, -50%) ${gamePhase === 'crashed' ? 'rotate(45deg) scale(0.8)' : ''}`,
+              filter: gamePhase === 'crashed' ? 'brightness(0.5) saturate(0)' : 'drop-shadow(4px 8px 12px rgba(0,0,0,0.5))',
               transition: gamePhase === 'crashed' ? 'all 0.5s ease-out' : 'none'
             }}
           >
-            <img 
-              src="/lovable-uploads/f3f3c773-1e30-4f2c-a739-b498c2880ad5.png" 
-              alt="Plane" 
-              className="w-24 h-auto"
-              style={{
-                opacity: gamePhase === 'crashed' ? 0.6 : 1,
-                transition: 'opacity 0.3s ease-out'
-              }}
+            <Plane3D 
+              rotation={planeRotation} 
+              isCrashed={gamePhase === 'crashed'} 
             />
           </div>
         )}
