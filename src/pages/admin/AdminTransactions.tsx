@@ -53,20 +53,31 @@ const AdminTransactions = () => {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          "Authorization": `Bearer ${token}` 
         },
         body: JSON.stringify({ transaction_id: transactionId, status: newStatus }),
       });
-      const data = await response.json();
+      
+      const text = await response.text();
+      console.log("Server response:", text);
+      
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        toast({ title: "Error", description: "Server error: " + text.substring(0, 100), variant: "destructive" });
+        return;
+      }
       
       if (data.status) {
         toast({ title: "Success", description: "Transaction updated" });
         fetchTransactions();
       } else {
-        toast({ title: "Error", description: data.message, variant: "destructive" });
+        toast({ title: "Error", description: data.message || "Unknown error", variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to update transaction", variant: "destructive" });
+      console.error("Request error:", error);
+      toast({ title: "Error", description: "Network error: " + String(error), variant: "destructive" });
     }
   };
 
