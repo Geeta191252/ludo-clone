@@ -75,7 +75,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   // Local game state - always active for immediate display
   const [localGamePhase, setLocalGamePhase] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
   const [localMultiplier, setLocalMultiplier] = useState(1.00);
-  const [localCountdown, setLocalCountdown] = useState(5);
+  const [localCountdown, setLocalCountdown] = useState(10);
   const [localHistory, setLocalHistory] = useState<number[]>([5.01, 2.60, 3.45, 1.23, 8.92]);
   const [localPlanePos, setLocalPlanePos] = useState({ x: 10, y: 80 });
   const [localCrashPoint] = useState(() => 1.2 + Math.random() * 13.8);
@@ -102,9 +102,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const startTimeRef = useRef<number>(0);
   const [animatedPlanePos, setAnimatedPlanePos] = useState({ x: 10, y: 80 });
   
-  // Flying background sound ref
+  // Sound refs
   const flyingSoundRef = useRef<HTMLAudioElement | null>(null);
   const crashSoundRef = useRef<HTMLAudioElement | null>(null);
+  const countdownSoundRef = useRef<HTMLAudioElement | null>(null);
   
   // Initialize sounds
   useEffect(() => {
@@ -115,6 +116,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     crashSoundRef.current = new Audio('/sounds/plane-crash.mp3');
     crashSoundRef.current.volume = 0.6;
     
+    countdownSoundRef.current = new Audio('/sounds/game-start.mp3');
+    countdownSoundRef.current.loop = true;
+    countdownSoundRef.current.volume = 0.5;
+    
     return () => {
       if (flyingSoundRef.current) {
         flyingSoundRef.current.pause();
@@ -124,8 +129,23 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
         crashSoundRef.current.pause();
         crashSoundRef.current = null;
       }
+      if (countdownSoundRef.current) {
+        countdownSoundRef.current.pause();
+        countdownSoundRef.current = null;
+      }
     };
   }, []);
+  
+  // Play countdown sound during waiting phase
+  useEffect(() => {
+    if (gamePhase === 'waiting' && countdownSoundRef.current) {
+      countdownSoundRef.current.currentTime = 0;
+      countdownSoundRef.current.play().catch(() => {});
+    } else if (countdownSoundRef.current) {
+      countdownSoundRef.current.pause();
+      countdownSoundRef.current.currentTime = 0;
+    }
+  }, [gamePhase]);
   
   // Play crash sound when plane crashes
   useEffect(() => {
