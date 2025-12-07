@@ -207,12 +207,20 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     
     const animate = () => {
       const elapsed = performance.now() - startTimeRef.current;
-      // Calculate smooth position based on time elapsed (creates constant smooth movement)
       const progress = elapsed / 1000; // seconds
       
-      // Smooth continuous movement - plane flies from left-bottom to right-top
-      const newX = Math.min(10 + progress * 8, 85); // Move right at constant speed
-      const newY = Math.max(80 - progress * 7, 15); // Move up at constant speed
+      // Curved exponential path - like real Aviator game
+      // Plane starts slow, then accelerates upward following a curve
+      const t = Math.min(progress / 12, 1); // Normalize to 0-1 over 12 seconds
+      
+      // Exponential curve for X movement (starts slow, speeds up)
+      const easeOutCubic = 1 - Math.pow(1 - t, 3);
+      const newX = 5 + easeOutCubic * 80; // Move from 5% to 85%
+      
+      // Curved Y movement - exponential rise like multiplier graph
+      // This creates the signature Aviator curve
+      const curveProgress = Math.pow(t, 0.6); // Faster initial rise, then levels
+      const newY = 85 - curveProgress * 70; // Move from 85% to 15% (bottom to top)
       
       setAnimatedPlanePos({ x: newX, y: newY });
       
@@ -232,7 +240,11 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const multiplier = rawMultiplier;
   const planePosition = animatedPlanePos; // Use client-animated position - never stutters!
   const liveUsers = livePlayerCount || 1;
-  const planeRotation = -25 + Math.pow(Math.min((multiplier - 1) / 10, 1), 0.5) * 10;
+  
+  // Dynamic plane rotation - tilts up as it climbs the curve
+  // Starts at -15deg (nose up), gradually levels out as it reaches higher
+  const climbProgress = Math.min((85 - planePosition.y) / 70, 1);
+  const planeRotation = -20 + climbProgress * 15; // -20deg to -5deg (always nose slightly up)
 
   // Run local game simulation ONLY when server is not available (fallback mode)
   useEffect(() => {
@@ -607,13 +619,13 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             style={{ 
               left: `${planePosition.x}%`, 
               top: `${planePosition.y}%`,
-              transform: `translate(-50%, -50%) ${gamePhase === 'crashed' ? 'rotate(45deg) scale(0.8)' : ''}`,
-              filter: gamePhase === 'crashed' ? 'brightness(0.5) saturate(0)' : 'drop-shadow(4px 8px 12px rgba(0,0,0,0.5))',
-              transition: gamePhase === 'crashed' ? 'all 0.5s ease-out' : 'none'
+              transform: `translate(-50%, -50%) rotate(${gamePhase === 'crashed' ? '60' : planeRotation}deg) ${gamePhase === 'crashed' ? 'scale(0.6)' : 'scale(1)'}`,
+              filter: gamePhase === 'crashed' ? 'brightness(0.4) saturate(0) blur(1px)' : 'drop-shadow(4px 8px 16px rgba(0,0,0,0.6))',
+              transition: gamePhase === 'crashed' ? 'all 0.8s ease-out' : 'transform 0.1s ease-out'
             }}
           >
             <Plane3D 
-              rotation={planeRotation} 
+              rotation={0} 
               isCrashed={gamePhase === 'crashed'} 
             />
           </div>
