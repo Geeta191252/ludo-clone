@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Volume2, VolumeX, Users, Repeat } from 'lucide-react';
 import { useGameSounds } from '@/hooks/useGameSounds';
+import { useGameSync } from '@/hooks/useGameSync';
 
 interface DragonTigerGameProps {
   onClose: () => void;
@@ -59,6 +60,10 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
     }
   };
 
+  // Use game sync hook for real-time multiplayer
+  const { gameState, liveBets: syncedBets, livePlayerCount } = useGameSync('dragon-tiger');
+  const prevPhaseRef = useRef<string | null>(null);
+
   // Fetch fresh balance from server on mount
   useEffect(() => {
     const fetchFreshBalance = async () => {
@@ -89,53 +94,92 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const [dragonBet, setDragonBet] = useState(0);
   const [tigerBet, setTigerBet] = useState(0);
   const [tieBet, setTieBet] = useState(0);
-  const [dragonCard, setDragonCard] = useState<{ value: string; suit: string; numValue: number } | null>(null);
-  const [tigerCard, setTigerCard] = useState<{ value: string; suit: string; numValue: number } | null>(null);
-  const [winner, setWinner] = useState<'dragon' | 'tiger' | 'tie' | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [history, setHistory] = useState<BetHistory[]>([
-    { id: 1, winner: 'tiger' }, { id: 2, winner: 'dragon' }, { id: 3, winner: 'dragon' },
-    { id: 4, winner: 'tiger' }, { id: 5, winner: 'dragon' }, { id: 6, winner: 'tiger' },
-    { id: 7, winner: 'tie' }, { id: 8, winner: 'dragon' }, { id: 9, winner: 'tiger' },
-    { id: 10, winner: 'tiger' }, { id: 11, winner: 'dragon' }, { id: 12, winner: 'dragon' },
-    { id: 13, winner: 'tiger' }, { id: 14, winner: 'dragon' }, { id: 15, winner: 'tiger' },
-  ]);
-  const [timer, setTimer] = useState(15);
-  const [gamePhase, setGamePhase] = useState<'betting' | 'dealing' | 'result'>('betting');
   const [winAmount, setWinAmount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [showWinPopup, setShowWinPopup] = useState(false);
-  const [livePlayerCount, setLivePlayerCount] = useState(1234);
-  const [roundNumber, setRoundNumber] = useState(4521);
+
+  // Get synced state values from server
+  const timer = gameState?.timer || 15;
+  const gamePhase = (gameState?.phase || 'betting') as 'betting' | 'dealing' | 'result';
+  const roundNumber = gameState?.round_number || 1;
+  const winner = gameState?.winner as 'dragon' | 'tiger' | 'tie' | null;
+  const showResult = gamePhase === 'result';
+  const livePlayerCount2 = Math.max(livePlayerCount + 100, 200);
+  
+  // Get cards from server state
+  const dragonCard = gameState?.dragon_card_value ? {
+    value: gameState.dragon_card_value,
+    suit: gameState.dragon_card_suit || '♠',
+    numValue: CARD_VALUES.indexOf(gameState.dragon_card_value) + 1
+  } : null;
+  
+  const tigerCard = gameState?.tiger_card_value ? {
+    value: gameState.tiger_card_value,
+    suit: gameState.tiger_card_suit || '♠',
+    numValue: CARD_VALUES.indexOf(gameState.tiger_card_value) + 1
+  } : null;
+
+  // History from server
+  const history = (gameState?.history || []) as { id: number; winner: 'dragon' | 'tiger' | 'tie' }[];
 
   const { playChipSound, playCardSound, playTickSound, playUrgentTickSound, playWinSound, playTigerRoarSound, playDragonRoarSound, playLoseSound } = useGameSounds();
 
-  // Live player count simulation
+  // Handle phase transitions for sounds and win calculation
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLivePlayerCount(prev => {
-        const change = Math.floor(Math.random() * 20) - 10; // -10 to +10
-        const newCount = prev + change;
-        return Math.max(800, Math.min(2000, newCount)); // Keep between 800-2000
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    if (prevPhaseRef.current !== gamePhase) {
+      if (gamePhase === 'dealing' && prevPhaseRef.current === 'betting') {
+        if (!isMuted) playCardSound();
+      } else if (gamePhase === 'result' && prevPhaseRef.current === 'dealing') {
+        // Play winner sound
+        if (!isMuted) {
+          if (winner === 'tiger') playTigerRoarSound();
+          else if (winner === 'dragon') playDragonRoarSound();
+        }
+        
+        // Calculate win
+        let win = 0;
+        if (winner === 'dragon' && dragonBet > 0) {
+          win = dragonBet * 2;
+        } else if (winner === 'tiger' && tigerBet > 0) {
+          win = tigerBet * 2;
+        } else if (winner === 'tie' && tieBet > 0) {
+          win = tieBet * 9;
+        }
+        
+        setWinAmount(win);
+        
+        if (win > 0) {
+          if (!isMuted) playWinSound();
+          setShowWinPopup(true);
+          updateServerBalance(win, 'add').then((newBalance) => {
+            if (newBalance !== null) {
+              setBalance(newBalance);
+            } else {
+              setBalance(prev => prev + win);
+            }
+          });
+        } else if (dragonBet > 0 || tigerBet > 0 || tieBet > 0) {
+          if (!isMuted) playLoseSound();
+        }
+      } else if (gamePhase === 'betting' && prevPhaseRef.current === 'result') {
+        // New round - reset bets
+        setDragonBet(0);
+        setTigerBet(0);
+        setTieBet(0);
+        setWinAmount(0);
+        setShowWinPopup(false);
+      }
+      prevPhaseRef.current = gamePhase;
+    }
+  }, [gamePhase, winner, dragonBet, tigerBet, tieBet, isMuted]);
 
+  // Timer tick sound
   useEffect(() => {
     if (gamePhase === 'betting' && timer > 0) {
-      const interval = setInterval(() => {
-        setTimer(prev => {
-          if (!isMuted) {
-            if (prev <= 6) playUrgentTickSound();
-            else playTickSound();
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    } else if (timer === 0 && gamePhase === 'betting') {
-      handleDeal();
+      if (!isMuted) {
+        if (timer <= 5) playUrgentTickSound();
+        else playTickSound();
+      }
     }
   }, [timer, gamePhase, isMuted]);
 
@@ -172,144 +216,6 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
     setDragonBet(0);
     setTigerBet(0);
     setTieBet(0);
-  };
-
-  const handleDeal = () => {
-    if (gamePhase !== 'betting') return;
-    setGamePhase('dealing');
-    setShowResult(false);
-    setWinner(null);
-    setWinAmount(0);
-    setShowWinPopup(false);
-
-    let gameWinner: 'dragon' | 'tiger' | 'tie';
-    
-    if (dragonBet === 0 && tigerBet === 0 && tieBet === 0) {
-      // No bets - random winner
-      const allAreas: ('dragon' | 'tiger' | 'tie')[] = ['dragon', 'tiger', 'tie'];
-      gameWinner = allAreas[Math.floor(Math.random() * 3)];
-    } else {
-      // Calculate net profit/loss for user for each outcome
-      // Dragon wins: user gets dragonBet*2, loses tigerBet + tieBet
-      // Tiger wins: user gets tigerBet*2, loses dragonBet + tieBet  
-      // Tie wins: user gets tieBet*9, loses dragonBet + tigerBet
-      
-      const outcomes = [
-        { 
-          area: 'dragon' as const, 
-          userNet: (dragonBet * 2) - (dragonBet + tigerBet + tieBet) // profit - total bet
-        },
-        { 
-          area: 'tiger' as const, 
-          userNet: (tigerBet * 2) - (dragonBet + tigerBet + tieBet)
-        },
-        { 
-          area: 'tie' as const, 
-          userNet: (tieBet * 9) - (dragonBet + tigerBet + tieBet)
-        }
-      ];
-      
-      // Pick outcome where user loses MOST (lowest net, preferably negative)
-      outcomes.sort((a, b) => a.userNet - b.userNet);
-      gameWinner = outcomes[0].area;
-    }
-
-    const generateCards = () => {
-      let dragonValue: number, tigerValue: number;
-      
-      if (gameWinner === 'dragon') {
-        dragonValue = 7 + Math.floor(Math.random() * 6);
-        tigerValue = Math.floor(Math.random() * dragonValue);
-      } else if (gameWinner === 'tiger') {
-        tigerValue = 7 + Math.floor(Math.random() * 6);
-        dragonValue = Math.floor(Math.random() * tigerValue);
-      } else {
-        dragonValue = Math.floor(Math.random() * 13);
-        tigerValue = dragonValue;
-      }
-      
-      return {
-        dragon: { value: CARD_VALUES[dragonValue], suit: CARD_SUITS[Math.floor(Math.random() * 4)], numValue: dragonValue + 1 },
-        tiger: { value: CARD_VALUES[tigerValue], suit: CARD_SUITS[Math.floor(Math.random() * 4)], numValue: tigerValue + 1 }
-      };
-    };
-
-    const cards = generateCards();
-    
-    setTimeout(() => {
-      if (!isMuted) playCardSound();
-      setDragonCard(cards.dragon);
-    }, 800);
-    
-    setTimeout(() => {
-      if (!isMuted) playCardSound();
-      setTigerCard(cards.tiger);
-    }, 1600);
-
-    setTimeout(() => {
-      setWinner(gameWinner);
-      setShowResult(true);
-      setGamePhase('result');
-      
-      let win = 0;
-      if (gameWinner === 'dragon' && dragonBet > 0) {
-        win = dragonBet * 2; // Original bet + 1:1 profit
-      } else if (gameWinner === 'tiger' && tigerBet > 0) {
-        win = tigerBet * 2; // Original bet + 1:1 profit
-      } else if (gameWinner === 'tie' && tieBet > 0) {
-        win = tieBet * 9; // Original bet + 8x profit
-      }
-      
-      setWinAmount(win);
-      
-      // Play winner announcement sound (roar)
-      if (!isMuted) {
-        if (gameWinner === 'tiger') {
-          playTigerRoarSound();
-        } else if (gameWinner === 'dragon') {
-          playDragonRoarSound();
-        }
-      }
-      
-      if (win > 0) {
-        setTimeout(() => {
-          if (!isMuted) playWinSound();
-        }, 500);
-        setShowWinPopup(true);
-        // Add winnings to server
-        updateServerBalance(win, 'add').then((newBalance) => {
-          if (newBalance !== null) {
-            setBalance(newBalance);
-          } else {
-            setBalance(prev => prev + win);
-          }
-        });
-      } else if (dragonBet > 0 || tigerBet > 0 || tieBet > 0) {
-        setTimeout(() => {
-          if (!isMuted) playLoseSound();
-        }, 500);
-      }
-      setHistory(prev => [{ id: Date.now(), winner: gameWinner }, ...prev.slice(0, 19)]);
-    }, 2500);
-
-    setTimeout(() => {
-      resetRound();
-    }, 5000);
-  };
-
-  const resetRound = () => {
-    setDragonCard(null);
-    setTigerCard(null);
-    setWinner(null);
-    setShowResult(false);
-    setDragonBet(0);
-    setTigerBet(0);
-    setTieBet(0);
-    setWinAmount(0);
-    setShowWinPopup(false);
-    setTimer(15);
-    setGamePhase('betting');
-    setRoundNumber(prev => prev + 1);
   };
 
   const getHistoryColor = (w: string) => {
@@ -361,7 +267,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
           <div className="relative flex items-center gap-1">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             <Users className="w-4 h-4 text-green-400" />
-            <span className="text-sm text-green-400 font-medium">{livePlayerCount.toLocaleString()}</span>
+            <span className="text-sm text-green-400 font-medium">{livePlayerCount2.toLocaleString()}</span>
             <span className="text-xs text-gray-500">LIVE</span>
           </div>
         </div>
