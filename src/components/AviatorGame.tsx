@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, History, ChevronDown, Users, Coins, DollarSign } from 'lucide-react';
-import { useGameSounds } from '@/hooks/useGameSounds';
 import { useGameSync } from '@/hooks/useGameSync';
 
 interface AviatorGameProps {
@@ -102,56 +101,82 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const startTimeRef = useRef<number>(0);
   const [animatedPlanePos, setAnimatedPlanePos] = useState({ x: 10, y: 80 });
   
-  // Sound refs
+  // Sound refs - using preloaded audio elements
   const flyingSoundRef = useRef<HTMLAudioElement | null>(null);
   const crashSoundRef = useRef<HTMLAudioElement | null>(null);
   const countdownSoundRef = useRef<HTMLAudioElement | null>(null);
+  const soundsInitializedRef = useRef(false);
   
-  // Initialize sounds
+  // Initialize sounds only once
   useEffect(() => {
-    flyingSoundRef.current = new Audio('/sounds/plane-flying.mp3');
-    flyingSoundRef.current.loop = true;
-    flyingSoundRef.current.volume = 0.4;
+    if (soundsInitializedRef.current) return;
+    soundsInitializedRef.current = true;
     
-    crashSoundRef.current = new Audio('/sounds/plane-crash.mp3');
-    crashSoundRef.current.volume = 0.6;
+    // Flying sound - plays during plane flight
+    const flyingSound = new Audio();
+    flyingSound.src = '/sounds/plane-flying.mp3';
+    flyingSound.loop = true;
+    flyingSound.volume = 0.5;
+    flyingSound.preload = 'auto';
+    flyingSoundRef.current = flyingSound;
     
-    countdownSoundRef.current = new Audio('/sounds/game-start.mp3');
-    countdownSoundRef.current.loop = true;
-    countdownSoundRef.current.volume = 0.5;
+    // Crash sound - plays when plane crashes
+    const crashSound = new Audio();
+    crashSound.src = '/sounds/plane-crash.mp3';
+    crashSound.volume = 0.7;
+    crashSound.preload = 'auto';
+    crashSoundRef.current = crashSound;
+    
+    // Countdown sound - plays during 10 sec waiting timer
+    const countdownSound = new Audio();
+    countdownSound.src = '/sounds/game-start.mp3';
+    countdownSound.loop = true;
+    countdownSound.volume = 0.6;
+    countdownSound.preload = 'auto';
+    countdownSoundRef.current = countdownSound;
     
     return () => {
-      if (flyingSoundRef.current) {
-        flyingSoundRef.current.pause();
-        flyingSoundRef.current = null;
-      }
-      if (crashSoundRef.current) {
-        crashSoundRef.current.pause();
-        crashSoundRef.current = null;
-      }
-      if (countdownSoundRef.current) {
-        countdownSoundRef.current.pause();
-        countdownSoundRef.current = null;
-      }
+      [flyingSoundRef, crashSoundRef, countdownSoundRef].forEach(ref => {
+        if (ref.current) {
+          ref.current.pause();
+          ref.current.src = '';
+          ref.current = null;
+        }
+      });
     };
   }, []);
   
-  // Play countdown sound during waiting phase
+  // Handle all game sounds based on phase
   useEffect(() => {
-    if (gamePhase === 'waiting' && countdownSoundRef.current) {
-      countdownSoundRef.current.currentTime = 0;
-      countdownSoundRef.current.play().catch(() => {});
-    } else if (countdownSoundRef.current) {
-      countdownSoundRef.current.pause();
-      countdownSoundRef.current.currentTime = 0;
-    }
-  }, [gamePhase]);
-  
-  // Play crash sound when plane crashes
-  useEffect(() => {
-    if (gamePhase === 'crashed' && crashSoundRef.current) {
-      crashSoundRef.current.currentTime = 0;
-      crashSoundRef.current.play().catch(() => {});
+    const playSound = (audioRef: React.MutableRefObject<HTMLAudioElement | null>) => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(err => console.log('Sound play error:', err));
+      }
+    };
+    
+    const stopSound = (audioRef: React.MutableRefObject<HTMLAudioElement | null>) => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
+    
+    if (gamePhase === 'waiting') {
+      // Stop other sounds, play countdown
+      stopSound(flyingSoundRef);
+      stopSound(crashSoundRef);
+      playSound(countdownSoundRef);
+    } else if (gamePhase === 'flying') {
+      // Stop countdown, play flying sound
+      stopSound(countdownSoundRef);
+      stopSound(crashSoundRef);
+      playSound(flyingSoundRef);
+    } else if (gamePhase === 'crashed') {
+      // Stop all, play crash sound
+      stopSound(countdownSoundRef);
+      stopSound(flyingSoundRef);
+      playSound(crashSoundRef);
     }
   }, [gamePhase]);
   
@@ -282,17 +307,13 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   const totalWinningsAmount = validBets.reduce((sum, b) => sum + (b.win || 0), 0);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playChipSound, playWinSound, playLoseSound, playCrashSound, playTakeoffSound, playCountdownBeep, startEngineSound, stopEngineSound } = useGameSounds();
 
-  // Handle phase transitions for sounds
+  // Handle phase transitions for game logic (sounds are handled in the main sound effect above)
   useEffect(() => {
     if (prevPhaseRef.current !== gamePhase) {
       if (gamePhase === 'flying' && prevPhaseRef.current === 'waiting') {
-        playTakeoffSound();
         setPathPoints([{ x: 0, y: 100 }]);
       } else if (gamePhase === 'crashed' && prevPhaseRef.current === 'flying') {
-        playCrashSound();
-        playLoseSound();
         // Reset user bets on crash
         setBet1Active(false);
         setBet2Active(false);
@@ -305,37 +326,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       }
       prevPhaseRef.current = gamePhase;
     }
-  }, [gamePhase, playCrashSound, playLoseSound, playTakeoffSound]);
-
-  // Update path points during flight
-  useEffect(() => {
-    if (gamePhase === 'flying') {
-      setPathPoints(prev => [...prev, { x: planePosition.x, y: planePosition.y }]);
-    }
-  }, [gamePhase, planePosition.x, planePosition.y]);
-
-  // Play countdown beep
-  useEffect(() => {
-    if (gamePhase === 'waiting' && countdown > 0 && countdown <= 5) {
-      playCountdownBeep();
-    }
-  }, [countdown, gamePhase, playCountdownBeep]);
-
-  // Engine sound during flight
-  useEffect(() => {
-    let engineCleanup: (() => void) | null = null;
-    
-    if (gamePhase === 'flying') {
-      engineCleanup = startEngineSound();
-    } else {
-      stopEngineSound();
-    }
-    
-    return () => {
-      if (engineCleanup) engineCleanup();
-      stopEngineSound();
-    };
-  }, [gamePhase, startEngineSound, stopEngineSound]);
+  }, [gamePhase]);
 
   // Canvas rendering
   useEffect(() => {
@@ -378,7 +369,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     if (balance < amount) return;
     
-    playChipSound();
+    // Bet placed
     
     // Update server balance
     const newBalance = await updateServerBalance(amount, 'deduct');
@@ -409,7 +400,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     if (!isActive) return;
     
     const amount = betNum === 1 ? betAmount1 : betAmount2;
-    playChipSound();
+    // Bet cancelled
     
     // Refund to server
     const newBalance = await updateServerBalance(amount, 'add');
@@ -434,7 +425,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     
     if (!isActive || isCashedOut) return;
     
-    playWinSound();
+    // Cash out - win!
     const winnings = amount * multiplier;
     
     // Add winnings to server
