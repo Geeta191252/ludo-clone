@@ -677,7 +677,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       </div>
 
       {/* Betting Panels */}
-      <div className="p-2 space-y-2">
+      <div className="p-1.5 space-y-1.5">
         {[1, 2].map((panelNum) => {
           const betAmount = panelNum === 1 ? betAmount1 : betAmount2;
           const setBetAmount = panelNum === 1 ? setBetAmount1 : setBetAmount2;
@@ -685,33 +685,33 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           const betCashedOut = panelNum === 1 ? bet1CashedOut : bet2CashedOut;
 
           return (
-            <div key={panelNum} className="bg-[#1a2332] rounded-xl p-3">
-              <div className="flex gap-3">
+            <div key={panelNum} className="bg-[#1a2332] rounded-lg p-2">
+              <div className="flex gap-2">
                 {/* Left Side - Input and Quick Amounts */}
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-1.5">
                   {/* Input with X button */}
-                  <div className="flex items-center bg-[#0d1520] rounded-lg border border-gray-600 px-3 py-2">
+                  <div className="flex items-center bg-[#0d1520] rounded-md border border-gray-600 px-2 py-1.5">
                     <input
                       type="number"
                       value={betAmount}
                       onChange={(e) => setBetAmount(Math.max(1, Number(e.target.value) || 1))}
-                      className="bg-transparent text-white text-lg font-medium flex-1 outline-none w-full"
+                      className="bg-transparent text-white text-base font-medium flex-1 outline-none w-full"
                     />
                     <button 
                       onClick={() => setBetAmount(1)}
                       className="text-gray-400 hover:text-white"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                   
                   {/* Quick Amount Buttons - 2 rows */}
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1">
                     {[1, 2, 5, 10, 50, 100].map(amount => (
                       <button 
                         key={amount}
                         onClick={() => setBetAmount(amount)}
-                        className="py-2 rounded-lg bg-[#2a3a4d] border border-gray-600 text-white font-semibold text-sm hover:bg-[#3a4a5d] transition-colors"
+                        className="py-1.5 rounded-md bg-[#2a3a4d] border border-gray-600 text-white font-semibold text-xs hover:bg-[#3a4a5d] transition-colors"
                       >
                         {amount}
                       </button>
@@ -720,9 +720,9 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                 </div>
 
                 {/* Right Side - Autoplay and Bet Button */}
-                <div className="flex flex-col gap-2 w-36">
+                <div className="flex flex-col gap-1.5 w-28">
                   {/* Enable Autoplay Button */}
-                  <button className="py-2 px-3 rounded-lg border-2 border-orange-500 text-orange-500 font-bold text-xs hover:bg-orange-500/10 transition-colors">
+                  <button className="py-1.5 px-2 rounded-md border-2 border-orange-500 text-orange-500 font-bold text-[10px] hover:bg-orange-500/10 transition-colors">
                     ENABLE AUTOPLAY
                   </button>
 
@@ -742,7 +742,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                       (gamePhase === 'flying' && !betActive) ||
                       betCashedOut
                     }
-                    className={`flex-1 rounded-lg font-bold text-sm transition-all active:scale-95 flex flex-col items-center justify-center ${
+                    className={`flex-1 rounded-md font-bold text-xs transition-all active:scale-95 flex flex-col items-center justify-center ${
                       betActive && gamePhase === 'flying' && !betCashedOut
                         ? 'bg-orange-500 text-white'
                         : betCashedOut
@@ -761,7 +761,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                     ) : (
                       <>
                         <span>PLACE A BET</span>
-                        <span className="text-[10px] font-normal opacity-80">(on the next round)</span>
+                        <span className="text-[8px] font-normal opacity-80">(on the next round)</span>
                       </>
                     )}
                   </button>
