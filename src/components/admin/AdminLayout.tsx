@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -32,29 +32,20 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const hasCheckedAuth = useRef(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  // Check auth only once on initial mount
+  
+  // Synchronous check - no useEffect needed
+  const token = localStorage.getItem("admin_token");
+  
+  // Redirect if no token - using useEffect to avoid render loop
   useEffect(() => {
-    if (hasCheckedAuth.current) return;
-    hasCheckedAuth.current = true;
-    
-    const token = localStorage.getItem("admin_token");
     if (!token) {
       navigate("/admin", { replace: true });
-    } else {
-      setIsAuthenticated(true);
     }
-  }, [navigate]);
-
-  // Show loading only on initial check
-  if (isAuthenticated === null) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+  }, []); // Empty dependency - run only once
+  
+  // Don't render anything if no token
+  if (!token) {
+    return null;
   }
 
   const handleLogout = () => {
