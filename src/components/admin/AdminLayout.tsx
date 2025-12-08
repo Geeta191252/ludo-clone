@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -32,14 +32,24 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const hasCheckedAuth = useRef(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  // Synchronous token check - no state needed
-  const token = localStorage.getItem("admin_token");
-  
-  // If no token, redirect immediately and don't render anything
-  if (!token) {
-    // Use setTimeout to avoid calling navigate during render
-    setTimeout(() => navigate("/admin", { replace: true }), 0);
+  // Check auth only once on initial mount
+  useEffect(() => {
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
+    
+    const token = localStorage.getItem("admin_token");
+    if (!token) {
+      navigate("/admin", { replace: true });
+    } else {
+      setIsAuthenticated(true);
+    }
+  }, [navigate]);
+
+  // Show loading only on initial check
+  if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
