@@ -92,10 +92,27 @@ if ($action === 'tick') {
             $increment = (mt_rand(3, 10) / 100);
             $multiplier += $increment;
             
-            // Calculate crash chance - increases as multiplier grows
-            $crashChance = pow(($multiplier - 1), 1.5) * 0.015;
-            $randomValue = mt_rand(1, 1000) / 1000;
-            $shouldCrash = $randomValue < $crashChance || $multiplier > 15;
+            // Check if admin has set a target crash point
+            $targetCrash = isset($state['target_crash']) ? (float)$state['target_crash'] : null;
+            $adminControl = isset($state['admin_control']) ? (int)$state['admin_control'] : 0;
+            
+            $shouldCrash = false;
+            
+            if ($adminControl && $targetCrash !== null && $targetCrash > 0) {
+                // Admin controlled - crash at target
+                $shouldCrash = $multiplier >= $targetCrash;
+                if ($shouldCrash) {
+                    $multiplier = $targetCrash; // Exact crash point
+                    // Clear target after use
+                    $conn->query("UPDATE game_state SET target_crash = NULL WHERE game_type = 'aviator'");
+                }
+            } else if (!$adminControl) {
+                // Auto mode - normal crash chance
+                $crashChance = pow(($multiplier - 1), 1.5) * 0.015;
+                $randomValue = mt_rand(1, 1000) / 1000;
+                $shouldCrash = $randomValue < $crashChance || $multiplier > 15;
+            }
+            // If admin control is on but no target set, plane keeps flying
             
             // Update plane position
             $progress = min(($multiplier - 1) / 10, 1);

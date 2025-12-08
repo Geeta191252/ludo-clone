@@ -17,6 +17,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminGames from "./pages/admin/AdminGames";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminAviatorControl from "./pages/admin/AdminAviatorControl";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/transactions" element={<AdminTransactions />} />
           <Route path="/admin/games" element={<AdminGames />} />
+          <Route path="/admin/aviator-control" element={<AdminAviatorControl />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
