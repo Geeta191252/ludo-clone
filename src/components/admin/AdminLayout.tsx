@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -28,27 +28,24 @@ const menuItems = [
 ];
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check token once on mount
-  const hasToken = useMemo(() => {
-    return !!localStorage.getItem("admin_token");
-  }, []);
+  // Check token immediately - no async needed
+  const token = localStorage.getItem("admin_token");
   
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  
+  // Redirect only if no token - use useEffect to prevent redirect loop
   useEffect(() => {
-    if (!hasToken) {
+    if (!token) {
       navigate("/admin", { replace: true });
-    } else {
-      setIsReady(true);
     }
-  }, [hasToken, navigate]);
+  }, [token, navigate]);
   
-  // Show loading while checking
-  if (!isReady) {
+  // If no token, show nothing (will redirect)
+  if (!token) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
