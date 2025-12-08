@@ -238,8 +238,8 @@ const AdminDragonTigerControl = () => {
       const dragonProfit = (tigerTotal + tieTotal) - dragonTotal;
       // Tiger wins (2x payout): house keeps dragon+tie, pays tiger bettors  
       const tigerProfit = (dragonTotal + tieTotal) - tigerTotal;
-      // Tie wins (8x payout): house keeps dragon+tiger, pays 8x to tie bettors
-      const tieProfit = (dragonTotal + tigerTotal) - (tieTotal * 8);
+      // Tie wins (8x payout): house keeps dragon+tiger, pays 8x to tie bettors (net loss = 7x)
+      const tieProfit = (dragonTotal + tigerTotal) - (tieTotal * 7);
       
       // Find the best winner (maximum profit)
       let bestWinner = 'dragon';
