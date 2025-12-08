@@ -276,6 +276,51 @@ if ($method === 'GET') {
         $stmt->execute();
         
         echo json_encode(['status' => true, 'round_number' => $newRoundNumber]);
+
+    } elseif ($action === 'set_winner') {
+        // Set winner manually by admin
+        $winner = $data['winner'] ?? '';
+        $roundNumber = $data['round_id'] ?? 1;
+        
+        if (!in_array($winner, ['dragon', 'tiger', 'tie'])) {
+            echo json_encode(['status' => false, 'message' => 'Invalid winner']);
+            exit;
+        }
+        
+        // Update game state with winner and set phase to result
+        $stmt = $conn->prepare("UPDATE game_state SET winner = ?, phase = 'result' WHERE game_type = ?");
+        $stmt->bind_param("ss", $winner, $gameType);
+        $stmt->execute();
+        
+        // Calculate multiplier - Tie = 8x, Dragon/Tiger = 2x
+        $multiplier = ($winner === 'tie') ? 8 : 2;
+        
+        // Get all winning bets for this round
+        $stmt = $conn->prepare("SELECT * FROM game_bets WHERE game_type = ? AND round_number = ? AND bet_area = ? AND cashed_out = 0");
+        $stmt->bind_param("sis", $gameType, $roundNumber, $winner);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        while ($bet = $result->fetch_assoc()) {
+            $winAmount = $bet['bet_amount'] * $multiplier;
+            
+            // Add winning amount to user's winning_balance
+            $stmt2 = $conn->prepare("UPDATE users SET winning_balance = winning_balance + ? WHERE mobile = ?");
+            $stmt2->bind_param("ds", $winAmount, $bet['mobile']);
+            $stmt2->execute();
+            
+            // Mark bet as won with win amount
+            $stmt3 = $conn->prepare("UPDATE game_bets SET win_amount = ?, cashed_out = 1 WHERE id = ?");
+            $stmt3->bind_param("di", $winAmount, $bet['id']);
+            $stmt3->execute();
+        }
+        
+        // Mark losing bets as processed
+        $stmt = $conn->prepare("UPDATE game_bets SET cashed_out = 1 WHERE game_type = ? AND round_number = ? AND bet_area != ? AND cashed_out = 0");
+        $stmt->bind_param("sis", $gameType, $roundNumber, $winner);
+        $stmt->execute();
+        
+        echo json_encode(['status' => true, 'winner' => $winner, 'message' => 'Winner set and payouts processed']);
     }
 }
 
