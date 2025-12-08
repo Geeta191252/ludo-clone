@@ -229,14 +229,39 @@ if ($method === 'GET') {
         echo json_encode(['status' => true, 'bet_id' => $conn->insert_id]);
         
     } elseif ($action === 'cash_out') {
-        // Cash out a bet
+        // Cash out a specific bet (by bet_area)
         $mobile = $data['mobile'] ?? '';
         $roundNumber = $data['round_number'] ?? 1;
         $odds = $data['odds'] ?? 'x1';
         $winAmount = $data['win_amount'] ?? 0;
+        $betArea = $data['bet_area'] ?? null;
         
-        $stmt = $conn->prepare("UPDATE game_bets SET cashed_out = 1, odds = ?, win_amount = ? WHERE game_type = ? AND round_number = ? AND mobile = ? AND cashed_out = 0");
-        $stmt->bind_param("sdssi", $odds, $winAmount, $gameType, $roundNumber, $mobile);
+        // Cash out only the specific bet area (bet1 or bet2)
+        if ($betArea) {
+            $stmt = $conn->prepare("UPDATE game_bets SET cashed_out = 1, odds = ?, win_amount = ? WHERE game_type = ? AND round_number = ? AND mobile = ? AND bet_area = ? AND cashed_out = 0 LIMIT 1");
+            $stmt->bind_param("sdsiss", $odds, $winAmount, $gameType, $roundNumber, $mobile, $betArea);
+        } else {
+            // Fallback: cash out first uncashed bet
+            $stmt = $conn->prepare("UPDATE game_bets SET cashed_out = 1, odds = ?, win_amount = ? WHERE game_type = ? AND round_number = ? AND mobile = ? AND cashed_out = 0 LIMIT 1");
+            $stmt->bind_param("sdssi", $odds, $winAmount, $gameType, $roundNumber, $mobile);
+        }
+        $stmt->execute();
+        
+        echo json_encode(['status' => true]);
+    
+    } elseif ($action === 'cancel_bet') {
+        // Cancel/delete a bet
+        $mobile = $data['mobile'] ?? '';
+        $roundNumber = $data['round_number'] ?? 1;
+        $betArea = $data['bet_area'] ?? null;
+        
+        if ($betArea) {
+            $stmt = $conn->prepare("DELETE FROM game_bets WHERE game_type = ? AND round_number = ? AND mobile = ? AND bet_area = ? AND cashed_out = 0 LIMIT 1");
+            $stmt->bind_param("siss", $gameType, $roundNumber, $mobile, $betArea);
+        } else {
+            $stmt = $conn->prepare("DELETE FROM game_bets WHERE game_type = ? AND round_number = ? AND mobile = ? AND cashed_out = 0 LIMIT 1");
+            $stmt->bind_param("sis", $gameType, $roundNumber, $mobile);
+        }
         $stmt->execute();
         
         echo json_encode(['status' => true]);

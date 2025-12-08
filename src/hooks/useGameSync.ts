@@ -138,8 +138,8 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
     }
   }, [gameType, gameState?.round_number, fetchGameState]);
 
-  // Cash out
-  const cashOut = useCallback(async (odds: string, winAmount: number) => {
+  // Cash out specific bet area
+  const cashOut = useCallback(async (odds: string, winAmount: number, betArea?: string) => {
     try {
       const user = localStorage.getItem('user');
       if (!user) return false;
@@ -154,16 +154,45 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
           mobile: userData.mobile,
           round_number: gameState?.round_number || 1,
           odds,
-          win_amount: winAmount
+          win_amount: winAmount,
+          bet_area: betArea
         })
       });
       const data = await response.json();
+      fetchGameState();
       return data.status;
     } catch (error) {
       console.error('Error cashing out:', error);
       return false;
     }
-  }, [gameType, gameState?.round_number]);
+  }, [gameType, gameState?.round_number, fetchGameState]);
+
+  // Cancel bet
+  const cancelBet = useCallback(async (betArea?: string) => {
+    try {
+      const user = localStorage.getItem('user');
+      if (!user) return false;
+      const userData = JSON.parse(user);
+      
+      const response = await fetch('/api/game-state.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game_type: gameType,
+          action: 'cancel_bet',
+          mobile: userData.mobile,
+          round_number: gameState?.round_number || 1,
+          bet_area: betArea
+        })
+      });
+      const data = await response.json();
+      fetchGameState();
+      return data.status;
+    } catch (error) {
+      console.error('Error cancelling bet:', error);
+      return false;
+    }
+  }, [gameType, gameState?.round_number, fetchGameState]);
 
   // Track current phase for dynamic interval
   const currentPhaseRef = useRef<string>('waiting');
@@ -220,6 +249,7 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
     serverAvailable,
     placeBet,
     cashOut,
+    cancelBet,
     refetch: fetchGameState
   };
 };
