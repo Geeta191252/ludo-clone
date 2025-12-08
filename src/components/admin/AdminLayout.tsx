@@ -9,7 +9,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  ChevronRight 
+  ChevronRight,
+  Plane
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ const menuItems = [
   { title: "Users", icon: Users, path: "/admin/users" },
   { title: "Transactions", icon: CreditCard, path: "/admin/transactions" },
   { title: "Games", icon: Gamepad2, path: "/admin/games" },
+  { title: "Aviator Control", icon: Plane, path: "/admin/aviator-control" },
   { title: "Settings", icon: Settings, path: "/admin/settings" },
 ];
 
