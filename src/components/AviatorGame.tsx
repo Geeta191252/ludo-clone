@@ -57,7 +57,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   };
 
   // Use game sync hook for real-time multiplayer
-  const { gameState, liveBets: syncedBets, livePlayerCount, serverAvailable, placeBet: serverPlaceBet, cashOut: serverCashOut } = useGameSync('aviator');
+  const { gameState, liveBets: syncedBets, livePlayerCount, serverAvailable, placeBet: serverPlaceBet, cashOut: serverCashOut, cancelBet: serverCancelBet } = useGameSync('aviator');
 
   const [betAmount1, setBetAmount1] = useState(10);
   const [betAmount2, setBetAmount2] = useState(10);
@@ -428,7 +428,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     if (!isActive) return;
     
     const amount = betNum === 1 ? betAmount1 : betAmount2;
-    // Bet cancelled
+    const betArea = betNum === 1 ? 'bet1' : 'bet2';
+    
+    // Cancel bet on server first so it's removed from all users
+    await serverCancelBet(betArea);
     
     // Refund to server
     const newBalance = await updateServerBalance(amount, 'add');
@@ -441,7 +444,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     if (betNum === 1) setBet1Active(false);
     else setBet2Active(false);
     
-    // Remove user's bet from table
+    // Remove user's bet from local table
     setLocalBets(prev => prev.filter(b => !(b.isUser && b.betNum === betNum)));
   };
 
@@ -456,6 +459,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     // Cash out - win!
     const winnings = amount * multiplier;
     const oddsStr = `x${multiplier.toFixed(2)}`;
+    const betArea = betNum === 1 ? 'bet1' : 'bet2';
     
     // Add winnings to server
     const newBalance = await updateServerBalance(winnings, 'add');
@@ -465,8 +469,8 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       setBalance(prev => prev + winnings);
     }
     
-    // Update cash out on server so all users can see
-    await serverCashOut(oddsStr, winnings);
+    // Update cash out on server for specific bet area so all users can see
+    await serverCashOut(oddsStr, winnings, betArea);
     
     setWinPopup({ amount: winnings, mult: multiplier, visible: true });
     setTimeout(() => setWinPopup(prev => ({ ...prev, visible: false })), 2000);
