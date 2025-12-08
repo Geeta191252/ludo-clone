@@ -33,9 +33,19 @@ const AdminDragonTigerControl = () => {
   });
   const [loading, setLoading] = useState(false);
   const [activePlayerCount, setActivePlayerCount] = useState(0);
-  const [autoModeEnabled, setAutoModeEnabled] = useState(false);
+  const [autoModeEnabled, setAutoModeEnabled] = useState(() => {
+    // Load auto mode state from localStorage on initial render
+    return localStorage.getItem('dragonTigerAutoMode') === 'true';
+  });
   const [autoTriggered, setAutoTriggered] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const winnerSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize winner sound
+  useEffect(() => {
+    winnerSoundRef.current = new Audio('/sounds/plane-crash.mp3');
+    winnerSoundRef.current.volume = 0.7;
+  }, []);
 
   const fetchGameState = async () => {
     try {
@@ -107,12 +117,17 @@ const AdminDragonTigerControl = () => {
     };
   }, []);
 
+  // Save auto mode state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('dragonTigerAutoMode', autoModeEnabled.toString());
+  }, [autoModeEnabled]);
+
   // Auto Mode - trigger auto_set_winner when timer reaches 0
   useEffect(() => {
     if (autoModeEnabled && gameState.phase === 'betting' && gameState.timer <= 1 && !autoTriggered) {
       console.log('🤖 Auto Mode: Timer ended, triggering auto set winner...');
       setAutoTriggered(true);
-      handleAutoSetWinner();
+      handleAutoSetWinner(true); // Pass flag to play sound
     }
     
     // Reset autoTriggered flag when new round starts (timer goes back up)
@@ -206,7 +221,7 @@ const AdminDragonTigerControl = () => {
     setLoading(false);
   };
 
-  const handleAutoSetWinner = async () => {
+  const handleAutoSetWinner = async (playSound: boolean = false) => {
     setLoading(true);
     try {
       const apiUrl = window.location.hostname.includes('rajasthanludo.com') 
@@ -225,6 +240,12 @@ const AdminDragonTigerControl = () => {
       const data = await response.json();
       
       if (data.status) {
+        // Play winner sound when auto mode triggers
+        if (playSound && winnerSoundRef.current) {
+          winnerSoundRef.current.currentTime = 0;
+          winnerSoundRef.current.play().catch(e => console.log('Sound play failed:', e));
+        }
+        
         toast({ 
           title: `🤖 AUTO: ${data.winner?.toUpperCase()} Wins!`, 
           description: `House Profit: ₹${data.profit?.toLocaleString() || 0}` 
@@ -551,7 +572,7 @@ const AdminDragonTigerControl = () => {
           </div>
           
           <button
-            onClick={handleAutoSetWinner}
+            onClick={() => handleAutoSetWinner(false)}
             disabled={loading || gameState.phase === 'result'}
             className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-black font-bold py-4 rounded-lg text-lg flex items-center justify-center gap-2 shadow-lg"
           >
