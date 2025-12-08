@@ -18,6 +18,8 @@ interface GameState {
 }
 
 const AdminAviatorControl = () => {
+  console.log("AdminAviatorControl rendering...");
+  
   const [gameState, setGameState] = useState<GameState>({
     phase: 'waiting',
     multiplier: 1.00,
@@ -33,6 +35,7 @@ const AdminAviatorControl = () => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    console.log("AdminAviatorControl useEffect running...");
     fetchGameState();
     pollingRef.current = setInterval(fetchGameState, 2000);
     return () => {
