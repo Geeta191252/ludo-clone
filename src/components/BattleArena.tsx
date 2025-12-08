@@ -168,8 +168,13 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
       return;
     }
 
+    console.log('Creating battle with:', { currentUserId, currentUserName, entryFee, API_BASE });
+
     try {
-      const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
+      const apiUrl = `${API_BASE}/api/ludo-battles.php`;
+      console.log('API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -180,7 +185,23 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
         })
       });
       
-      const data = await response.json();
+      console.log('Response status:', response.status);
+      const text = await response.text();
+      console.log('Response text:', text);
+      
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        toast({
+          title: "Server Error",
+          description: "Server returned invalid response",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (data.success) {
         setAmount("");
         toast({
@@ -198,8 +219,8 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     } catch (error) {
       console.error('Error creating battle:', error);
       toast({
-        title: "Error",
-        description: "Failed to create battle",
+        title: "Network Error",
+        description: "Could not connect to server",
         variant: "destructive",
       });
     }
