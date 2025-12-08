@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,28 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check if already logged in on mount
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    const userToken = localStorage.getItem('userToken');
+    
+    if (user && userToken) {
+      try {
+        const userData = JSON.parse(user);
+        // Ensure userMobile and playerName are set
+        if (userData.mobile) {
+          localStorage.setItem('userMobile', userData.mobile);
+          localStorage.setItem('playerName', userData.name || 'Player');
+        }
+        navigate('/');
+      } catch (e) {
+        // Invalid user data, clear and stay on auth
+        localStorage.removeItem('user');
+        localStorage.removeItem('userToken');
+      }
+    }
+  }, [navigate]);
 
   // Login state
   const [loginMobile, setLoginMobile] = useState("");
