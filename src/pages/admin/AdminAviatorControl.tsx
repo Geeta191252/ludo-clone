@@ -208,25 +208,28 @@ const AdminAviatorControl = () => {
   if (initialLoading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Plane className="w-12 h-12 text-cyan-400 animate-pulse mx-auto mb-4" />
-            <p className="text-slate-400">Loading Aviator Control...</p>
+        <div className="flex items-center justify-center min-h-[400px] bg-slate-800/30 rounded-lg">
+          <div className="text-center p-8">
+            <Plane className="w-16 h-16 text-cyan-400 animate-pulse mx-auto mb-4" />
+            <p className="text-white text-lg font-medium">Loading Aviator Control...</p>
+            <p className="text-slate-400 text-sm mt-2">Please wait...</p>
           </div>
         </div>
       </AdminLayout>
     );
   }
 
-  if (error) {
+  if (error && !gameState) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <p className="text-red-400 mb-4">{error}</p>
-            <Button onClick={fetchGameState} variant="outline">
-              Retry
+        <div className="flex items-center justify-center min-h-[400px] bg-slate-800/30 rounded-lg">
+          <div className="text-center p-8">
+            <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-white text-xl font-bold mb-2">Connection Error</h2>
+            <p className="text-red-400 mb-6 max-w-md">{error}</p>
+            <Button onClick={() => { setInitialLoading(true); fetchGameState(); }} className="bg-cyan-600 hover:bg-cyan-700">
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Retry Connection
             </Button>
           </div>
         </div>
