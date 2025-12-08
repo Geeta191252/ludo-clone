@@ -39,6 +39,7 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
   const masterIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const connectionCheckRef = useRef<boolean>(false);
   const sessionId = useRef<string>(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const isMasterRef = useRef<boolean>(false);
 
   // Register this session as active
   const registerSession = useCallback(async () => {
@@ -92,10 +93,13 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
   }, [gameType]);
 
   // Run game tick (master controller) - only runs if server available
+  // Uses session_id for lock mechanism - only one client will actually tick
   const runGameTick = useCallback(async () => {
     if (!serverAvailable) return;
     try {
-      await fetch(`/api/game-master.php?game_type=${gameType}&action=tick`);
+      const response = await fetch(`/api/game-master.php?game_type=${gameType}&action=tick&session_id=${sessionId.current}`);
+      const data = await response.json();
+      isMasterRef.current = data.can_tick === true;
     } catch (error) {
       console.log('Tick failed - server may be unavailable');
     }

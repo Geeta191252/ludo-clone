@@ -1,11 +1,13 @@
 <?php
-// This file runs the game logic server-side
-// Should be called every second via cron or long-polling from first connected user
+// Game Master - Single Source of Truth
+// This file manages the game loop - uses locking to ensure ONLY ONE client runs the tick
+// This prevents race conditions when multiple devices are connected
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Accept');
+header('Cache-Control: no-cache, no-store, must-revalidate');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -15,29 +17,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once 'config.php';
 
 $conn = getDBConnection();
-$gameType = $_GET['game_type'] ?? $_POST['game_type'] ?? 'aviator';
-$action = $_GET['action'] ?? $_POST['action'] ?? 'tick';
+$gameType = $_GET['game_type'] ?? 'aviator';
+$action = $_GET['action'] ?? 'tick';
+$clientSession = $_GET['session_id'] ?? 'unknown';
 
-// Card constants for Dragon Tiger
+// Create game_lock table if not exists to prevent multiple clients from running game tick
+$conn->query("CREATE TABLE IF NOT EXISTS game_lock (
+    game_type VARCHAR(50) PRIMARY KEY,
+    lock_holder VARCHAR(100) DEFAULT NULL,
+    last_tick TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    tick_count INT DEFAULT 0
+)");
+
+// Initialize lock row if not exists
+$stmt = $conn->prepare("INSERT IGNORE INTO game_lock (game_type, last_tick) VALUES (?, NOW())");
+$stmt->bind_param("s", $gameType);
+$stmt->execute();
+
+// Try to acquire lock - only proceed if lock is stale (>1.5 seconds) or we already hold it
+$stmt = $conn->prepare("UPDATE game_lock 
+    SET lock_holder = ?, last_tick = NOW(), tick_count = tick_count + 1 
+    WHERE game_type = ? 
+    AND (lock_holder IS NULL OR lock_holder = ? OR last_tick < DATE_SUB(NOW(), INTERVAL 1500 MILLISECOND))");
+$stmt->bind_param("sss", $clientSession, $gameType, $clientSession);
+$stmt->execute();
+
+$canTick = $conn->affected_rows > 0;
+
+// If we don't have the lock, just return current state without modifying
+if (!$canTick) {
+    $stmt = $conn->prepare("SELECT * FROM game_state WHERE game_type = ?");
+    $stmt->bind_param("s", $gameType);
+    $stmt->execute();
+    $state = $stmt->get_result()->fetch_assoc();
+    
+    if ($state) {
+        $state['history'] = json_decode($state['history'] ?? '[]');
+    }
+    
+    echo json_encode(['status' => 'slave', 'can_tick' => false, 'state' => $state]);
+    $conn->close();
+    exit();
+}
+
+// We have the lock - proceed with game tick
 $CARD_VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 $CARD_SUITS = ['♠', '♥', '♦', '♣'];
 
-// Get current state
 $stmt = $conn->prepare("SELECT * FROM game_state WHERE game_type = ?");
 $stmt->bind_param("s", $gameType);
 $stmt->execute();
 $state = $stmt->get_result()->fetch_assoc();
 
 if (!$state) {
-    // Initialize with correct phase
     $history = json_encode([5.01, 2.60, 3.45, 1.23, 8.92, 1.05]);
     $initialPhase = $gameType === 'dragon-tiger' ? 'betting' : 'waiting';
-    $initialTimer = 15;
-    $stmt = $conn->prepare("INSERT INTO game_state (game_type, phase, timer, multiplier, round_number, history) VALUES (?, ?, ?, 1.00, 1, ?)");
-    $stmt->bind_param("ssis", $gameType, $initialPhase, $initialTimer, $history);
+    $stmt = $conn->prepare("INSERT INTO game_state (game_type, phase, timer, multiplier, round_number, history) VALUES (?, ?, 12, 1.00, 1, ?)");
+    $stmt->bind_param("sss", $gameType, $initialPhase, $history);
     $stmt->execute();
     
-    echo json_encode(['status' => true, 'message' => 'Initialized', 'phase' => $initialPhase]);
+    echo json_encode(['status' => 'master', 'can_tick' => true, 'message' => 'Initialized']);
+    $conn->close();
     exit;
 }
 
@@ -94,7 +134,7 @@ if ($action === 'tick') {
                 $stmt->execute();
             }
         } elseif ($phase === 'crashed') {
-            // Wait 2.5 seconds then reset
+            // Wait 3 seconds then reset
             $timer++;
             if ($timer >= 3) {
                 $newRound = $roundNumber + 1;
@@ -109,7 +149,6 @@ if ($action === 'tick') {
         }
     } elseif ($gameType === 'dragon-tiger') {
         if ($phase === 'betting' || $phase === 'waiting') {
-            // Fix: treat 'waiting' as 'betting' for dragon-tiger
             if ($phase === 'waiting') {
                 $phase = 'betting';
                 $stmt = $conn->prepare("UPDATE game_state SET phase = 'betting' WHERE game_type = ?");
@@ -122,8 +161,8 @@ if ($action === 'tick') {
                 // Deal cards
                 $phase = 'dealing';
                 
-                // Determine winner (random for now, could be based on bets)
-                $weights = [45, 45, 10]; // Weighted probability
+                // Determine winner
+                $weights = [45, 45, 10];
                 $rand = mt_rand(1, 100);
                 if ($rand <= $weights[0]) {
                     $winner = 'dragon';
@@ -150,7 +189,6 @@ if ($action === 'tick') {
                 $tigerCardValue = $CARD_VALUES[$tigerValue];
                 $tigerCardSuit = $CARD_SUITS[mt_rand(0, 3)];
                 
-                // Update history
                 array_unshift($history, ['id' => time(), 'winner' => $winner]);
                 $history = array_slice($history, 0, 20);
                 $historyJson = json_encode($history);
@@ -164,7 +202,6 @@ if ($action === 'tick') {
                 $stmt->execute();
             }
         } elseif ($phase === 'dealing') {
-            // Wait for dealing animation (3 seconds)
             $timer++;
             if ($timer >= 3) {
                 $phase = 'result';
@@ -177,7 +214,6 @@ if ($action === 'tick') {
                 $stmt->execute();
             }
         } elseif ($phase === 'result') {
-            // Show result for 2 seconds then new round
             $timer++;
             if ($timer >= 2) {
                 $newRound = $roundNumber + 1;
@@ -192,7 +228,7 @@ if ($action === 'tick') {
         }
     }
     
-    echo json_encode(['status' => true, 'phase' => $phase, 'timer' => $timer, 'multiplier' => $multiplier]);
+    echo json_encode(['status' => 'master', 'can_tick' => true, 'phase' => $phase, 'timer' => $timer, 'multiplier' => $multiplier]);
 }
 
 $conn->close();
