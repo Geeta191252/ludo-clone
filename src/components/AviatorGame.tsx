@@ -654,10 +654,10 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
           <div 
             className="absolute z-30"
             style={{ 
-              left: `${Math.min(planePosition.x, 90)}%`, 
-              top: `${Math.max(planePosition.y, 8)}%`,
-              transform: `translate(-80%, -20%) rotate(${gamePhase === 'crashed' ? '120' : planeRotation}deg) ${gamePhase === 'crashed' ? 'scale(0.15)' : 'scale(0.35)'}`,
-              filter: gamePhase === 'crashed' ? 'brightness(0.3) saturate(0) blur(2px)' : 'drop-shadow(0 0 10px rgba(234, 179, 8, 0.4))',
+              left: `${planePosition.x}%`, 
+              top: `${planePosition.y}%`,
+              transform: `translate(-50%, -50%) rotate(${gamePhase === 'crashed' ? '120' : planeRotation}deg) ${gamePhase === 'crashed' ? 'scale(0.2)' : 'scale(0.55)'}`,
+              filter: gamePhase === 'crashed' ? 'brightness(0.3) saturate(0) blur(2px)' : 'drop-shadow(0 0 15px rgba(234, 179, 8, 0.5))',
               transition: gamePhase === 'crashed' ? 'all 1s ease-out' : 'transform 0.1s ease-out'
             }}
           >
