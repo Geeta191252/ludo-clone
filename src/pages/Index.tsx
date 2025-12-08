@@ -76,6 +76,20 @@ const Index = () => {
 
   // When a game is selected, show only the battle arena
   if (selectedGame) {
+    // For Aviator, show fullscreen without Header/Nav
+    if (selectedGame === 'aviator') {
+      return (
+        <div className="min-h-screen bg-background">
+          <GamesSection 
+            selectedGame={selectedGame} 
+            onGameSelect={setSelectedGame}
+            walletBalance={walletBalance}
+            onWalletChange={setWalletBalance}
+          />
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen bg-background">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
