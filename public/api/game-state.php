@@ -339,9 +339,16 @@ if ($method === 'GET') {
         
     } elseif ($action === 'auto_set_winner') {
         // Auto select winner based on betting amounts (house profit maximization)
-        $roundNumber = $data['round_id'] ?? 1;
         
-        // Get total bets for each area
+        // First get the current round_number from game_state (most reliable)
+        $stmt = $conn->prepare("SELECT round_number FROM game_state WHERE game_type = ?");
+        $stmt->bind_param("s", $gameType);
+        $stmt->execute();
+        $roundResult = $stmt->get_result();
+        $roundRow = $roundResult->fetch_assoc();
+        $roundNumber = $roundRow['round_number'] ?? 1;
+        
+        // Get total bets for each area for this round
         $stmt = $conn->prepare("SELECT bet_area, SUM(bet_amount) as total FROM game_bets WHERE game_type = ? AND round_number = ? AND cashed_out = 0 GROUP BY bet_area");
         $stmt->bind_param("si", $gameType, $roundNumber);
         $stmt->execute();
@@ -389,18 +396,17 @@ if ($method === 'GET') {
             $winner = (rand(0, 1) === 0) ? 'dragon' : 'tiger';
         }
         
-        // Get current history and add new winner
-        $stmt = $conn->prepare("SELECT history, round_number FROM game_state WHERE game_type = ?");
+        // Get current history
+        $stmt = $conn->prepare("SELECT history FROM game_state WHERE game_type = ?");
         $stmt->bind_param("s", $gameType);
         $stmt->execute();
         $historyResult = $stmt->get_result();
         $historyRow = $historyResult->fetch_assoc();
         $currentHistory = json_decode($historyRow['history'] ?? '[]', true);
-        $currentRound = $historyRow['round_number'] ?? $roundNumber;
         if (!is_array($currentHistory)) $currentHistory = [];
         
         // Add new winner at the beginning (most recent first)
-        array_unshift($currentHistory, ['winner' => $winner, 'round' => $currentRound]);
+        array_unshift($currentHistory, ['winner' => $winner, 'round' => $roundNumber]);
         // Keep only last 50 entries
         $currentHistory = array_slice($currentHistory, 0, 50);
         $updatedHistory = json_encode($currentHistory);
