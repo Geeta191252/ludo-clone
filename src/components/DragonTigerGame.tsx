@@ -64,6 +64,21 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const { gameState, liveBets: syncedBets, livePlayerCount, serverAvailable } = useGameSync('dragon-tiger');
   const prevPhaseRef = useRef<string | null>(null);
 
+  // Calculate total bets for all players in each area
+  const allBetsSummary = React.useMemo(() => {
+    const summary = { dragon: 0, tiger: 0, tie: 0 };
+    if (syncedBets && Array.isArray(syncedBets)) {
+      syncedBets.forEach((bet: any) => {
+        const area = bet.bet_area?.toLowerCase();
+        const amount = Number(bet.bet_amount) || 0;
+        if (area === 'dragon') summary.dragon += amount;
+        else if (area === 'tiger') summary.tiger += amount;
+        else if (area === 'tie') summary.tie += amount;
+      });
+    }
+    return summary;
+  }, [syncedBets]);
+
   // Fetch fresh balance from server on mount
   useEffect(() => {
     const fetchFreshBalance = async () => {
@@ -518,7 +533,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
             <button
               onClick={() => placeBet('dragon')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[80px]
+              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[100px]
                 ${winner === 'dragon' && showResult 
                   ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
                   : 'bg-gradient-to-b from-orange-600/80 to-orange-800/80 hover:from-orange-500 hover:to-orange-700'}
@@ -529,8 +544,15 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 <span className="text-2xl">🐲</span>
                 <div className="text-xs font-bold mt-1">Dragon</div>
                 <div className="text-[10px] text-orange-200 bg-black/30 rounded px-1 py-0.5 mt-1">1:1</div>
+                {/* Total bets from all players */}
+                {allBetsSummary.dragon > 0 && (
+                  <div className="mt-1 bg-white/20 text-white rounded px-2 py-0.5 text-[10px] font-medium">
+                    Total: ₹{allBetsSummary.dragon.toLocaleString()}
+                  </div>
+                )}
+                {/* Your bet */}
                 {dragonBet > 0 && (
-                  <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
+                  <div className="mt-1 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{dragonBet}
                   </div>
                 )}
@@ -541,7 +563,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
             <button
               onClick={() => placeBet('tie')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[80px]
+              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[100px]
                 ${winner === 'tie' && showResult 
                   ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
                   : 'bg-gradient-to-b from-green-600/80 to-green-800/80 hover:from-green-500 hover:to-green-700'}
@@ -552,8 +574,15 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 <span className="text-2xl">🤝</span>
                 <div className="text-xs font-bold mt-1">Tie</div>
                 <div className="text-[10px] text-green-200 bg-black/30 rounded px-1 py-0.5 mt-1">1:8</div>
+                {/* Total bets from all players */}
+                {allBetsSummary.tie > 0 && (
+                  <div className="mt-1 bg-white/20 text-white rounded px-2 py-0.5 text-[10px] font-medium">
+                    Total: ₹{allBetsSummary.tie.toLocaleString()}
+                  </div>
+                )}
+                {/* Your bet */}
                 {tieBet > 0 && (
-                  <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
+                  <div className="mt-1 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{tieBet}
                   </div>
                 )}
@@ -564,7 +593,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
             <button
               onClick={() => placeBet('tiger')}
               disabled={gamePhase !== 'betting'}
-              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[80px]
+              className={`relative p-2 rounded-xl transition-all duration-300 min-h-[100px]
                 ${winner === 'tiger' && showResult 
                   ? 'bg-gradient-to-b from-yellow-400 to-yellow-600 animate-pulse scale-105' 
                   : 'bg-gradient-to-b from-blue-600/80 to-blue-800/80 hover:from-blue-500 hover:to-blue-700'}
@@ -575,8 +604,15 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
                 <span className="text-2xl">🐯</span>
                 <div className="text-xs font-bold mt-1">Tiger</div>
                 <div className="text-[10px] text-blue-200 bg-black/30 rounded px-1 py-0.5 mt-1">1:1</div>
+                {/* Total bets from all players */}
+                {allBetsSummary.tiger > 0 && (
+                  <div className="mt-1 bg-white/20 text-white rounded px-2 py-0.5 text-[10px] font-medium">
+                    Total: ₹{allBetsSummary.tiger.toLocaleString()}
+                  </div>
+                )}
+                {/* Your bet */}
                 {tigerBet > 0 && (
-                  <div className="mt-2 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
+                  <div className="mt-1 bg-yellow-500 text-black rounded-full px-2 py-1 text-sm font-bold animate-bounce">
                     ₹{tigerBet}
                   </div>
                 )}
