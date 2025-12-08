@@ -235,7 +235,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
         } else if (winner === 'tiger' && tigerBet > 0) {
           win = tigerBet * 2;
         } else if (winner === 'tie' && tieBet > 0) {
-          win = tieBet * 9;
+          win = tieBet * 8;
         }
         
         setWinAmount(win);
