@@ -98,7 +98,7 @@ if ($action === 'tick') {
             $timer++;
             if ($timer >= 3) {
                 $newRound = $roundNumber + 1;
-                $stmt = $conn->prepare("UPDATE game_state SET phase = 'waiting', timer = 10, multiplier = 1.00, round_number = ?, crash_point = NULL, plane_x = 10, plane_y = 80 WHERE game_type = ?");
+                $stmt = $conn->prepare("UPDATE game_state SET phase = 'waiting', timer = 12, multiplier = 1.00, round_number = ?, crash_point = NULL, plane_x = 10, plane_y = 80 WHERE game_type = ?");
                 $stmt->bind_param("is", $newRound, $gameType);
                 $stmt->execute();
             } else {
