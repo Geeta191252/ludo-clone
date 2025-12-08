@@ -100,10 +100,15 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
       const response = await fetch(`/api/game-master.php?game_type=${gameType}&action=tick&session_id=${sessionId.current}`);
       const data = await response.json();
       isMasterRef.current = data.can_tick === true;
+      
+      // Immediately fetch updated state after tick
+      if (data.can_tick) {
+        fetchGameState();
+      }
     } catch (error) {
       console.log('Tick failed - server may be unavailable');
     }
-  }, [gameType, serverAvailable]);
+  }, [gameType, serverAvailable, fetchGameState]);
 
   // Place bet on server
   const placeBet = useCallback(async (betAmount: number, betArea?: string) => {
@@ -164,33 +169,49 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
     }
   }, [gameType, gameState?.round_number]);
 
+  // Track current phase for dynamic interval
+  const currentPhaseRef = useRef<string>('waiting');
+  
+  useEffect(() => {
+    if (gameState?.phase) {
+      currentPhaseRef.current = gameState.phase;
+    }
+  }, [gameState?.phase]);
+
   // Start polling - check server first
   useEffect(() => {
     // Initial fetch to check if server is available
     fetchGameState();
     registerSession();
     
-    // Poll for state updates every 500ms for smooth sync
+    // Poll for state updates every 300ms for smooth sync
     intervalRef.current = setInterval(() => {
       fetchGameState();
-    }, 500);
+    }, 300);
     
     // Send heartbeat every 3 seconds to track active users
     const heartbeatInterval = setInterval(() => {
       registerSession();
     }, 3000);
     
-    // Run game tick every 1 second for timer countdown (waiting phase)
-    // During flying phase, multiplier updates happen faster on server side
-    masterIntervalRef.current = setInterval(() => {
+    // Dynamic tick interval based on game phase
+    // Flying phase needs faster updates (150ms), waiting/crashed phase slower (1000ms)
+    const tickFunction = () => {
       if (serverAvailable) {
         runGameTick();
       }
-    }, 1000);
+      
+      // Schedule next tick based on current phase
+      const nextInterval = currentPhaseRef.current === 'flying' ? 150 : 1000;
+      masterIntervalRef.current = setTimeout(tickFunction, nextInterval);
+    };
+    
+    // Start tick loop
+    masterIntervalRef.current = setTimeout(tickFunction, 500);
     
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (masterIntervalRef.current) clearInterval(masterIntervalRef.current);
+      if (masterIntervalRef.current) clearTimeout(masterIntervalRef.current);
       clearInterval(heartbeatInterval);
     };
   }, [fetchGameState, runGameTick, registerSession, gameType, serverAvailable]);
