@@ -62,6 +62,8 @@ const Auth = () => {
       if (data.status) {
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userToken", data.token);
+        localStorage.setItem("userMobile", data.user.mobile);
+        localStorage.setItem("playerName", data.user.name || "Player");
         toast({
           title: "Login Successful! 🎮",
           description: `Welcome back, ${data.user.name}!`,
@@ -132,6 +134,8 @@ const Auth = () => {
       if (data.status) {
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userToken", data.token);
+        localStorage.setItem("userMobile", data.user.mobile);
+        localStorage.setItem("playerName", data.user.name || "Player");
         toast({
           title: "Registration Successful! 🎉",
           description: `Welcome, ${data.user.name}!`,

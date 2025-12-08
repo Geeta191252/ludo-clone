@@ -111,6 +111,8 @@ const Profile = () => {
     localStorage.removeItem('playerName');
     localStorage.removeItem('depositChips');
     localStorage.removeItem('winningChips');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userToken');
     toast({ title: "Logged Out", description: "You have been logged out successfully" });
     navigate('/auth');
   };
