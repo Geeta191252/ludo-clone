@@ -176,13 +176,13 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
       registerSession();
     }, 3000);
     
-    // Run game tick based on game type (only if server available)
-    const tickInterval = gameType === 'aviator' ? 100 : 1000;
+    // Run game tick every 1 second for timer countdown (waiting phase)
+    // During flying phase, multiplier updates happen faster on server side
     masterIntervalRef.current = setInterval(() => {
       if (serverAvailable) {
         runGameTick();
       }
-    }, tickInterval);
+    }, 1000);
     
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
