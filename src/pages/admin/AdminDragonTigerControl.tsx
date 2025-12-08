@@ -172,7 +172,8 @@ const AdminDragonTigerControl = () => {
         body: JSON.stringify({
           game_type: 'dragon-tiger',
           action: 'set_winner',
-          winner: winner
+          winner: winner,
+          round_id: gameState.round_number
         })
       });
       const data = await response.json();
@@ -185,6 +186,39 @@ const AdminDragonTigerControl = () => {
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to set winner", variant: "destructive" });
+    }
+    setLoading(false);
+  };
+
+  const handleAutoSetWinner = async () => {
+    setLoading(true);
+    try {
+      const apiUrl = window.location.hostname.includes('rajasthanludo.com') 
+        ? 'https://rajasthanludo.com/api/game-state.php'
+        : '/api/game-state.php';
+        
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game_type: 'dragon-tiger',
+          action: 'auto_set_winner',
+          round_id: gameState.round_number
+        })
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        toast({ 
+          title: `🤖 AUTO: ${data.winner?.toUpperCase()} Wins!`, 
+          description: `House Profit: ₹${data.profit?.toLocaleString() || 0}` 
+        });
+        fetchGameState();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to auto set winner", variant: "destructive" });
     }
     setLoading(false);
   };
@@ -436,6 +470,42 @@ const AdminDragonTigerControl = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* AUTO SET WINNER - Best Profit Button */}
+        <div className="bg-gradient-to-br from-amber-900/60 to-amber-700/40 border-2 border-amber-500 rounded-lg p-4">
+          <div className="text-center mb-3">
+            <h3 className="text-amber-300 font-bold text-xl flex items-center justify-center gap-2">
+              🤖 AUTO SET WINNER
+            </h3>
+            <p className="text-amber-200/80 text-xs mt-1">
+              System automatically picks winner with MAXIMUM house profit
+            </p>
+          </div>
+          
+          {/* Show recommended winner */}
+          <div className="bg-black/30 rounded-lg p-3 mb-3">
+            <p className="text-slate-400 text-xs text-center mb-2">Best Option Based on Current Bets:</p>
+            <div className="flex justify-center gap-4 text-sm">
+              <span className={`px-3 py-1 rounded ${dragonWinProfit >= tigerWinProfit && dragonWinProfit >= tieWinProfit ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                Dragon: ₹{dragonWinProfit >= 0 ? '+' : ''}{dragonWinProfit.toLocaleString()}
+              </span>
+              <span className={`px-3 py-1 rounded ${tigerWinProfit >= dragonWinProfit && tigerWinProfit >= tieWinProfit ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                Tiger: ₹{tigerWinProfit >= 0 ? '+' : ''}{tigerWinProfit.toLocaleString()}
+              </span>
+              <span className={`px-3 py-1 rounded ${tieWinProfit >= dragonWinProfit && tieWinProfit >= tigerWinProfit ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                Tie: ₹{tieWinProfit >= 0 ? '+' : ''}{tieWinProfit.toLocaleString()}
+              </span>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleAutoSetWinner}
+            disabled={loading || gameState.phase === 'result'}
+            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-black font-bold py-4 rounded-lg text-lg flex items-center justify-center gap-2 shadow-lg"
+          >
+            🤖 AUTO SET WINNER (MAX PROFIT)
+          </button>
         </div>
 
         {/* Reset Game Button */}
