@@ -78,68 +78,26 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
   const [amount, setAmount] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedBattle, setSelectedBattle] = useState<RunningBattle | null>(null);
-  const [openBattles, setOpenBattles] = useState<OpenBattle[]>([
-    { id: "1", creatorId: "2FD2O376", creatorName: "2FD2O376", entryFee: 100, prize: 197 },
-    { id: "2", creatorId: "U8TPK996", creatorName: "U8TPK996", entryFee: 2300, prize: 4531 },
-    { id: "3", creatorId: "I8IAK589", creatorName: "I8IAK589", entryFee: 300, prize: 591 },
-    { id: "4", creatorId: "I4JAK7415", creatorName: "I4JAK7415", entryFee: 500, prize: 985 },
-    { id: "5", creatorId: "VPLAY123", creatorName: "VPLAY123", entryFee: 50, prize: 98 },
-  ]);
+  const [openBattles, setOpenBattles] = useState<OpenBattle[]>([]);
   
-  const [runningBattles, setRunningBattles] = useState<RunningBattle[]>([
-    { id: "r1", player1: { id: "HJALD17N", name: "HJALD17N" }, player2: { id: "AKYEFUV9", name: "AKYEFUV9" }, entryFee: 500, prize: 985 },
-    { id: "r2", player1: { id: "70N7K5Q0", name: "70N7K5Q0" }, player2: { id: "634IR8ZU", name: "634IR8ZU" }, entryFee: 250, prize: 492 },
-    { id: "r3", player1: { id: "S10XRUBJ", name: "S10XRUBJ" }, player2: { id: "TRTXBKFF", name: "TRTXBKFF" }, entryFee: 100, prize: 197 },
-  ]);
+  const [runningBattles, setRunningBattles] = useState<RunningBattle[]>([]);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Auto-refresh every 5 seconds to simulate real-time updates
+  // Auto-refresh every 5 seconds - only for UI refresh indicator, no fake battles
   useEffect(() => {
     const interval = setInterval(() => {
       setIsRefreshing(true);
-      
-      // Simulate new battles being added
       setTimeout(() => {
-        // Randomly add a new open battle
-        if (Math.random() > 0.5 && openBattles.length < 10) {
-          const amounts = [50, 100, 150, 200, 250, 300, 500, 1000];
-          const entryFee = amounts[Math.floor(Math.random() * amounts.length)];
-          const newBattle: OpenBattle = {
-            id: `battle_${Date.now()}`,
-            creatorId: generateRandomName(),
-            creatorName: generateRandomName(),
-            entryFee,
-            prize: Math.floor(entryFee * 2 - entryFee * 0.05), // 5% commission from one user only
-          };
-          setOpenBattles(prev => [newBattle, ...prev.slice(0, 9)]);
-        }
-        
-        // Randomly move an open battle to running
-        if (Math.random() > 0.7 && openBattles.length > 3) {
-          const battleToMove = openBattles[Math.floor(Math.random() * Math.min(3, openBattles.length))];
-          if (battleToMove && battleToMove.creatorId !== "YOU") {
-            setOpenBattles(prev => prev.filter(b => b.id !== battleToMove.id));
-            const newRunning: RunningBattle = {
-              id: `running_${Date.now()}`,
-              player1: { id: battleToMove.creatorId, name: battleToMove.creatorName },
-              player2: { id: generateRandomName(), name: generateRandomName() },
-              entryFee: battleToMove.entryFee,
-              prize: battleToMove.prize,
-            };
-            setRunningBattles(prev => [newRunning, ...prev.slice(0, 9)]);
-          }
-        }
-        
         setIsRefreshing(false);
       }, 500);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [openBattles]);
+  }, []);
 
   const handleCreateBattle = () => {
     const entryFee = parseInt(amount);
