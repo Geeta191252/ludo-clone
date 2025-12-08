@@ -707,7 +707,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
                   
                   {/* Quick Amount Buttons - 2 rows */}
                   <div className="grid grid-cols-3 gap-0.5">
-                    {[1, 2, 5, 10, 50, 100].map(amount => (
+                    {[10, 20, 50, 100, 500, 1000].map(amount => (
                       <button 
                         key={amount}
                         onClick={() => setBetAmount(amount)}
