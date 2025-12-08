@@ -321,6 +321,103 @@ if ($method === 'GET') {
         $stmt->execute();
         
         echo json_encode(['status' => true, 'winner' => $winner, 'message' => 'Winner set and payouts processed']);
+        
+    } elseif ($action === 'auto_set_winner') {
+        // Auto select winner based on betting amounts (house profit maximization)
+        $roundNumber = $data['round_id'] ?? 1;
+        
+        // Get total bets for each area
+        $stmt = $conn->prepare("SELECT bet_area, SUM(bet_amount) as total FROM game_bets WHERE game_type = ? AND round_number = ? AND cashed_out = 0 GROUP BY bet_area");
+        $stmt->bind_param("si", $gameType, $roundNumber);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $dragonTotal = 0;
+        $tigerTotal = 0;
+        $tieTotal = 0;
+        
+        while ($row = $result->fetch_assoc()) {
+            if ($row['bet_area'] === 'dragon') $dragonTotal = (float)$row['total'];
+            else if ($row['bet_area'] === 'tiger') $tigerTotal = (float)$row['total'];
+            else if ($row['bet_area'] === 'tie') $tieTotal = (float)$row['total'];
+        }
+        
+        // Calculate potential payouts for each winner
+        // Dragon/Tiger = 2x, Tie = 8x
+        $dragonPayout = $dragonTotal * 2;  // If dragon wins, pay this
+        $tigerPayout = $tigerTotal * 2;    // If tiger wins, pay this
+        $tiePayout = $tieTotal * 8;        // If tie wins, pay this
+        
+        // Calculate house profit for each scenario
+        $totalBets = $dragonTotal + $tigerTotal + $tieTotal;
+        $profitIfDragonWins = $totalBets - $dragonPayout;  // House collects all, pays dragon winners
+        $profitIfTigerWins = $totalBets - $tigerPayout;    // House collects all, pays tiger winners
+        $profitIfTieWins = $totalBets - $tiePayout;        // House collects all, pays tie winners
+        
+        // Find winner with maximum house profit (minimum payout)
+        $winner = 'dragon';
+        $maxProfit = $profitIfDragonWins;
+        
+        if ($profitIfTigerWins > $maxProfit) {
+            $winner = 'tiger';
+            $maxProfit = $profitIfTigerWins;
+        }
+        
+        // Only select tie if it's profitable (tie pays 8x so usually high risk)
+        if ($profitIfTieWins > $maxProfit) {
+            $winner = 'tie';
+            $maxProfit = $profitIfTieWins;
+        }
+        
+        // If no bets at all, randomly select dragon or tiger
+        if ($totalBets == 0) {
+            $winner = (rand(0, 1) === 0) ? 'dragon' : 'tiger';
+        }
+        
+        // Update game state with winner and set phase to result
+        $stmt = $conn->prepare("UPDATE game_state SET winner = ?, phase = 'result' WHERE game_type = ?");
+        $stmt->bind_param("ss", $winner, $gameType);
+        $stmt->execute();
+        
+        // Calculate multiplier
+        $multiplier = ($winner === 'tie') ? 8 : 2;
+        
+        // Get all winning bets for this round
+        $stmt = $conn->prepare("SELECT * FROM game_bets WHERE game_type = ? AND round_number = ? AND bet_area = ? AND cashed_out = 0");
+        $stmt->bind_param("sis", $gameType, $roundNumber, $winner);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        while ($bet = $result->fetch_assoc()) {
+            $winAmount = $bet['bet_amount'] * $multiplier;
+            
+            // Add winning amount to user's winning_balance
+            $stmt2 = $conn->prepare("UPDATE users SET winning_balance = winning_balance + ? WHERE mobile = ?");
+            $stmt2->bind_param("ds", $winAmount, $bet['mobile']);
+            $stmt2->execute();
+            
+            // Mark bet as won with win amount
+            $stmt3 = $conn->prepare("UPDATE game_bets SET win_amount = ?, cashed_out = 1 WHERE id = ?");
+            $stmt3->bind_param("di", $winAmount, $bet['id']);
+            $stmt3->execute();
+        }
+        
+        // Mark losing bets as processed
+        $stmt = $conn->prepare("UPDATE game_bets SET cashed_out = 1 WHERE game_type = ? AND round_number = ? AND bet_area != ? AND cashed_out = 0");
+        $stmt->bind_param("sis", $gameType, $roundNumber, $winner);
+        $stmt->execute();
+        
+        echo json_encode([
+            'status' => true, 
+            'winner' => $winner, 
+            'bets' => [
+                'dragon' => $dragonTotal,
+                'tiger' => $tigerTotal,
+                'tie' => $tieTotal
+            ],
+            'profit' => $maxProfit,
+            'message' => 'Auto winner selected: ' . strtoupper($winner) . ' (House profit: ₹' . $maxProfit . ')'
+        ]);
     }
 }
 
