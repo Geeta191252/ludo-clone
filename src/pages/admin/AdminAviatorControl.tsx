@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
-import { Plane, Zap, Target, Play, Pause, RotateCcw, TrendingUp, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plane, Zap, Target, Play, Pause, RotateCcw, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { toast } from "@/hooks/use-toast";
+
+const API_BASE = "https://rajasthanludo.com/api";
 
 const AdminAviatorControl = () => {
   const [gameState, setGameState] = useState({
@@ -9,53 +11,177 @@ const AdminAviatorControl = () => {
     multiplier: 1.00,
     timer: 15,
     round_number: 1,
-    history: [5.01, 2.60, 3.45, 1.23, 8.92, 1.05, 2.34, 4.56, 1.87, 3.21]
+    admin_control: 0,
+    target_crash: null as number | null,
+    history: [] as number[]
   });
   const [loading, setLoading] = useState(false);
   const [targetCrash, setTargetCrash] = useState("");
   const [autoMode, setAutoMode] = useState(true);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleCrashNow = () => {
-    if (gameState.phase !== 'flying') return;
-    setGameState(prev => ({
-      ...prev,
-      phase: 'crashed',
-      history: [prev.multiplier, ...prev.history.slice(0, 14)]
-    }));
-    toast({ title: "Plane Crashed!", description: `Crashed at ${gameState.multiplier.toFixed(2)}x` });
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('admin_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
   };
 
-  const handleSetTargetCrash = () => {
-    if (!targetCrash || parseFloat(targetCrash) < 1.01) {
+  const fetchGameState = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/admin-aviator-control.php?action=get_state`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      
+      if (data.status && data.state) {
+        setGameState({
+          phase: data.state.phase || 'waiting',
+          multiplier: parseFloat(data.state.multiplier) || 1.00,
+          timer: parseInt(data.state.timer) || 15,
+          round_number: parseInt(data.state.round_number) || 1,
+          admin_control: parseInt(data.state.admin_control) || 0,
+          target_crash: data.state.target_crash ? parseFloat(data.state.target_crash) : null,
+          history: Array.isArray(data.state.history) ? data.state.history : []
+        });
+        setAutoMode(data.state.admin_control !== 1);
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchGameState();
+    pollRef.current = setInterval(fetchGameState, 2000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  const handleCrashNow = async () => {
+    if (gameState.phase !== 'flying') {
+      toast({ title: "Error", description: "Plane is not flying!", variant: "destructive" });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-aviator-control.php?action=crash_now`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        toast({ title: "✅ Plane Crashed!", description: `Crashed at ${data.crash_point}x` });
+        fetchGameState();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to crash plane", variant: "destructive" });
+    }
+    setLoading(false);
+  };
+
+  const handleSetTargetCrash = async (value?: number) => {
+    const target = value || parseFloat(targetCrash);
+    
+    if (!target || target < 1.01) {
       toast({ title: "Error", description: "Target must be at least 1.01x", variant: "destructive" });
       return;
     }
-    toast({ title: "Target Set!", description: `Plane will crash at ${targetCrash}x` });
-    setTargetCrash("");
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-aviator-control.php?action=set_target_crash`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ target })
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        toast({ title: "✅ Target Set!", description: `Plane will crash at ${target}x` });
+        setTargetCrash("");
+        fetchGameState();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to set target", variant: "destructive" });
+    }
+    setLoading(false);
   };
 
-  const handleToggleAutoMode = () => {
-    setAutoMode(!autoMode);
-    toast({ 
-      title: autoMode ? "Manual Control Enabled" : "Auto Mode Enabled",
-      description: autoMode ? "You now control the game manually" : "Game will run automatically"
-    });
+  const handleToggleAutoMode = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-aviator-control.php?action=toggle_auto`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ auto: !autoMode })
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        setAutoMode(!autoMode);
+        toast({ 
+          title: autoMode ? "🔧 Manual Control Enabled" : "🤖 Auto Mode Enabled",
+          description: data.message
+        });
+        fetchGameState();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to toggle mode", variant: "destructive" });
+    }
+    setLoading(false);
   };
 
-  const handleStartRound = () => {
-    setGameState(prev => ({ ...prev, phase: 'flying', multiplier: 1.00 }));
-    toast({ title: "Round Started!", description: "Plane is now flying" });
+  const handleStartRound = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-aviator-control.php?action=start_round`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        toast({ title: "🛫 Round Started!", description: "Plane is now flying" });
+        fetchGameState();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to start round", variant: "destructive" });
+    }
+    setLoading(false);
   };
 
-  const handleResetGame = () => {
-    setGameState(prev => ({ 
-      ...prev, 
-      phase: 'waiting', 
-      timer: 12, 
-      multiplier: 1.00,
-      round_number: prev.round_number + 1
-    }));
-    toast({ title: "Game Reset!", description: "New round starting" });
+  const handleResetGame = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-aviator-control.php?action=reset_game`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        toast({ title: "🔄 Game Reset!", description: "New round starting" });
+        fetchGameState();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to reset game", variant: "destructive" });
+    }
+    setLoading(false);
   };
 
   const getPhaseColor = (phase: string) => {
@@ -88,18 +214,44 @@ const AdminAviatorControl = () => {
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm">Full control over the Aviator game</p>
           </div>
-          <button
-            onClick={handleToggleAutoMode}
-            className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-              autoMode 
-                ? "border border-green-500 text-green-400 bg-transparent" 
-                : "bg-orange-600 text-white"
-            }`}
-          >
-            {autoMode ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-            {autoMode ? "Auto Mode ON" : "Manual Control"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={fetchGameState}
+              disabled={loading}
+              className="p-2 rounded-lg border border-slate-600 text-slate-400 hover:bg-slate-700"
+              title="Refresh State"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={handleToggleAutoMode}
+              disabled={loading}
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                autoMode 
+                  ? "border border-green-500 text-green-400 bg-transparent" 
+                  : "bg-orange-600 text-white"
+              }`}
+            >
+              {autoMode ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+              {autoMode ? "Auto Mode ON" : "Manual Control"}
+            </button>
+          </div>
         </div>
+
+        {/* Target Crash Indicator */}
+        {gameState.target_crash && (
+          <div className="bg-orange-500/20 border border-orange-500 rounded-lg p-3 flex items-center justify-between">
+            <span className="text-orange-400 text-sm">
+              🎯 Target crash set: <strong>{gameState.target_crash}x</strong>
+            </span>
+            <button 
+              onClick={() => handleSetTargetCrash(0)}
+              className="text-orange-400 hover:text-orange-300 text-xs underline"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {/* Current Game Status */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -149,7 +301,7 @@ const AdminAviatorControl = () => {
               className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
             >
               <AlertTriangle className="w-4 h-4" />
-              CRASH NOW!
+              {loading ? 'Processing...' : 'CRASH NOW!'}
             </button>
             {gameState.phase !== 'flying' && (
               <p className="text-yellow-400 text-xs text-center mt-2">
@@ -179,19 +331,20 @@ const AdminAviatorControl = () => {
                 className="flex-1 bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-3 py-2"
               />
               <button
-                onClick={handleSetTargetCrash}
+                onClick={() => handleSetTargetCrash()}
                 disabled={loading || !targetCrash}
                 className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm"
               >
-                Set
+                {loading ? '...' : 'Set'}
               </button>
             </div>
             <div className="flex gap-1 flex-wrap">
               {[1.5, 2.0, 3.0, 5.0, 10.0].map((val) => (
                 <button
                   key={val}
-                  onClick={() => setTargetCrash(val.toString())}
-                  className="border border-orange-600 text-orange-400 hover:bg-orange-600/20 px-2 py-1 rounded text-xs"
+                  onClick={() => handleSetTargetCrash(val)}
+                  disabled={loading}
+                  className="border border-orange-600 text-orange-400 hover:bg-orange-600/20 disabled:opacity-50 px-2 py-1 rounded text-xs"
                 >
                   {val}x
                 </button>
@@ -214,7 +367,7 @@ const AdminAviatorControl = () => {
               className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
             >
               <Play className="w-4 h-4" />
-              Start Flying
+              {loading ? 'Starting...' : 'Start Flying'}
             </button>
           </div>
 
@@ -233,7 +386,7 @@ const AdminAviatorControl = () => {
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
-              Reset Game
+              {loading ? 'Resetting...' : 'Reset Game'}
             </button>
           </div>
         </div>
@@ -245,18 +398,22 @@ const AdminAviatorControl = () => {
             Recent Crash History
           </h3>
           <div className="flex gap-1 flex-wrap">
-            {gameState.history.map((crash, index) => (
-              <span
-                key={index}
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  crash >= 2 ? 'bg-green-500/20 text-green-400' :
-                  crash >= 1.5 ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-red-500/20 text-red-400'
-                }`}
-              >
-                {crash.toFixed(2)}x
-              </span>
-            ))}
+            {gameState.history.length > 0 ? (
+              gameState.history.map((crash, index) => (
+                <span
+                  key={index}
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    crash >= 2 ? 'bg-green-500/20 text-green-400' :
+                    crash >= 1.5 ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}
+                >
+                  {Number(crash).toFixed(2)}x
+                </span>
+              ))
+            ) : (
+              <span className="text-slate-500 text-xs">No history yet</span>
+            )}
           </div>
         </div>
       </div>
