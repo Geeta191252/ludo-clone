@@ -33,6 +33,8 @@ const AdminDragonTigerControl = () => {
   });
   const [loading, setLoading] = useState(false);
   const [activePlayerCount, setActivePlayerCount] = useState(0);
+  const [autoModeEnabled, setAutoModeEnabled] = useState(false);
+  const [autoTriggered, setAutoTriggered] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchGameState = async () => {
@@ -104,6 +106,20 @@ const AdminDragonTigerControl = () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
+
+  // Auto Mode - trigger auto_set_winner when timer reaches 0
+  useEffect(() => {
+    if (autoModeEnabled && gameState.phase === 'betting' && gameState.timer <= 1 && !autoTriggered) {
+      console.log('🤖 Auto Mode: Timer ended, triggering auto set winner...');
+      setAutoTriggered(true);
+      handleAutoSetWinner();
+    }
+    
+    // Reset autoTriggered flag when new round starts (timer goes back up)
+    if (gameState.timer > 5 && autoTriggered) {
+      setAutoTriggered(false);
+    }
+  }, [gameState.timer, gameState.phase, autoModeEnabled, autoTriggered]);
 
   const handleResetGame = async () => {
     setLoading(true);
@@ -473,14 +489,49 @@ const AdminDragonTigerControl = () => {
         </div>
 
         {/* AUTO SET WINNER - Best Profit Button */}
-        <div className="bg-gradient-to-br from-amber-900/60 to-amber-700/40 border-2 border-amber-500 rounded-lg p-4">
+        <div className={`bg-gradient-to-br ${autoModeEnabled ? 'from-green-900/60 to-green-700/40 border-green-500' : 'from-amber-900/60 to-amber-700/40 border-amber-500'} border-2 rounded-lg p-4`}>
           <div className="text-center mb-3">
-            <h3 className="text-amber-300 font-bold text-xl flex items-center justify-center gap-2">
-              🤖 AUTO SET WINNER
+            <h3 className={`${autoModeEnabled ? 'text-green-300' : 'text-amber-300'} font-bold text-xl flex items-center justify-center gap-2`}>
+              🤖 AUTO MODE
             </h3>
-            <p className="text-amber-200/80 text-xs mt-1">
-              System automatically picks winner with MAXIMUM house profit
+            <p className={`${autoModeEnabled ? 'text-green-200/80' : 'text-amber-200/80'} text-xs mt-1`}>
+              {autoModeEnabled 
+                ? '✅ AUTO MODE ON - Timer khatam hone pe automatic winner set hoga' 
+                : 'Ek bar ON karo, phir har round automatic winner set hoga'}
             </p>
+          </div>
+
+          {/* Auto Mode Toggle */}
+          <div className="bg-black/30 rounded-lg p-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-white font-medium">Auto Mode</span>
+              <button
+                onClick={() => {
+                  setAutoModeEnabled(!autoModeEnabled);
+                  if (!autoModeEnabled) {
+                    toast({ title: "🤖 Auto Mode ON", description: "Timer end pe automatic winner set hoga" });
+                  } else {
+                    toast({ title: "⏹️ Auto Mode OFF", description: "Manual control active" });
+                  }
+                }}
+                className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
+                  autoModeEnabled ? 'bg-green-500' : 'bg-slate-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    autoModeEnabled ? 'translate-x-9' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            {autoModeEnabled && (
+              <div className="text-center animate-pulse">
+                <p className="text-green-400 font-bold text-sm">
+                  ⏳ Timer: {gameState.timer}s - Auto trigger on 0
+                </p>
+              </div>
+            )}
           </div>
           
           {/* Show recommended winner */}
@@ -504,7 +555,7 @@ const AdminDragonTigerControl = () => {
             disabled={loading || gameState.phase === 'result'}
             className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-black font-bold py-4 rounded-lg text-lg flex items-center justify-center gap-2 shadow-lg"
           >
-            🤖 AUTO SET WINNER (MAX PROFIT)
+            🤖 MANUAL AUTO SET (MAX PROFIT)
           </button>
         </div>
 
