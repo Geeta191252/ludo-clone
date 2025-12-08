@@ -93,18 +93,14 @@ export const useGameSync = (gameType: 'aviator' | 'dragon-tiger') => {
   }, [gameType]);
 
   // Run game tick (master controller) - only runs if server available
-  // Uses session_id for lock mechanism - only one client will actually tick
   const runGameTick = useCallback(async () => {
     if (!serverAvailable) return;
     try {
-      const response = await fetch(`/api/game-master.php?game_type=${gameType}&action=tick&session_id=${sessionId.current}`);
+      const response = await fetch(`/api/game-master.php?game_type=${gameType}&action=tick`);
       const data = await response.json();
-      isMasterRef.current = data.can_tick === true;
       
-      // Immediately fetch updated state after tick
-      if (data.can_tick) {
-        fetchGameState();
-      }
+      // After tick, fetch the updated state
+      fetchGameState();
     } catch (error) {
       console.log('Tick failed - server may be unavailable');
     }
