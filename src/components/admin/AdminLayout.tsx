@@ -10,7 +10,8 @@ import {
   Menu, 
   X,
   ChevronRight,
-  Plane
+  Plane,
+  Crown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +25,7 @@ const menuItems = [
   { title: "Transactions", icon: CreditCard, path: "/admin/transactions" },
   { title: "Games", icon: Gamepad2, path: "/admin/games" },
   { title: "Aviator Control", icon: Plane, path: "/admin/aviator-control" },
+  { title: "Dragon Tiger", icon: Crown, path: "/admin/dragon-tiger-control" },
   { title: "Settings", icon: Settings, path: "/admin/settings" },
 ];
 

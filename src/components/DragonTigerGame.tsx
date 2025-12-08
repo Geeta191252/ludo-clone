@@ -273,6 +273,29 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
       setBalance(prev => prev - selectedChip);
     }
     
+    // Save bet to server for admin visibility
+    try {
+      const user = localStorage.getItem('user');
+      if (user) {
+        const userData = JSON.parse(user);
+        await fetch('/api/game-state.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game_type: 'dragon-tiger',
+            action: 'place_bet',
+            mobile: userData.mobile,
+            username: userData.name || `***${userData.mobile?.slice(-4)}`,
+            bet_area: area,
+            bet_amount: selectedChip,
+            round_number: roundNumber
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Error saving bet to server:', error);
+    }
+    
     if (area === 'dragon') setDragonBet(prev => prev + selectedChip);
     else if (area === 'tiger') setTigerBet(prev => prev + selectedChip);
     else setTieBet(prev => prev + selectedChip);
