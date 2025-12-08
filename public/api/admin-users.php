@@ -17,7 +17,7 @@ try {
     // Check if users table exists
     $tableCheck = $conn->query("SHOW TABLES LIKE 'users'");
     if ($tableCheck && $tableCheck->num_rows > 0) {
-        $result = $conn->query("SELECT id, mobile, player_name, wallet_balance, winning_balance, status, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') as created_at FROM users ORDER BY id DESC");
+        $result = $conn->query("SELECT id, mobile, COALESCE(player_name, name) as player_name, wallet_balance, winning_balance, COALESCE(status, 'active') as status, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') as created_at FROM users ORDER BY id DESC");
         
         if ($result) {
             while ($row = $result->fetch_assoc()) {
