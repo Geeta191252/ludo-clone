@@ -287,9 +287,24 @@ if ($method === 'GET') {
             exit;
         }
         
-        // Update game state with winner and set phase to result
-        $stmt = $conn->prepare("UPDATE game_state SET winner = ?, phase = 'result' WHERE game_type = ?");
-        $stmt->bind_param("ss", $winner, $gameType);
+        // Get current history and add new winner
+        $stmt = $conn->prepare("SELECT history FROM game_state WHERE game_type = ?");
+        $stmt->bind_param("s", $gameType);
+        $stmt->execute();
+        $historyResult = $stmt->get_result();
+        $historyRow = $historyResult->fetch_assoc();
+        $currentHistory = json_decode($historyRow['history'] ?? '[]', true);
+        if (!is_array($currentHistory)) $currentHistory = [];
+        
+        // Add new winner at the beginning (most recent first)
+        array_unshift($currentHistory, ['winner' => $winner, 'round' => $roundNumber]);
+        // Keep only last 50 entries
+        $currentHistory = array_slice($currentHistory, 0, 50);
+        $updatedHistory = json_encode($currentHistory);
+        
+        // Update game state with winner, history and set phase to result
+        $stmt = $conn->prepare("UPDATE game_state SET winner = ?, phase = 'result', history = ? WHERE game_type = ?");
+        $stmt->bind_param("sss", $winner, $updatedHistory, $gameType);
         $stmt->execute();
         
         // Calculate multiplier - Tie = 8x, Dragon/Tiger = 2x
@@ -374,9 +389,25 @@ if ($method === 'GET') {
             $winner = (rand(0, 1) === 0) ? 'dragon' : 'tiger';
         }
         
-        // Update game state with winner and set phase to result
-        $stmt = $conn->prepare("UPDATE game_state SET winner = ?, phase = 'result' WHERE game_type = ?");
-        $stmt->bind_param("ss", $winner, $gameType);
+        // Get current history and add new winner
+        $stmt = $conn->prepare("SELECT history, round_number FROM game_state WHERE game_type = ?");
+        $stmt->bind_param("s", $gameType);
+        $stmt->execute();
+        $historyResult = $stmt->get_result();
+        $historyRow = $historyResult->fetch_assoc();
+        $currentHistory = json_decode($historyRow['history'] ?? '[]', true);
+        $currentRound = $historyRow['round_number'] ?? $roundNumber;
+        if (!is_array($currentHistory)) $currentHistory = [];
+        
+        // Add new winner at the beginning (most recent first)
+        array_unshift($currentHistory, ['winner' => $winner, 'round' => $currentRound]);
+        // Keep only last 50 entries
+        $currentHistory = array_slice($currentHistory, 0, 50);
+        $updatedHistory = json_encode($currentHistory);
+        
+        // Update game state with winner, history and set phase to result
+        $stmt = $conn->prepare("UPDATE game_state SET winner = ?, phase = 'result', history = ? WHERE game_type = ?");
+        $stmt->bind_param("sss", $winner, $updatedHistory, $gameType);
         $stmt->execute();
         
         // Calculate multiplier
