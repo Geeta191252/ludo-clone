@@ -150,6 +150,44 @@ const AdminDragonTigerControl = () => {
   };
 
   const totalBets = betSummary.dragon.total + betSummary.tiger.total + betSummary.tie.total;
+  
+  // Profit/Loss Calculator
+  // Dragon wins (2x): Dragon bettors get 2x, house loses dragon bets, keeps tiger+tie bets
+  const dragonWinProfit = (betSummary.tiger.total + betSummary.tie.total) - betSummary.dragon.total;
+  // Tiger wins (2x): Tiger bettors get 2x, house loses tiger bets, keeps dragon+tie bets
+  const tigerWinProfit = (betSummary.dragon.total + betSummary.tie.total) - betSummary.tiger.total;
+  // Tie wins (8x): Tie bettors get 8x, house loses 7x tie bets, keeps dragon+tiger bets
+  const tieWinProfit = (betSummary.dragon.total + betSummary.tiger.total) - (betSummary.tie.total * 7);
+
+  const handleSetWinner = async (winner: string) => {
+    setLoading(true);
+    try {
+      const apiUrl = window.location.hostname.includes('rajasthanludo.com') 
+        ? 'https://rajasthanludo.com/api/game-state.php'
+        : '/api/game-state.php';
+        
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game_type: 'dragon-tiger',
+          action: 'set_winner',
+          winner: winner
+        })
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        toast({ title: `🎉 ${winner.toUpperCase()} Wins!`, description: "Winner set successfully" });
+        fetchGameState();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to set winner", variant: "destructive" });
+    }
+    setLoading(false);
+  };
 
   return (
     <AdminLayout>
@@ -313,19 +351,99 @@ const AdminDragonTigerControl = () => {
           </div>
         </div>
 
-        {/* Reset Game Button */}
-        <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/30 border border-blue-700 rounded-lg p-4">
-          <h3 className="text-white flex items-center gap-2 text-sm font-semibold mb-2">
-            <RotateCcw className="w-4 h-4 text-blue-400" />
-            Game Control
+        {/* Profit/Loss Calculator - SET WINNER */}
+        <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/30 border border-purple-700 rounded-lg p-4">
+          <h3 className="text-white flex items-center gap-2 text-lg font-bold mb-4">
+            📊 Profit/Loss Calculator - Winner Set Karo
           </h3>
-          <p className="text-slate-300 text-xs mb-3">
-            Reset the game to start a new betting round
+          <p className="text-slate-300 text-xs mb-4">
+            Jis pe kam bet hai woh set karo = zyada profit! Green = Profit, Red = Loss
           </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Dragon Win Option */}
+            <div className={`rounded-lg p-4 border-2 ${dragonWinProfit >= 0 ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'}`}>
+              <div className="text-center mb-3">
+                <p className="text-orange-400 font-bold text-lg">🐲 DRAGON WINS</p>
+                <p className="text-slate-400 text-xs">(2x payout)</p>
+              </div>
+              <div className="text-center mb-3">
+                <p className="text-slate-400 text-xs">House Profit/Loss:</p>
+                <p className={`text-2xl font-bold ${dragonWinProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {dragonWinProfit >= 0 ? '+' : ''}₹{dragonWinProfit.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-xs text-slate-400 mb-3 space-y-1">
+                <p>Keep: ₹{(betSummary.tiger.total + betSummary.tie.total).toLocaleString()} (Tiger+Tie)</p>
+                <p>Pay: ₹{betSummary.dragon.total.toLocaleString()} (Dragon)</p>
+              </div>
+              <button
+                onClick={() => handleSetWinner('dragon')}
+                disabled={loading || gameState.phase === 'result'}
+                className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-2 rounded-lg font-bold"
+              >
+                🐲 SET DRAGON WINNER
+              </button>
+            </div>
+
+            {/* Tie Win Option */}
+            <div className={`rounded-lg p-4 border-2 ${tieWinProfit >= 0 ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'}`}>
+              <div className="text-center mb-3">
+                <p className="text-green-400 font-bold text-lg">🤝 TIE WINS</p>
+                <p className="text-slate-400 text-xs">(8x payout)</p>
+              </div>
+              <div className="text-center mb-3">
+                <p className="text-slate-400 text-xs">House Profit/Loss:</p>
+                <p className={`text-2xl font-bold ${tieWinProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {tieWinProfit >= 0 ? '+' : ''}₹{tieWinProfit.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-xs text-slate-400 mb-3 space-y-1">
+                <p>Keep: ₹{(betSummary.dragon.total + betSummary.tiger.total).toLocaleString()} (Dragon+Tiger)</p>
+                <p>Pay: ₹{(betSummary.tie.total * 7).toLocaleString()} (Tie x7)</p>
+              </div>
+              <button
+                onClick={() => handleSetWinner('tie')}
+                disabled={loading || gameState.phase === 'result'}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded-lg font-bold"
+              >
+                🤝 SET TIE WINNER
+              </button>
+            </div>
+
+            {/* Tiger Win Option */}
+            <div className={`rounded-lg p-4 border-2 ${tigerWinProfit >= 0 ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'}`}>
+              <div className="text-center mb-3">
+                <p className="text-blue-400 font-bold text-lg">🐯 TIGER WINS</p>
+                <p className="text-slate-400 text-xs">(2x payout)</p>
+              </div>
+              <div className="text-center mb-3">
+                <p className="text-slate-400 text-xs">House Profit/Loss:</p>
+                <p className={`text-2xl font-bold ${tigerWinProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {tigerWinProfit >= 0 ? '+' : ''}₹{tigerWinProfit.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-xs text-slate-400 mb-3 space-y-1">
+                <p>Keep: ₹{(betSummary.dragon.total + betSummary.tie.total).toLocaleString()} (Dragon+Tie)</p>
+                <p>Pay: ₹{betSummary.tiger.total.toLocaleString()} (Tiger)</p>
+              </div>
+              <button
+                onClick={() => handleSetWinner('tiger')}
+                disabled={loading || gameState.phase === 'result'}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 rounded-lg font-bold"
+              >
+                🐯 SET TIGER WINNER
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Reset Game Button */}
+        <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/30 border border-slate-600 rounded-lg p-4">
           <button
             onClick={handleResetGame}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+            className="w-full bg-slate-600 hover:bg-slate-700 disabled:opacity-50 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
             {loading ? 'Resetting...' : 'Reset Game / New Round'}
