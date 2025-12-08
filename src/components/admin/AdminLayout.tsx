@@ -138,7 +138,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+      <div className={`transition-all duration-300 ml-0 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
         {/* Top Bar */}
         <header className="h-16 bg-slate-800/50 backdrop-blur-lg border-b border-slate-700 flex items-center justify-between px-4">
           <Button
