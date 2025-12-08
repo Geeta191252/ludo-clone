@@ -46,6 +46,29 @@ const Wallet = () => {
     if (savedMobile) {
       fetchBalance(savedMobile);
     }
+
+    // Auto-refresh balance when page gets focus (user switches back to tab)
+    const handleFocus = () => {
+      const mobile = localStorage.getItem("userMobile");
+      if (mobile) {
+        fetchBalance(mobile);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    // Also refresh every 10 seconds while on this page
+    const interval = setInterval(() => {
+      const mobile = localStorage.getItem("userMobile");
+      if (mobile) {
+        fetchBalance(mobile);
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   const fetchBalance = async (mobile: string) => {
