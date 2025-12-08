@@ -30,22 +30,28 @@ const menuItems = [
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isValid, setIsValid] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check token once on mount only
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
     if (!token) {
       navigate("/admin", { replace: true });
+    } else {
+      setIsValid(true);
     }
-    // Empty dependency - only run once
-  }, []);
+    setAuthChecked(true);
+  }, [navigate]);
 
-  // Synchronous check - if no token, show nothing (redirect will happen)
-  const hasToken = typeof window !== 'undefined' && localStorage.getItem("admin_token");
-  if (!hasToken) {
-    return null;
+  // Show loading until auth check completes
+  if (!authChecked || !isValid) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   const handleLogout = () => {
