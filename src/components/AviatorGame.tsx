@@ -74,7 +74,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   // Local game state - always active for immediate display
   const [localGamePhase, setLocalGamePhase] = useState<'waiting' | 'flying' | 'crashed'>('waiting');
   const [localMultiplier, setLocalMultiplier] = useState(1.00);
-  const [localCountdown, setLocalCountdown] = useState(10);
+  const [localCountdown, setLocalCountdown] = useState(12);
   const [localHistory, setLocalHistory] = useState<number[]>([5.01, 2.60, 3.45, 1.23, 8.92]);
   const [localPlanePos, setLocalPlanePos] = useState({ x: 10, y: 80 });
   const [localCrashPoint] = useState(() => 1.2 + Math.random() * 13.8);
@@ -260,7 +260,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
             setLocalPlanePos({ x: 10, y: 80 });
             // Generate new crash point for this round
             setCurrentCrashPoint(1.2 + Math.random() * 13.8);
-            return 5;
+            return 12;
           }
           return prev - 1;
         });
@@ -285,7 +285,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     } else if (localGamePhase === 'crashed') {
       timeout = setTimeout(() => {
         setLocalGamePhase('waiting');
-        setLocalCountdown(5);
+        setLocalCountdown(12);
         setLocalMultiplier(1.00);
         setLocalPlanePos({ x: 10, y: 80 });
       }, 3000);
