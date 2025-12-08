@@ -18,6 +18,7 @@ import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminGames from "./pages/admin/AdminGames";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminAviatorControl from "./pages/admin/AdminAviatorControl";
+import AdminDragonTigerControl from "./pages/admin/AdminDragonTigerControl";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/admin/transactions" element={<AdminTransactions />} />
           <Route path="/admin/games" element={<AdminGames />} />
           <Route path="/admin/aviator-control" element={<AdminAviatorControl />} />
+          <Route path="/admin/dragon-tiger-control" element={<AdminDragonTigerControl />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
