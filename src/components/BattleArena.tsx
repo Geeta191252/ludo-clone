@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Info, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,14 +34,32 @@ const RupeeIcon = ({ className = "w-5 h-4" }: { className?: string }) => (
   <img src={rupeeIcon} alt="₹" className={className} />
 );
 
-// Random name generator
-const generateRandomName = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+// Get current user ID
+const getCurrentUserId = () => {
+  try {
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      return userData.mobile || userData.id || 'GUEST';
+    }
+  } catch (e) {
+    console.error('Error getting user ID:', e);
   }
-  return result;
+  return 'GUEST_' + Math.random().toString(36).substring(7);
+};
+
+// Get current user name
+const getCurrentUserName = () => {
+  try {
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      return userData.name || userData.mobile?.slice(-6) || 'YOU';
+    }
+  } catch (e) {
+    console.error('Error getting user name:', e);
+  }
+  return 'YOU';
 };
 
 // Helper function to update balance on server
@@ -60,7 +78,6 @@ const updateServerBalance = async (amount: number, type: 'deduct' | 'add') => {
     });
     const data = await response.json();
     if (data.status) {
-      // Update localStorage with new balance
       userData.wallet_balance = data.wallet_balance;
       userData.winning_balance = data.winning_balance;
       localStorage.setItem('user', JSON.stringify(userData));
@@ -79,27 +96,63 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedBattle, setSelectedBattle] = useState<RunningBattle | null>(null);
   const [openBattles, setOpenBattles] = useState<OpenBattle[]>([]);
-  
   const [runningBattles, setRunningBattles] = useState<RunningBattle[]>([]);
+  
+  const currentUserId = getCurrentUserId();
+  const currentUserName = getCurrentUserName();
+
+  // Fetch battles from server
+  const fetchBattles = useCallback(async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await fetch('/api/ludo-battles.php');
+      const data = await response.json();
+      
+      if (data.success) {
+        // Mark current user's battles
+        const openWithMarker = data.openBattles.map((b: OpenBattle) => ({
+          ...b,
+          creatorId: b.creatorId === currentUserId ? 'YOU' : b.creatorId,
+          creatorName: b.creatorId === currentUserId ? 'YOU' : b.creatorName
+        }));
+        
+        const runningWithMarker = data.runningBattles.map((b: RunningBattle) => ({
+          ...b,
+          player1: {
+            ...b.player1,
+            id: b.player1.id === currentUserId ? 'YOU' : b.player1.id,
+            name: b.player1.id === currentUserId ? 'YOU' : b.player1.name
+          },
+          player2: {
+            ...b.player2,
+            id: b.player2.id === currentUserId ? 'YOU' : b.player2.id,
+            name: b.player2.id === currentUserId ? 'YOU' : b.player2.name
+          }
+        }));
+        
+        setOpenBattles(openWithMarker);
+        setRunningBattles(runningWithMarker);
+      }
+    } catch (error) {
+      console.error('Error fetching battles:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [currentUserId]);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    fetchBattles();
+  }, [fetchBattles]);
 
-  // Auto-refresh every 5 seconds - only for UI refresh indicator, no fake battles
+  // Auto-refresh every 3 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsRefreshing(true);
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 500);
-    }, 5000);
-
+    const interval = setInterval(fetchBattles, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchBattles]);
 
-  const handleCreateBattle = () => {
+  const handleCreateBattle = async () => {
     const entryFee = parseInt(amount);
     if (!entryFee || entryFee < 50) {
       toast({
@@ -110,45 +163,77 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
       return;
     }
 
-    const prize = Math.floor(entryFee * 2 - entryFee * 0.05); // 5% commission from one user only
-    const newBattle: OpenBattle = {
-      id: `battle_${Date.now()}`,
-      creatorId: "YOU",
-      creatorName: "YOU",
-      entryFee,
-      prize,
-    };
-
-    setOpenBattles([newBattle, ...openBattles]);
-    setAmount("");
-    toast({
-      title: "Battle Created!",
-      description: `Entry Fee: ₹${entryFee} | Prize: ₹${prize}`,
-    });
+    try {
+      const response = await fetch('/api/ludo-battles.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          creatorId: currentUserId,
+          creatorName: currentUserName,
+          entryFee
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setAmount("");
+        toast({
+          title: "Battle Created!",
+          description: `Entry Fee: ₹${entryFee} | Prize: ₹${data.battle.prize}`,
+        });
+        fetchBattles();
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to create battle",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating battle:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create battle",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Creator clicks Start - move to running and show Set Room Code screen
+  const handleCancelBattle = async (battle: OpenBattle) => {
+    try {
+      const response = await fetch('/api/ludo-battles.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'cancel',
+          battleId: battle.id,
+          creatorId: currentUserId
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "Battle Cancelled",
+          description: "Your battle has been cancelled",
+        });
+        fetchBattles();
+      }
+    } catch (error) {
+      console.error('Error cancelling battle:', error);
+    }
+  };
+
+  // Creator clicks Start - move to running
   const handleStartBattle = (battle: OpenBattle) => {
-    setOpenBattles(openBattles.filter(b => b.id !== battle.id));
-    
-    const newRunning: RunningBattle = {
-      id: `running_${Date.now()}`,
-      player1: { id: "YOU", name: "YOU" }, // Creator is player1
-      player2: { id: generateRandomName(), name: generateRandomName() }, // Simulated joiner
-      entryFee: battle.entryFee,
-      prize: battle.prize,
-    };
-    
-    setRunningBattles([newRunning, ...runningBattles]);
-    setSelectedBattle(newRunning);
     toast({
-      title: "Battle Started!",
-      description: "Set room code for your opponent",
+      title: "Waiting for opponent",
+      description: "Your battle will start when someone joins",
     });
   };
 
   const handlePlayBattle = async (battle: OpenBattle) => {
-    // Check if user has enough balance
     if (balance < battle.entryFee) {
       toast({
         title: "Insufficient Balance",
@@ -158,43 +243,61 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
       return;
     }
 
-    // Deduct entry fee from server
-    const newBalance = await updateServerBalance(battle.entryFee, 'deduct');
-    if (newBalance !== null) {
-      onBalanceChange?.(newBalance);
-    } else {
-      // Fallback to local update
-      onBalanceChange?.(balance - battle.entryFee);
+    try {
+      // Join the battle
+      const response = await fetch('/api/ludo-battles.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'join',
+          battleId: battle.id,
+          opponentId: currentUserId,
+          opponentName: currentUserName
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Deduct entry fee
+        const newBalance = await updateServerBalance(battle.entryFee, 'deduct');
+        if (newBalance !== null) {
+          onBalanceChange?.(newBalance);
+        } else {
+          onBalanceChange?.(balance - battle.entryFee);
+        }
+        
+        toast({
+          title: "Battle Joined!",
+          description: `₹${battle.entryFee} deducted. Battle is now running!`,
+        });
+        fetchBattles();
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Battle not available",
+          variant: "destructive",
+        });
+        fetchBattles();
+      }
+    } catch (error) {
+      console.error('Error joining battle:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join battle",
+        variant: "destructive",
+      });
     }
-
-    setOpenBattles(openBattles.filter(b => b.id !== battle.id));
-    
-    const newRunning: RunningBattle = {
-      id: `running_${Date.now()}`,
-      player1: { id: battle.creatorId, name: battle.creatorName },
-      player2: { id: "YOU", name: "YOU" },
-      entryFee: battle.entryFee,
-      prize: battle.prize,
-    };
-    
-    setRunningBattles([newRunning, ...runningBattles]);
-    toast({
-      title: "Battle Started!",
-      description: `₹${battle.entryFee} deducted. Click View to see details`,
-    });
   };
 
   const handleRoomCodeSent = (battleId: string, code: string) => {
     setRunningBattles(prev => 
       prev.map(b => b.id === battleId ? { ...b, roomCode: code } : b)
     );
-    // Update selected battle with room code
     if (selectedBattle && selectedBattle.id === battleId) {
       setSelectedBattle({ ...selectedBattle, roomCode: code });
     }
   };
 
-  // Show Battle Detail View when a battle is selected
   if (selectedBattle) {
     return (
       <BattleDetailView 
@@ -245,10 +348,16 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
             <X className="w-5 h-5 text-red-500" />
             <h3 className="font-semibold text-green-600">Open Battles</h3>
           </div>
-          <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw 
+            className={`w-4 h-4 text-gray-400 cursor-pointer ${isRefreshing ? 'animate-spin' : ''}`} 
+            onClick={fetchBattles}
+          />
         </div>
         
         <div className="space-y-3">
+          {openBattles.length === 0 && (
+            <p className="text-center text-gray-500 py-4">No open battles. Create one!</p>
+          )}
           {openBattles.map((battle, index) => (
             <div 
               key={battle.id} 
@@ -257,7 +366,6 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                 animation: index === 0 && isRefreshing ? 'slideIn 0.3s ease-out' : 'none'
               }}
             >
-              {/* Header with Challenge info and buttons */}
               <div className="flex items-center justify-between p-3 pb-2">
                 <span className="text-sm text-gray-700">
                   Challange From <span className="text-green-600 font-bold">{battle.creatorName}</span>
@@ -274,7 +382,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                     <Button 
                       size="sm" 
                       className="bg-red-500 hover:bg-red-600 text-white px-4"
-                      onClick={() => setOpenBattles(openBattles.filter(b => b.id !== battle.id))}
+                      onClick={() => handleCancelBattle(battle)}
                     >
                       Reject
                     </Button>
@@ -290,7 +398,6 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                 )}
               </div>
               
-              {/* Entry Fee, Avatar, Prize Row */}
               <div className="bg-gray-100 p-3 flex items-center justify-between">
                 <div>
                   <span className="text-green-600 text-xs font-medium">ENTRY FEE</span>
@@ -300,13 +407,12 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                   </div>
                 </div>
                 
-                {/* Center Avatar - only show for creator's battle */}
                 {battle.creatorId === "YOU" && (
                   <div className="flex flex-col items-center">
                     <div className="w-10 h-10 rounded-full bg-orange-100 border-2 border-orange-300 flex items-center justify-center">
                       <span className="text-xl">😊</span>
                     </div>
-                    <span className="text-xs text-gray-700 font-medium mt-1">{generateRandomName().slice(0,6)}</span>
+                    <span className="text-xs text-gray-700 font-medium mt-1">Waiting...</span>
                   </div>
                 )}
                 
@@ -334,6 +440,9 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
         </div>
         
         <div className="space-y-3">
+          {runningBattles.length === 0 && (
+            <p className="text-center text-gray-500 py-4">No running battles</p>
+          )}
           {runningBattles.map((battle, index) => (
             <div 
               key={battle.id} 
@@ -356,7 +465,6 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
               </div>
               
               <div className="flex items-center justify-between">
-                {/* Player 1 */}
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 rounded-full bg-red-100 border-2 border-red-400 flex items-center justify-center mb-1">
                     <span className="text-2xl">👤</span>
@@ -364,7 +472,6 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                   <span className="text-xs text-gray-700 font-medium">{battle.player1.name}</span>
                 </div>
                 
-                {/* VS or View Button */}
                 <div className="flex items-center justify-center">
                   {(battle.player1.id === "YOU" || battle.player2.id === "YOU") ? (
                     <Button 
@@ -381,7 +488,6 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                   )}
                 </div>
                 
-                {/* Player 2 */}
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 rounded-full bg-red-100 border-2 border-red-400 flex items-center justify-center mb-1">
                     <span className="text-2xl">👤</span>
