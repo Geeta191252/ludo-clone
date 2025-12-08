@@ -101,11 +101,16 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
   const currentUserId = getCurrentUserId();
   const currentUserName = getCurrentUserName();
 
+  // API Base URL for production
+  const API_BASE = window.location.hostname === 'localhost' 
+    ? 'https://rajasthanludo.com' 
+    : '';
+
   // Fetch battles from server
   const fetchBattles = useCallback(async () => {
     try {
       setIsRefreshing(true);
-      const response = await fetch('/api/ludo-battles.php');
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php`);
       const data = await response.json();
       
       if (data.success) {
@@ -164,7 +169,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     }
 
     try {
-      const response = await fetch('/api/ludo-battles.php', {
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,7 +207,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
 
   const handleCancelBattle = async (battle: OpenBattle) => {
     try {
-      const response = await fetch('/api/ludo-battles.php', {
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -245,7 +250,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
 
     try {
       // Join the battle
-      const response = await fetch('/api/ludo-battles.php', {
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
