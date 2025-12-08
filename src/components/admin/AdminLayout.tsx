@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -30,22 +30,16 @@ const menuItems = [
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check auth only once on mount
-  useEffect(() => {
-    const token = localStorage.getItem("admin_token");
-    if (!token) {
-      navigate("/admin", { replace: true });
-    } else {
-      setIsReady(true);
-    }
-  }, []); // Empty dependency - only run once
-
-  // Show loading until ready
-  if (!isReady) {
+  // Synchronous token check - no state needed
+  const token = localStorage.getItem("admin_token");
+  
+  // If no token, redirect immediately and don't render anything
+  if (!token) {
+    // Use setTimeout to avoid calling navigate during render
+    setTimeout(() => navigate("/admin", { replace: true }), 0);
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
