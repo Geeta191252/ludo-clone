@@ -42,15 +42,33 @@ if ($type === 'add') {
     $stmt = $conn->prepare("UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?");
 }
 $stmt->bind_param("di", $amount, $user_id);
-$stmt->execute();
 
-// Log the action
-$action = $type === 'add' ? 'ADMIN_ADD' : 'ADMIN_SUBTRACT';
-$stmt = $conn->prepare("INSERT INTO admin_logs (admin_id, action, details, created_at) VALUES (?, ?, ?, NOW())");
-$details = json_encode(['user_id' => $user_id, 'amount' => $amount, 'type' => $type]);
-$stmt->bind_param("iss", $admin['id'], $action, $details);
-$stmt->execute();
+if (!$stmt->execute()) {
+    echo json_encode(['status' => false, 'message' => 'Failed to update balance: ' . $stmt->error]);
+    $conn->close();
+    exit;
+}
 
-echo json_encode(['status' => true, 'message' => 'Balance updated successfully']);
+// Get new balance
+$stmt = $conn->prepare("SELECT wallet_balance FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$new_balance = $result->fetch_assoc()['wallet_balance'];
+
+// Try to log the action (don't fail if table doesn't exist)
+try {
+    $action = $type === 'add' ? 'ADMIN_ADD' : 'ADMIN_SUBTRACT';
+    $stmt = $conn->prepare("INSERT INTO admin_logs (admin_id, action, details, created_at) VALUES (?, ?, ?, NOW())");
+    if ($stmt) {
+        $details = json_encode(['user_id' => $user_id, 'amount' => $amount, 'type' => $type]);
+        $stmt->bind_param("iss", $admin['id'], $action, $details);
+        $stmt->execute();
+    }
+} catch (Exception $e) {
+    // Logging failed but balance was updated
+}
+
+echo json_encode(['status' => true, 'message' => 'Balance updated successfully', 'new_balance' => $new_balance]);
 $conn->close();
 ?>
