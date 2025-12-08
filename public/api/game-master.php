@@ -34,11 +34,11 @@ $stmt = $conn->prepare("INSERT IGNORE INTO game_lock (game_type, last_tick) VALU
 $stmt->bind_param("s", $gameType);
 $stmt->execute();
 
-// Try to acquire lock - only proceed if lock is stale (>1.5 seconds) or we already hold it
+// Try to acquire lock - only proceed if lock is stale (>500ms for flying phase) or we already hold it
 $stmt = $conn->prepare("UPDATE game_lock 
     SET lock_holder = ?, last_tick = NOW(), tick_count = tick_count + 1 
     WHERE game_type = ? 
-    AND (lock_holder IS NULL OR lock_holder = ? OR last_tick < DATE_SUB(NOW(), INTERVAL 1500 MILLISECOND))");
+    AND (lock_holder IS NULL OR lock_holder = ? OR last_tick < DATE_SUB(NOW(), INTERVAL 500 MILLISECOND))");
 $stmt->bind_param("sss", $clientSession, $gameType, $clientSession);
 $stmt->execute();
 
