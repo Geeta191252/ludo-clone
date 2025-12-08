@@ -227,6 +227,50 @@ const AdminDragonTigerControl = () => {
       const apiUrl = window.location.hostname.includes('rajasthanludo.com') 
         ? 'https://rajasthanludo.com/api/game-state.php'
         : '/api/game-state.php';
+      
+      // Calculate best winner for max profit locally first
+      const dragonTotal = betSummary.dragon.total;
+      const tigerTotal = betSummary.tiger.total;
+      const tieTotal = betSummary.tie.total;
+      
+      // Calculate profit for each outcome
+      // Dragon wins (2x payout): house keeps tiger+tie, pays dragon bettors
+      const dragonProfit = (tigerTotal + tieTotal) - dragonTotal;
+      // Tiger wins (2x payout): house keeps dragon+tie, pays tiger bettors  
+      const tigerProfit = (dragonTotal + tieTotal) - tigerTotal;
+      // Tie wins (8x payout): house keeps dragon+tiger, pays 8x to tie bettors
+      const tieProfit = (dragonTotal + tigerTotal) - (tieTotal * 8);
+      
+      // Find the best winner (maximum profit)
+      let bestWinner = 'dragon';
+      let maxProfit = dragonProfit;
+      
+      if (tigerProfit > maxProfit) {
+        bestWinner = 'tiger';
+        maxProfit = tigerProfit;
+      }
+      if (tieProfit > maxProfit) {
+        bestWinner = 'tie';
+        maxProfit = tieProfit;
+      }
+      
+      // If no bets, random winner
+      if (dragonTotal === 0 && tigerTotal === 0 && tieTotal === 0) {
+        const options = ['dragon', 'tiger'];
+        bestWinner = options[Math.floor(Math.random() * options.length)];
+        maxProfit = 0;
+      }
+      
+      console.log('🤖 Auto Mode Calculation:', {
+        dragonBets: dragonTotal,
+        tigerBets: tigerTotal,
+        tieBets: tieTotal,
+        dragonProfit,
+        tigerProfit,
+        tieProfit,
+        bestWinner,
+        maxProfit
+      });
         
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -234,7 +278,8 @@ const AdminDragonTigerControl = () => {
         body: JSON.stringify({
           game_type: 'dragon-tiger',
           action: 'auto_set_winner',
-          round_id: gameState.round_number
+          round_id: gameState.round_number,
+          suggested_winner: bestWinner // Send suggestion to server
         })
       });
       const data = await response.json();
@@ -255,6 +300,7 @@ const AdminDragonTigerControl = () => {
         toast({ title: "Error", description: data.message, variant: "destructive" });
       }
     } catch (error) {
+      console.error('Auto set winner error:', error);
       toast({ title: "Error", description: "Failed to auto set winner", variant: "destructive" });
     }
     setLoading(false);
