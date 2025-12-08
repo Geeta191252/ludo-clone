@@ -18,6 +18,8 @@ interface GameState {
 const AdminAviatorControl = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [targetCrash, setTargetCrash] = useState("");
   const [autoMode, setAutoMode] = useState(true);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -25,7 +27,7 @@ const AdminAviatorControl = () => {
   useEffect(() => {
     fetchGameState();
     // Poll for game state updates
-    pollingRef.current = setInterval(fetchGameState, 500);
+    pollingRef.current = setInterval(fetchGameState, 1000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
@@ -33,18 +35,31 @@ const AdminAviatorControl = () => {
 
   const fetchGameState = async () => {
     try {
+      const token = localStorage.getItem("admin_token");
+      if (!token) {
+        setError("No admin token found. Please login again.");
+        setInitialLoading(false);
+        return;
+      }
+      
       const response = await fetch("/api/admin-aviator-control.php?action=get_state", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("admin_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       const data = await response.json();
       if (data.status) {
         setGameState(data.state);
         setAutoMode(data.state.admin_control !== 1);
+        setError(null);
+      } else {
+        setError(data.message || "Failed to load game state");
       }
-    } catch (error) {
-      console.error("Failed to fetch game state");
+    } catch (err) {
+      console.error("Failed to fetch game state:", err);
+      setError("Failed to connect to server");
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -189,6 +204,35 @@ const AdminAviatorControl = () => {
       default: return phase?.toUpperCase();
     }
   };
+
+  if (initialLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Plane className="w-12 h-12 text-cyan-400 animate-pulse mx-auto mb-4" />
+            <p className="text-slate-400">Loading Aviator Control...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <p className="text-red-400 mb-4">{error}</p>
+            <Button onClick={fetchGameState} variant="outline">
+              Retry
+            </Button>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
