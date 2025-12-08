@@ -57,7 +57,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
   };
 
   // Use game sync hook for real-time multiplayer
-  const { gameState, liveBets: syncedBets, livePlayerCount, serverAvailable } = useGameSync('aviator');
+  const { gameState, liveBets: syncedBets, livePlayerCount, serverAvailable, placeBet: serverPlaceBet, cashOut: serverCashOut } = useGameSync('aviator');
 
   const [betAmount1, setBetAmount1] = useState(10);
   const [betAmount2, setBetAmount2] = useState(10);
@@ -297,17 +297,34 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     };
   }, [localGamePhase, currentCrashPoint, hasValidServerState]);
 
-  // Combine synced bets with local user bets - ONLY REAL USERS
-  const liveBets = [
-    ...localBets.filter(b => b.isUser),
-    ...syncedBets.map(b => ({
-      username: b.username || `***${b.mobile?.slice(-4) || '****'}`,
+  // Get current user's mobile for identifying their bets
+  const currentUserMobile = (() => {
+    try {
+      const user = localStorage.getItem('user');
+      if (user) {
+        return JSON.parse(user).mobile;
+      }
+    } catch {}
+    return null;
+  })();
+
+  // Combine synced bets with local user bets - show ALL users
+  const liveBets = syncedBets.map(b => {
+    const isCurrentUser = currentUserMobile && b.mobile === currentUserMobile;
+    return {
+      username: isCurrentUser ? `YOU (${b.bet_area === 'bet2' ? 'Bet 2' : 'Bet 1'})` : (b.username || `***${b.mobile?.slice(-4) || '****'}`),
       odds: b.odds || 'x0',
       bet: Number(b.bet_amount) || 0,
       win: Number(b.win_amount) || 0,
-      isUser: false
-    }))
-  ].sort((a, b) => b.bet - a.bet);
+      isUser: isCurrentUser,
+      betNum: b.bet_area === 'bet2' ? 2 : 1
+    };
+  }).sort((a, b) => {
+    // User bets first, then by amount
+    if (a.isUser && !b.isUser) return -1;
+    if (!a.isUser && b.isUser) return 1;
+    return b.bet - a.bet;
+  });
   
   // Calculated stats from actual bets (with safety checks)
   const validBets = liveBets.filter(b => b && typeof b.bet === 'number');
@@ -378,8 +395,6 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     const amount = betNum === 1 ? betAmount1 : betAmount2;
     if (balance < amount) return;
     
-    // Bet placed
-    
     // Update server balance
     const newBalance = await updateServerBalance(amount, 'deduct');
     if (newBalance !== null) {
@@ -391,7 +406,11 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     if (betNum === 1) setBet1Active(true);
     else setBet2Active(true);
     
-    // Add user's bet to the table
+    // Send bet to server so all users can see it
+    const betArea = betNum === 1 ? 'bet1' : 'bet2';
+    await serverPlaceBet(amount, betArea);
+    
+    // Add user's bet to local table for immediate UI feedback
     const userBet = {
       username: `YOU (Bet ${betNum})`,
       odds: 'x0',
@@ -436,6 +455,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     
     // Cash out - win!
     const winnings = amount * multiplier;
+    const oddsStr = `x${multiplier.toFixed(2)}`;
     
     // Add winnings to server
     const newBalance = await updateServerBalance(winnings, 'add');
@@ -444,6 +464,9 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     } else {
       setBalance(prev => prev + winnings);
     }
+    
+    // Update cash out on server so all users can see
+    await serverCashOut(oddsStr, winnings);
     
     setWinPopup({ amount: winnings, mult: multiplier, visible: true });
     setTimeout(() => setWinPopup(prev => ({ ...prev, visible: false })), 2000);
@@ -454,7 +477,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
     // Update user's bet in table with win
     setLocalBets(prev => prev.map(b => {
       if (b.isUser && b.betNum === betNum) {
-        return { ...b, odds: `x${multiplier.toFixed(2)}`, win: Math.floor(winnings) };
+        return { ...b, odds: oddsStr, win: Math.floor(winnings) };
       }
       return b;
     }));
