@@ -342,7 +342,7 @@ const DragonTigerGame: React.FC<DragonTigerGameProps> = ({ onClose, balance: ext
   const getHistoryLetter = (w: string) => {
     if (w === 'dragon') return 'D';
     if (w === 'tiger') return 'T';
-    return 'T';
+    return 'Tie';
   };
 
   // Timer circle progress
