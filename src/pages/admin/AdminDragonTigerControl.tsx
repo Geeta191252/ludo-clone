@@ -37,11 +37,18 @@ const AdminDragonTigerControl = () => {
 
   const fetchGameState = async () => {
     try {
-      const response = await fetch(`/api/game-state.php?game_type=dragon-tiger`, {
+      // Try production API first, then fallback
+      const apiUrl = window.location.hostname.includes('rajasthanludo.com') 
+        ? 'https://rajasthanludo.com/api/game-state.php'
+        : '/api/game-state.php';
+      
+      const response = await fetch(`${apiUrl}?game_type=dragon-tiger&_t=${Date.now()}`, {
         headers: { 'Accept': 'application/json' },
         cache: 'no-store'
       });
       const data = await response.json();
+      
+      console.log('Dragon Tiger API Response:', data);
       
       if (data.status && data.state) {
         setGameState({
@@ -57,6 +64,8 @@ const AdminDragonTigerControl = () => {
         
         // Process live bets to get summary by area
         const liveBets = data.state.live_bets || [];
+        console.log('Live Bets:', liveBets);
+        
         const summary: BetSummary = {
           dragon: { total: 0, bets: [] },
           tiger: { total: 0, bets: [] },
@@ -65,22 +74,26 @@ const AdminDragonTigerControl = () => {
         
         liveBets.forEach((bet: BetInfo) => {
           const area = bet.bet_area?.toLowerCase();
+          const amount = Number(bet.bet_amount) || 0;
+          console.log('Processing bet:', bet.username, area, amount);
+          
           if (area === 'dragon') {
-            summary.dragon.total += Number(bet.bet_amount);
+            summary.dragon.total += amount;
             summary.dragon.bets.push(bet);
           } else if (area === 'tiger') {
-            summary.tiger.total += Number(bet.bet_amount);
+            summary.tiger.total += amount;
             summary.tiger.bets.push(bet);
           } else if (area === 'tie') {
-            summary.tie.total += Number(bet.bet_amount);
+            summary.tie.total += amount;
             summary.tie.bets.push(bet);
           }
         });
         
+        console.log('Bet Summary:', summary);
         setBetSummary(summary);
       }
     } catch (error) {
-      console.error('Fetch error:', error);
+      console.error('Dragon Tiger fetch error:', error);
     }
   };
 
