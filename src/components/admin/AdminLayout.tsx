@@ -33,12 +33,23 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Check token synchronously on mount
+  const token = localStorage.getItem("admin_token");
+  
   useEffect(() => {
-    const token = localStorage.getItem("admin_token");
     if (!token) {
-      navigate("/admin");
+      navigate("/admin", { replace: true });
     }
-  }, [navigate]);
+  }, [token, navigate]);
+
+  // Don't render anything while redirecting
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
