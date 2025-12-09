@@ -38,6 +38,7 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [enteredRoomCode, setEnteredRoomCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Check if current user is the creator (player1 = YOU) or joiner (player2 = YOU)
@@ -166,6 +167,7 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
     setShowResultModal(true);
     setUploadedImage(null);
     setImagePreview(null);
+    setEnteredRoomCode("");
   };
 
   // Submit result
@@ -174,6 +176,26 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
       toast({
         title: "Error",
         description: "Please upload screenshot to claim win",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (resultType === 'won' && !enteredRoomCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter room code from screenshot",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verify room code matches battle's room code
+    const battleRoomCode = currentRoomCode || roomCode || battle.roomCode;
+    if (resultType === 'won' && enteredRoomCode.trim() !== battleRoomCode) {
+      toast({
+        title: "Room Code Mismatch",
+        description: "The entered room code does not match the battle room code",
         variant: "destructive",
       });
       return;
@@ -288,6 +310,24 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
                 onChange={handleFileSelect}
                 className="hidden"
               />
+              
+              {/* Room Code Verification Input */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter Room Code from Screenshot
+                </label>
+                <Input
+                  type="text"
+                  value={enteredRoomCode}
+                  onChange={(e) => setEnteredRoomCode(e.target.value)}
+                  placeholder="Enter room code shown in screenshot"
+                  className="text-center text-lg font-bold tracking-widest"
+                  maxLength={10}
+                />
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  Enter the exact room code visible in your winning screenshot
+                </p>
+              </div>
             </>
           )}
           
