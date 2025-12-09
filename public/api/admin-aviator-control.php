@@ -12,8 +12,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'config.php';
 
-// Verify admin token
-function verifyAdminToken($conn) {
+$conn = getDBConnection();
+
+if (!$conn) {
+    echo json_encode(['status' => false, 'message' => 'Database connection failed']);
+    exit();
+}
+
+$authResult = verifyAdminTokenWithDebug($conn);
+if (!$authResult['valid']) {
+    echo json_encode(['status' => false, 'message' => 'Unauthorized', 'debug' => $authResult['reason']]);
+    exit();
+}
+
+function verifyAdminTokenWithDebug($conn) {
     $headers = getallheaders();
     
     // Handle case-insensitive header lookup
@@ -27,24 +39,30 @@ function verifyAdminToken($conn) {
         }
     }
     
-    if (empty($authHeader) || strpos($authHeader, 'Bearer ') !== 0) {
-        return false;
+    if (empty($authHeader)) {
+        return ['valid' => false, 'reason' => 'No authorization header'];
+    }
+    
+    if (strpos($authHeader, 'Bearer ') !== 0) {
+        return ['valid' => false, 'reason' => 'Invalid bearer format'];
     }
     
     $token = substr($authHeader, 7);
+    
+    if (empty($token) || $token === 'null' || $token === 'undefined') {
+        return ['valid' => false, 'reason' => 'Empty or invalid token'];
+    }
+    
     $stmt = $conn->prepare("SELECT * FROM admin_tokens WHERE token = ? AND expires_at > NOW()");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
     
-    return $result->num_rows > 0;
-}
-
-$conn = getDBConnection();
-
-if (!verifyAdminToken($conn)) {
-    echo json_encode(['status' => false, 'message' => 'Unauthorized']);
-    exit();
+    if ($result->num_rows > 0) {
+        return ['valid' => true, 'reason' => 'Token valid'];
+    }
+    
+    return ['valid' => false, 'reason' => 'Token not found or expired'];
 }
 
 $action = $_GET['action'] ?? '';
