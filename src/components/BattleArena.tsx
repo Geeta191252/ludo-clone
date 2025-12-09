@@ -387,12 +387,47 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     }
   };
 
-  const handleRoomCodeSent = (battleId: string, code: string) => {
-    setRunningBattles(prev => 
-      prev.map(b => b.id === battleId ? { ...b, roomCode: code } : b)
-    );
-    if (selectedBattle && selectedBattle.id === battleId) {
-      setSelectedBattle({ ...selectedBattle, roomCode: code });
+  const handleRoomCodeSent = async (battleId: string, code: string) => {
+    try {
+      // Save room code to database
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'set_room_code',
+          battleId: battleId,
+          creatorId: currentUserId,
+          roomCode: code
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Update local state
+        setRunningBattles(prev => 
+          prev.map(b => b.id === battleId ? { ...b, roomCode: code } : b)
+        );
+        if (selectedBattle && selectedBattle.id === battleId) {
+          setSelectedBattle({ ...selectedBattle, roomCode: code });
+        }
+        toast({
+          title: "Room Code Set!",
+          description: "Opponent can now see the room code",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to set room code",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error setting room code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set room code",
+        variant: "destructive",
+      });
     }
   };
 
@@ -402,6 +437,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
         battle={selectedBattle}
         onBack={() => setSelectedBattle(null)}
         onSendCode={(code) => handleRoomCodeSent(selectedBattle.id, code)}
+        apiBase={API_BASE}
       />
     );
   }

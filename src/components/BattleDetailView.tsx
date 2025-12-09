@@ -15,6 +15,7 @@ interface BattleDetailViewProps {
   };
   onBack: () => void;
   onSendCode?: (code: string) => void;
+  apiBase?: string;
 }
 
 // Generate random room code
@@ -22,16 +23,45 @@ const generateRoomCode = () => {
   return Math.floor(10000000 + Math.random() * 90000000).toString();
 };
 
-const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps) => {
+const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDetailViewProps) => {
   const { toast } = useToast();
   const [countdown, setCountdown] = useState(300);
   const [roomCode, setRoomCode] = useState("");
   const [generatedCode] = useState(() => generateRoomCode());
   const [codeSent, setCodeSent] = useState(false);
+  const [currentRoomCode, setCurrentRoomCode] = useState(battle.roomCode || "");
   
   // Check if current user is the creator (player1 = YOU) or joiner (player2 = YOU)
   const isCreator = battle.player1.id === "YOU";
   const isJoiner = battle.player2.id === "YOU";
+
+  // Poll for room code updates (for joiner/opponent)
+  useEffect(() => {
+    if (!isCreator && !currentRoomCode) {
+      const pollRoomCode = async () => {
+        try {
+          const response = await fetch(`${apiBase}/api/ludo-battles.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'get_battle',
+              battleId: battle.id
+            })
+          });
+          const data = await response.json();
+          if (data.success && data.battle.roomCode) {
+            setCurrentRoomCode(data.battle.roomCode);
+          }
+        } catch (error) {
+          console.error('Error polling room code:', error);
+        }
+      };
+
+      pollRoomCode();
+      const interval = setInterval(pollRoomCode, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isCreator, currentRoomCode, battle.id, apiBase]);
 
   const handleSetRoomCode = () => {
     if (!roomCode.trim()) {
@@ -141,14 +171,14 @@ const BattleDetailView = ({ battle, onBack, onSendCode }: BattleDetailViewProps)
       {isJoiner ? (
         <>
           {/* Room Code Display - only show after creator sends code */}
-          {battle.roomCode ? (
+          {currentRoomCode ? (
             <div className="mx-4 mt-4 bg-gray-200 rounded-xl p-4 flex items-center justify-between">
               <span className="font-bold text-gray-800 text-lg">
-                Room Code {battle.roomCode}
+                Room Code {currentRoomCode}
               </span>
               <Button 
                 onClick={() => {
-                  navigator.clipboard.writeText(battle.roomCode!);
+                  navigator.clipboard.writeText(currentRoomCode);
                   toast({ title: "Copied!", description: "Room code copied" });
                 }}
                 className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4"
