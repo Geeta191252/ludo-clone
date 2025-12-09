@@ -30,6 +30,7 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
     entry_fee INT NOT NULL,
     prize INT NOT NULL,
     status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open',
+    room_code VARCHAR(20) DEFAULT NULL,
     winner_id VARCHAR(50) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -37,6 +38,9 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
 
 // Alter table to add 'requested' status if it doesn't exist
 $conn->query("ALTER TABLE ludo_battles MODIFY COLUMN status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open'");
+
+// Add room_code column if it doesn't exist
+$conn->query("ALTER TABLE ludo_battles ADD COLUMN room_code VARCHAR(20) DEFAULT NULL");
 
 if (!$tableCreated) {
     echo json_encode(['success' => false, 'message' => 'Table creation failed: ' . $conn->error]);
@@ -91,7 +95,8 @@ if ($method === 'GET') {
                 'player1' => ['id' => $row['creator_id'], 'name' => $row['creator_name']],
                 'player2' => ['id' => $row['opponent_id'], 'name' => $row['opponent_name']],
                 'entryFee' => (int)$row['entry_fee'],
-                'prize' => (int)$row['prize']
+                'prize' => (int)$row['prize'],
+                'roomCode' => $row['room_code']
             ];
         }
     }
@@ -193,6 +198,44 @@ if ($method === 'POST') {
                 echo json_encode(['success' => true]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Cannot cancel battle']);
+            }
+            break;
+            
+        case 'set_room_code':
+            // Creator sets room code - save to database
+            $battleId = $conn->real_escape_string($data['battleId'] ?? '');
+            $creatorId = $conn->real_escape_string($data['creatorId'] ?? '');
+            $roomCode = $conn->real_escape_string($data['roomCode'] ?? '');
+            
+            $sql = "UPDATE ludo_battles SET room_code = '$roomCode' WHERE id = '$battleId' AND creator_id = '$creatorId' AND status = 'running'";
+            
+            if ($conn->query($sql) && $conn->affected_rows > 0) {
+                echo json_encode(['success' => true, 'message' => 'Room code set', 'roomCode' => $roomCode]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Cannot set room code']);
+            }
+            break;
+            
+        case 'get_battle':
+            // Get single battle details
+            $battleId = $conn->real_escape_string($data['battleId'] ?? '');
+            
+            $result = $conn->query("SELECT * FROM ludo_battles WHERE id = '$battleId'");
+            if ($result && $row = $result->fetch_assoc()) {
+                echo json_encode([
+                    'success' => true,
+                    'battle' => [
+                        'id' => $row['id'],
+                        'player1' => ['id' => $row['creator_id'], 'name' => $row['creator_name']],
+                        'player2' => ['id' => $row['opponent_id'], 'name' => $row['opponent_name']],
+                        'entryFee' => (int)$row['entry_fee'],
+                        'prize' => (int)$row['prize'],
+                        'roomCode' => $row['room_code'],
+                        'status' => $row['status']
+                    ]
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Battle not found']);
             }
             break;
             
