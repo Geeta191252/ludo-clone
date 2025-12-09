@@ -214,16 +214,74 @@ if ($method === 'POST') {
             break;
             
         case 'accept':
-            // Creator clicks Start - move to running
+            // Creator clicks Start - move to running and deduct balance from both players
             $battleId = $conn->real_escape_string($data['battleId'] ?? '');
             $creatorId = $conn->real_escape_string($data['creatorId'] ?? '');
             
-            $sql = "UPDATE ludo_battles SET status = 'running' WHERE id = '$battleId' AND creator_id = '$creatorId' AND status = 'requested'";
+            // Get battle details first
+            $battleCheck = $conn->query("SELECT * FROM ludo_battles WHERE id = '$battleId' AND creator_id = '$creatorId' AND status = 'requested'");
+            if (!$battleCheck || !$battleRow = $battleCheck->fetch_assoc()) {
+                echo json_encode(['success' => false, 'message' => 'Battle not found or already started']);
+                break;
+            }
             
-            if ($conn->query($sql) && $conn->affected_rows > 0) {
-                echo json_encode(['success' => true, 'message' => 'Battle started']);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Cannot start battle']);
+            $entryFee = (int)$battleRow['entry_fee'];
+            $opponentId = $battleRow['opponent_id'];
+            
+            // Check creator balance
+            $creatorBalance = $conn->query("SELECT wallet_balance, winning_balance FROM users WHERE mobile = '$creatorId'");
+            if ($creatorBalance && $creatorRow = $creatorBalance->fetch_assoc()) {
+                $totalCreatorBalance = floatval($creatorRow['wallet_balance']) + floatval($creatorRow['winning_balance']);
+                if ($totalCreatorBalance < $entryFee) {
+                    echo json_encode(['success' => false, 'message' => 'Creator has insufficient balance']);
+                    break;
+                }
+            }
+            
+            // Check opponent balance
+            $opponentBalance = $conn->query("SELECT wallet_balance, winning_balance FROM users WHERE mobile = '$opponentId'");
+            if ($opponentBalance && $opponentRow = $opponentBalance->fetch_assoc()) {
+                $totalOpponentBalance = floatval($opponentRow['wallet_balance']) + floatval($opponentRow['winning_balance']);
+                if ($totalOpponentBalance < $entryFee) {
+                    echo json_encode(['success' => false, 'message' => 'Opponent has insufficient balance']);
+                    break;
+                }
+            }
+            
+            // Start transaction
+            $conn->begin_transaction();
+            
+            try {
+                // Deduct from creator - first from wallet, then from winning
+                $creatorWallet = floatval($creatorRow['wallet_balance']);
+                $creatorWinning = floatval($creatorRow['winning_balance']);
+                
+                if ($creatorWallet >= $entryFee) {
+                    $conn->query("UPDATE users SET wallet_balance = wallet_balance - $entryFee WHERE mobile = '$creatorId'");
+                } else {
+                    $fromWinning = $entryFee - $creatorWallet;
+                    $conn->query("UPDATE users SET wallet_balance = 0, winning_balance = winning_balance - $fromWinning WHERE mobile = '$creatorId'");
+                }
+                
+                // Deduct from opponent - first from wallet, then from winning
+                $opponentWallet = floatval($opponentRow['wallet_balance']);
+                $opponentWinning = floatval($opponentRow['winning_balance']);
+                
+                if ($opponentWallet >= $entryFee) {
+                    $conn->query("UPDATE users SET wallet_balance = wallet_balance - $entryFee WHERE mobile = '$opponentId'");
+                } else {
+                    $fromWinning = $entryFee - $opponentWallet;
+                    $conn->query("UPDATE users SET wallet_balance = 0, winning_balance = winning_balance - $fromWinning WHERE mobile = '$opponentId'");
+                }
+                
+                // Update battle status to running
+                $conn->query("UPDATE ludo_battles SET status = 'running' WHERE id = '$battleId'");
+                
+                $conn->commit();
+                echo json_encode(['success' => true, 'message' => 'Battle started! Entry fees deducted from both players.']);
+            } catch (Exception $e) {
+                $conn->rollback();
+                echo json_encode(['success' => false, 'message' => 'Failed to process payment']);
             }
             break;
             
