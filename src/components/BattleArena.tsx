@@ -112,10 +112,8 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
   const currentUserId = getCurrentUserId();
   const currentUserName = getCurrentUserName();
 
-  // API Base URL for production
-  const API_BASE = window.location.hostname === 'localhost' 
-    ? 'https://rajasthanludo.com' 
-    : '';
+  // API Base URL - always use the production domain for PHP APIs
+  const API_BASE = 'https://rajasthanludo.com';
 
   // Fetch battles from server
   const fetchBattles = useCallback(async () => {
