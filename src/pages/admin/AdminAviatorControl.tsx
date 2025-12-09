@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { Plane, Zap, Target, Play, Pause, RotateCcw, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react";
+import { Plane, Zap, Target, Play, Pause, RotateCcw, TrendingUp, AlertTriangle, RefreshCw, Plus, Trash2, List } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { toast } from "@/hooks/use-toast";
 
 const API_BASE = "https://rajasthanludo.com/api";
+
+interface CrashPattern {
+  id: number;
+  value: number;
+  position: number;
+}
 
 const AdminAviatorControl = () => {
   const [gameState, setGameState] = useState({
@@ -19,6 +25,13 @@ const AdminAviatorControl = () => {
   const [targetCrash, setTargetCrash] = useState("");
   const [autoMode, setAutoMode] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Crash pattern states
+  const [crashPatterns, setCrashPatterns] = useState<CrashPattern[]>([]);
+  const [newPatternValue, setNewPatternValue] = useState("");
+  const [bulkPatternValues, setBulkPatternValues] = useState("");
+  const [patternLoading, setPatternLoading] = useState(false);
+  const [showPatternManager, setShowPatternManager] = useState(false);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('admin_token');
@@ -63,11 +76,131 @@ const AdminAviatorControl = () => {
 
   useEffect(() => {
     fetchGameState();
+    fetchCrashPatterns();
     pollRef.current = setInterval(fetchGameState, 2000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
+
+  // Crash Pattern Management Functions
+  const fetchCrashPatterns = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/admin-crash-patterns.php?action=get_patterns`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      if (data.status) {
+        setCrashPatterns(data.patterns);
+      }
+    } catch (error) {
+      console.error('Failed to fetch patterns:', error);
+    }
+  };
+
+  const handleAddPattern = async () => {
+    const value = parseFloat(newPatternValue);
+    if (!value || value < 1.01) {
+      toast({ title: "Error", description: "Value must be at least 1.01", variant: "destructive" });
+      return;
+    }
+
+    setPatternLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-crash-patterns.php?action=add_pattern`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ value })
+      });
+      const data = await response.json();
+      if (data.status) {
+        toast({ title: "✅ Pattern Added", description: `${value}x added to pattern` });
+        setNewPatternValue("");
+        fetchCrashPatterns();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to add pattern", variant: "destructive" });
+    }
+    setPatternLoading(false);
+  };
+
+  const handleAddBulkPatterns = async () => {
+    // Parse comma/space separated values
+    const values = bulkPatternValues
+      .split(/[,\s]+/)
+      .map(v => parseFloat(v.trim()))
+      .filter(v => !isNaN(v) && v >= 1.01);
+
+    if (values.length === 0) {
+      toast({ title: "Error", description: "No valid values found", variant: "destructive" });
+      return;
+    }
+
+    setPatternLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-crash-patterns.php?action=add_multiple`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ values })
+      });
+      const data = await response.json();
+      if (data.status) {
+        toast({ title: "✅ Patterns Added", description: `${data.added} patterns added` });
+        setBulkPatternValues("");
+        fetchCrashPatterns();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to add patterns", variant: "destructive" });
+    }
+    setPatternLoading(false);
+  };
+
+  const handleDeletePattern = async (id: number) => {
+    setPatternLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-crash-patterns.php?action=delete_pattern`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ id })
+      });
+      const data = await response.json();
+      if (data.status) {
+        toast({ title: "🗑️ Pattern Deleted" });
+        fetchCrashPatterns();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete pattern", variant: "destructive" });
+    }
+    setPatternLoading(false);
+  };
+
+  const handleClearAllPatterns = async () => {
+    if (!confirm("Are you sure you want to clear ALL patterns?")) return;
+
+    setPatternLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/admin-crash-patterns.php?action=clear_all`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      if (data.status) {
+        toast({ title: "🗑️ All Patterns Cleared" });
+        fetchCrashPatterns();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to clear patterns", variant: "destructive" });
+    }
+    setPatternLoading(false);
+  };
 
   const handleCrashNow = async () => {
     if (gameState.phase !== 'flying') {
@@ -424,6 +557,138 @@ const AdminAviatorControl = () => {
               <span className="text-slate-500 text-xs">No history yet</span>
             )}
           </div>
+        </div>
+
+        {/* Crash Pattern Manager */}
+        <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/30 border border-purple-700 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white flex items-center gap-2 text-sm font-semibold">
+              <List className="w-4 h-4 text-purple-400" />
+              Crash Pattern Manager ({crashPatterns.length} patterns)
+            </h3>
+            <button
+              onClick={() => setShowPatternManager(!showPatternManager)}
+              className="text-purple-400 hover:text-purple-300 text-xs underline"
+            >
+              {showPatternManager ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          {showPatternManager && (
+            <div className="space-y-4">
+              {/* Add Single Pattern */}
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.01"
+                  placeholder="e.g., 1.45"
+                  value={newPatternValue}
+                  onChange={(e) => setNewPatternValue(e.target.value)}
+                  className="flex-1 bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-3 py-2"
+                />
+                <button
+                  onClick={handleAddPattern}
+                  disabled={patternLoading || !newPatternValue}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add
+                </button>
+              </div>
+
+              {/* Quick Add Buttons */}
+              <div className="flex gap-1 flex-wrap">
+                {[1.1, 1.2, 1.3, 1.4, 1.5, 2.0, 2.5, 3.0, 5.0].map((val) => (
+                  <button
+                    key={val}
+                    onClick={async () => {
+                      setNewPatternValue(val.toString());
+                      const response = await fetch(`${API_BASE}/admin-crash-patterns.php?action=add_pattern`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ value: val })
+                      });
+                      const data = await response.json();
+                      if (data.status) {
+                        toast({ title: "✅ Added", description: `${val}x` });
+                        fetchCrashPatterns();
+                      }
+                      setNewPatternValue("");
+                    }}
+                    disabled={patternLoading}
+                    className="border border-purple-600 text-purple-400 hover:bg-purple-600/20 disabled:opacity-50 px-2 py-1 rounded text-xs"
+                  >
+                    +{val}x
+                  </button>
+                ))}
+              </div>
+
+              {/* Bulk Add */}
+              <div className="space-y-2">
+                <p className="text-slate-400 text-xs">Bulk add (comma/space separated):</p>
+                <textarea
+                  placeholder="1.2, 1.5, 2.0, 1.3, 1.1, 2.5, 1.4..."
+                  value={bulkPatternValues}
+                  onChange={(e) => setBulkPatternValues(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-3 py-2 h-20 resize-none"
+                />
+                <button
+                  onClick={handleAddBulkPatterns}
+                  disabled={patternLoading || !bulkPatternValues}
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm"
+                >
+                  {patternLoading ? 'Adding...' : 'Add All Patterns'}
+                </button>
+              </div>
+
+              {/* Current Pattern Display */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <p className="text-slate-400 text-xs">Current Pattern Sequence:</p>
+                  {crashPatterns.length > 0 && (
+                    <button
+                      onClick={handleClearAllPatterns}
+                      disabled={patternLoading}
+                      className="text-red-400 hover:text-red-300 text-xs flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Clear All
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-1 flex-wrap max-h-40 overflow-y-auto bg-slate-900/50 rounded-lg p-2">
+                  {crashPatterns.length > 0 ? (
+                    crashPatterns.map((pattern, index) => (
+                      <span
+                        key={pattern.id}
+                        className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
+                          pattern.value >= 3 ? 'bg-green-500/20 text-green-400' :
+                          pattern.value >= 2 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}
+                      >
+                        <span className="text-slate-500 text-[10px]">{index + 1}.</span>
+                        {pattern.value.toFixed(2)}x
+                        <button
+                          onClick={() => handleDeletePattern(pattern.id)}
+                          className="hover:text-white ml-1"
+                          title="Delete"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-500 text-xs">No patterns set - using default pattern</span>
+                  )}
+                </div>
+                <p className="text-slate-500 text-[10px]">
+                  Current round #{gameState.round_number} → Pattern position: {crashPatterns.length > 0 ? ((gameState.round_number - 1) % crashPatterns.length) + 1 : 'N/A'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>
