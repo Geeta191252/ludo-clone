@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, Info, Copy } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Info, Copy, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BattleDetailViewProps {
   battle: {
@@ -30,6 +31,14 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
   const [generatedCode] = useState(() => generateRoomCode());
   const [codeSent, setCodeSent] = useState(false);
   const [currentRoomCode, setCurrentRoomCode] = useState(battle.roomCode || "");
+  
+  // Result submission states
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultType, setResultType] = useState<'won' | 'lost' | 'cancel' | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Check if current user is the creator (player1 = YOU) or joiner (player2 = YOU)
   const isCreator = battle.player1.id === "YOU";
@@ -104,7 +113,186 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
     });
   };
 
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      setUploadedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle result button click
+  const handleResultClick = (type: 'won' | 'lost' | 'cancel') => {
+    setResultType(type);
+    setShowResultModal(true);
+    setUploadedImage(null);
+    setImagePreview(null);
+  };
+
+  // Submit result
+  const handleSubmitResult = async () => {
+    if (resultType === 'won' && !uploadedImage) {
+      toast({
+        title: "Error",
+        description: "Please upload screenshot to claim win",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Convert image to base64 for submission
+      let imageData = null;
+      if (uploadedImage && imagePreview) {
+        imageData = imagePreview;
+      }
+
+      const userId = localStorage.getItem('userId') || (isCreator ? battle.player1.id : battle.player2.id);
+      const mobile = localStorage.getItem('userMobile') || '';
+      
+      const response = await fetch(`${apiBase}/api/ludo-battles.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submit_result',
+          battleId: battle.id,
+          oderId: userId,
+          odername: isCreator ? battle.player1.name : battle.player2.name,
+          result: resultType,
+          screenshot: imageData,
+          mobile: mobile,
+          entryFee: battle.entryFee
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: data.winner ? "🎉 You Won!" : "Result Submitted",
+          description: data.message,
+        });
+        setShowResultModal(false);
+        if (data.winner) {
+          // Refresh page or navigate to history
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to submit result",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Submit result error:', error);
+      toast({
+        title: "Error",
+        description: "Server connection failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
+    <>
+    {/* Result Upload Modal */}
+    <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
+      <DialogContent className="max-w-md mx-auto bg-white">
+        <DialogHeader>
+          <DialogTitle className="text-center text-blue-600 text-xl">
+            {resultType === 'won' ? 'Upload Result' : resultType === 'lost' ? 'Confirm Loss' : 'Cancel Match'}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {resultType === 'won' && (
+            <>
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-green-500 transition-colors"
+              >
+                {imagePreview ? (
+                  <div className="relative">
+                    <img src={imagePreview} alt="Screenshot" className="max-h-48 mx-auto rounded" />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadedImage(null);
+                        setImagePreview(null);
+                      }}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="bg-green-500 text-white px-6 py-3 rounded-lg flex items-center gap-2">
+                      <Upload className="w-5 h-5" />
+                      UPLOAD FILES
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">Upload game screenshot with winning code</p>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </>
+          )}
+          
+          {resultType === 'lost' && (
+            <div className="text-center py-4">
+              <p className="text-gray-700">Are you sure you want to mark this match as lost?</p>
+              <p className="text-sm text-red-500 mt-2">This action cannot be undone.</p>
+            </div>
+          )}
+          
+          {resultType === 'cancel' && (
+            <div className="text-center py-4">
+              <p className="text-gray-700">Are you sure you want to cancel this match?</p>
+              <p className="text-sm text-orange-500 mt-2">Both players will get their entry fee back.</p>
+            </div>
+          )}
+          
+          <Button
+            onClick={handleSubmitResult}
+            disabled={isSubmitting || (resultType === 'won' && !uploadedImage)}
+            className={`w-full py-4 text-lg font-bold ${
+              resultType === 'won' ? 'bg-green-500 hover:bg-green-600' :
+              resultType === 'lost' ? 'bg-red-500 hover:bg-red-600' :
+              'bg-gray-500 hover:bg-gray-600'
+            } text-white`}
+          >
+            {isSubmitting ? 'Submitting...' : 'POST SUBMIT'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     <div className="min-h-screen bg-yellow-100">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
@@ -282,15 +470,24 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
               After completion of your game, select the status of the game and post your screenshot below.
             </p>
             <div className="flex gap-2">
-              <button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-center">
+              <button 
+                onClick={() => handleResultClick('won')}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-center"
+              >
                 <div className="text-xl">I</div>
                 <div className="text-lg">WON</div>
               </button>
-              <button className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg text-center">
+              <button 
+                onClick={() => handleResultClick('lost')}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg text-center"
+              >
                 <div className="text-xl">I</div>
                 <div className="text-lg">LOST</div>
               </button>
-              <button className="flex-1 bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-lg text-center border-2 border-gray-900">
+              <button 
+                onClick={() => handleResultClick('cancel')}
+                className="flex-1 bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-lg text-center border-2 border-gray-900"
+              >
                 <div className="text-lg">CANCEL</div>
               </button>
             </div>
@@ -360,15 +557,24 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
               After completion of your game, select the status of the game and post your screenshot below.
             </p>
             <div className="flex gap-2">
-              <button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-center">
+              <button 
+                onClick={() => handleResultClick('won')}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-center"
+              >
                 <div className="text-xl">I</div>
                 <div className="text-lg">WON</div>
               </button>
-              <button className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg text-center">
+              <button 
+                onClick={() => handleResultClick('lost')}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-lg text-center"
+              >
                 <div className="text-xl">I</div>
                 <div className="text-lg">LOST</div>
               </button>
-              <button className="flex-1 bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-lg text-center border-2 border-gray-900">
+              <button 
+                onClick={() => handleResultClick('cancel')}
+                className="flex-1 bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-lg text-center border-2 border-gray-900"
+              >
                 <div className="text-lg">CANCEL</div>
               </button>
             </div>
@@ -405,6 +611,7 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
         }
       `}</style>
     </div>
+    </>
   );
 };
 
