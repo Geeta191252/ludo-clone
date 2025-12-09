@@ -1,4 +1,8 @@
 <?php
+// Suppress PHP errors from appearing in output
+error_reporting(0);
+ini_set('display_errors', 0);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -6,6 +10,12 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
+    exit();
+}
+
+// Include config with error handling
+if (!file_exists('config.php')) {
+    echo json_encode(['success' => false, 'message' => 'Config file not found']);
     exit();
 }
 
