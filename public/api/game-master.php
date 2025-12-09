@@ -107,10 +107,34 @@ if ($action === 'tick') {
                     $conn->query("UPDATE game_state SET target_crash = NULL WHERE game_type = 'aviator'");
                 }
             } else if (!$adminControl) {
-                // Auto mode - normal crash chance
-                $crashChance = pow(($multiplier - 1), 1.5) * 0.015;
-                $randomValue = mt_rand(1, 1000) / 1000;
-                $shouldCrash = $randomValue < $crashChance || $multiplier > 15;
+                // Auto mode - predefined crash pattern for better house edge
+                $crashPattern = [
+                    1.52, 1.31, 1.45, 1.23, 1.41, 1.35, // 6 low crashes
+                    2.15, // one medium
+                    1.48, 1.22, 1.37, 1.19, 1.43, // 5 low
+                    2.03, // medium
+                    1.11, 1.54, 1.28, 1.42, // 4 low
+                    3.12, // one higher
+                    1.17, 1.53, 1.24, 1.13, 1.47, // 5 low
+                    2.08, // medium
+                    1.62, 2.31, 1.14, 2.28, 1.19, // mixed
+                    1.33, 1.41, 1.26, 1.51, 1.18, // 5 low
+                    2.45, // medium
+                    1.21, 1.38, 1.44, 1.15, 1.49, // 5 low
+                    1.87, // slightly higher
+                    1.29, 1.36, 1.22, 1.41, // 4 low
+                    2.67, // medium-high
+                    1.16, 1.32, 1.48, 1.25, 1.39 // 5 low
+                ];
+                
+                $patternIndex = ($roundNumber - 1) % count($crashPattern);
+                $targetCrashAuto = $crashPattern[$patternIndex];
+                
+                // Add small random variation (-0.05 to +0.05) for unpredictability
+                $variation = (mt_rand(-5, 5) / 100);
+                $targetCrashAuto = max(1.01, $targetCrashAuto + $variation);
+                
+                $shouldCrash = $multiplier >= $targetCrashAuto;
             }
             // If admin control is on but no target set, plane keeps flying
             
