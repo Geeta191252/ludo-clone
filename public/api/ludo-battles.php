@@ -1,7 +1,8 @@
 <?php
-// Suppress PHP errors from appearing in output
-error_reporting(0);
+// Enable detailed error logging to file but not to output
+error_reporting(E_ALL);
 ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -28,34 +29,31 @@ function getLudoDBConnection(&$error_message) {
     
     // Check if constants are defined
     if (!defined('DB_HOST')) {
-        $error_message = 'DB_HOST not defined in config.php';
+        $error_message = 'DB_HOST not defined';
         return null;
     }
     if (!defined('DB_USER')) {
-        $error_message = 'DB_USER not defined in config.php';
+        $error_message = 'DB_USER not defined';
         return null;
     }
     if (!defined('DB_PASS')) {
-        $error_message = 'DB_PASS not defined in config.php';
+        $error_message = 'DB_PASS not defined';
         return null;
     }
     if (!defined('DB_NAME')) {
-        $error_message = 'DB_NAME not defined in config.php';
+        $error_message = 'DB_NAME not defined';
         return null;
     }
     
-    // Check for placeholder values
-    if (DB_USER === 'your_db_username' || DB_NAME === 'your_db_name') {
-        $error_message = 'Database credentials are still placeholder values. Please update config.php on Hostinger with actual database credentials';
+    // Create connection - allow errors to be captured
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+    
+    if ($conn->connect_errno) {
+        $error_message = 'MySQL Error (' . $conn->connect_errno . '): ' . $conn->connect_error;
         return null;
     }
     
-    // Create connection with error suppression
-    $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-    if ($conn->connect_error) {
-        $error_message = 'MySQL connection error: ' . $conn->connect_error;
-        return null;
-    }
     $conn->set_charset('utf8mb4');
     return $conn;
 }
@@ -65,11 +63,11 @@ $db_error = '';
 $conn = getLudoDBConnection($db_error);
 
 if (!$conn) {
-    echo json_encode(['success' => false, 'message' => $db_error ?: 'Database connection failed']);
+    echo json_encode(['success' => false, 'message' => $db_error ?: 'Database connection failed', 'debug' => ['host' => defined('DB_HOST') ? DB_HOST : 'undefined', 'user' => defined('DB_USER') ? DB_USER : 'undefined', 'db' => defined('DB_NAME') ? DB_NAME : 'undefined']]);
     exit();
 }
 
-// Create battles table if not exists (with requested status for play requests)
+// Create battles table if not exists
 $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
     id VARCHAR(50) PRIMARY KEY,
     creator_id VARCHAR(50) NOT NULL,
@@ -85,11 +83,9 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )");
 
-// Alter table to add 'requested' status if it doesn't exist
-$conn->query("ALTER TABLE ludo_battles MODIFY COLUMN status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open'");
-
-// Add room_code column if it doesn't exist
-$conn->query("ALTER TABLE ludo_battles ADD COLUMN room_code VARCHAR(20) DEFAULT NULL");
+// Alter table to add columns if needed
+@$conn->query("ALTER TABLE ludo_battles MODIFY COLUMN status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open'");
+@$conn->query("ALTER TABLE ludo_battles ADD COLUMN room_code VARCHAR(20) DEFAULT NULL");
 
 if (!$tableCreated) {
     echo json_encode(['success' => false, 'message' => 'Table creation failed: ' . $conn->error]);
