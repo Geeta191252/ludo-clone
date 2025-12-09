@@ -20,7 +20,7 @@ if (!$conn) {
     exit();
 }
 
-// Create battles table if not exists
+// Create battles table if not exists (with requested status for play requests)
 $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
     id VARCHAR(50) PRIMARY KEY,
     creator_id VARCHAR(50) NOT NULL,
@@ -29,11 +29,14 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
     opponent_name VARCHAR(100) DEFAULT NULL,
     entry_fee INT NOT NULL,
     prize INT NOT NULL,
-    status ENUM('open', 'running', 'completed', 'cancelled') DEFAULT 'open',
+    status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open',
     winner_id VARCHAR(50) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )");
+
+// Alter table to add 'requested' status if it doesn't exist
+$conn->query("ALTER TABLE ludo_battles MODIFY COLUMN status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open'");
 
 if (!$tableCreated) {
     echo json_encode(['success' => false, 'message' => 'Table creation failed: ' . $conn->error]);
@@ -43,10 +46,12 @@ if (!$tableCreated) {
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    // Get all open and running battles
+    // Get all open, requested and running battles
     $openBattles = [];
+    $requestedBattles = [];
     $runningBattles = [];
     
+    // Open battles (waiting for someone to click Play)
     $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'open' ORDER BY created_at DESC LIMIT 20");
     if ($result) {
         while ($row = $result->fetch_assoc()) {
@@ -61,6 +66,23 @@ if ($method === 'GET') {
         }
     }
     
+    // Requested battles (someone clicked Play, waiting for creator to Start/Reject)
+    $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'requested' ORDER BY updated_at DESC LIMIT 20");
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $requestedBattles[] = [
+                'id' => $row['id'],
+                'creatorId' => $row['creator_id'],
+                'creatorName' => $row['creator_name'],
+                'opponentId' => $row['opponent_id'],
+                'opponentName' => $row['opponent_name'],
+                'entryFee' => (int)$row['entry_fee'],
+                'prize' => (int)$row['prize']
+            ];
+        }
+    }
+    
+    // Running battles
     $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'running' ORDER BY updated_at DESC LIMIT 20");
     if ($result) {
         while ($row = $result->fetch_assoc()) {
@@ -77,6 +99,7 @@ if ($method === 'GET') {
     echo json_encode([
         'success' => true,
         'openBattles' => $openBattles,
+        'requestedBattles' => $requestedBattles,
         'runningBattles' => $runningBattles
     ]);
     exit();
@@ -118,16 +141,45 @@ if ($method === 'POST') {
             break;
             
         case 'join':
+            // Someone clicked Play - move to requested status
             $battleId = $conn->real_escape_string($data['battleId'] ?? '');
             $opponentId = $conn->real_escape_string($data['opponentId'] ?? '');
             $opponentName = $conn->real_escape_string($data['opponentName'] ?? '');
             
-            $sql = "UPDATE ludo_battles SET opponent_id = '$opponentId', opponent_name = '$opponentName', status = 'running' WHERE id = '$battleId' AND status = 'open'";
+            $sql = "UPDATE ludo_battles SET opponent_id = '$opponentId', opponent_name = '$opponentName', status = 'requested' WHERE id = '$battleId' AND status = 'open'";
             
             if ($conn->query($sql) && $conn->affected_rows > 0) {
-                echo json_encode(['success' => true]);
+                echo json_encode(['success' => true, 'message' => 'Request sent to creator']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Battle not available']);
+            }
+            break;
+            
+        case 'accept':
+            // Creator clicks Start - move to running
+            $battleId = $conn->real_escape_string($data['battleId'] ?? '');
+            $creatorId = $conn->real_escape_string($data['creatorId'] ?? '');
+            
+            $sql = "UPDATE ludo_battles SET status = 'running' WHERE id = '$battleId' AND creator_id = '$creatorId' AND status = 'requested'";
+            
+            if ($conn->query($sql) && $conn->affected_rows > 0) {
+                echo json_encode(['success' => true, 'message' => 'Battle started']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Cannot start battle']);
+            }
+            break;
+            
+        case 'reject':
+            // Creator clicks Reject - reset to open and clear opponent
+            $battleId = $conn->real_escape_string($data['battleId'] ?? '');
+            $creatorId = $conn->real_escape_string($data['creatorId'] ?? '');
+            
+            $sql = "UPDATE ludo_battles SET opponent_id = NULL, opponent_name = NULL, status = 'open' WHERE id = '$battleId' AND creator_id = '$creatorId' AND status = 'requested'";
+            
+            if ($conn->query($sql) && $conn->affected_rows > 0) {
+                echo json_encode(['success' => true, 'message' => 'Request rejected']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Cannot reject request']);
             }
             break;
             

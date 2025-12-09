@@ -14,6 +14,16 @@ interface OpenBattle {
   prize: number;
 }
 
+interface RequestedBattle {
+  id: string;
+  creatorId: string;
+  creatorName: string;
+  opponentId: string;
+  opponentName: string;
+  entryFee: number;
+  prize: number;
+}
+
 interface RunningBattle {
   id: string;
   player1: { id: string; name: string };
@@ -96,6 +106,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedBattle, setSelectedBattle] = useState<RunningBattle | null>(null);
   const [openBattles, setOpenBattles] = useState<OpenBattle[]>([]);
+  const [requestedBattles, setRequestedBattles] = useState<RequestedBattle[]>([]);
   const [runningBattles, setRunningBattles] = useState<RunningBattle[]>([]);
   
   const currentUserId = getCurrentUserId();
@@ -121,6 +132,15 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
           creatorName: b.creatorId === currentUserId ? 'YOU' : b.creatorName
         }));
         
+        // Requested battles - someone clicked Play
+        const requestedWithMarker = (data.requestedBattles || []).map((b: RequestedBattle) => ({
+          ...b,
+          creatorId: b.creatorId === currentUserId ? 'YOU' : b.creatorId,
+          creatorName: b.creatorId === currentUserId ? 'YOU' : b.creatorName,
+          opponentId: b.opponentId === currentUserId ? 'YOU' : b.opponentId,
+          opponentName: b.opponentId === currentUserId ? 'YOU' : b.opponentName
+        }));
+        
         const runningWithMarker = data.runningBattles.map((b: RunningBattle) => ({
           ...b,
           player1: {
@@ -136,6 +156,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
         }));
         
         setOpenBattles(openWithMarker);
+        setRequestedBattles(requestedWithMarker);
         setRunningBattles(runningWithMarker);
       }
     } catch (error) {
@@ -251,12 +272,62 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     }
   };
 
-  // Creator clicks Start - move to running
-  const handleStartBattle = (battle: OpenBattle) => {
-    toast({
-      title: "Waiting for opponent",
-      description: "Your battle will start when someone joins",
-    });
+  // Creator clicks Start - accept the request and move to running
+  const handleAcceptBattle = async (battle: RequestedBattle) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'accept',
+          battleId: battle.id,
+          creatorId: currentUserId
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "Battle Started!",
+          description: `Battle with ${battle.opponentName} is now running!`,
+        });
+        fetchBattles();
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to start battle",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error accepting battle:', error);
+    }
+  };
+
+  // Creator clicks Reject - reject the request
+  const handleRejectBattle = async (battle: RequestedBattle) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject',
+          battleId: battle.id,
+          creatorId: currentUserId
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "Request Rejected",
+          description: "You rejected this challenge request",
+        });
+        fetchBattles();
+      }
+    } catch (error) {
+      console.error('Error rejecting battle:', error);
+    }
   };
 
   const handlePlayBattle = async (battle: OpenBattle) => {
@@ -270,7 +341,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     }
 
     try {
-      // Join the battle
+      // Send play request to creator
       const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -284,17 +355,9 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
       
       const data = await response.json();
       if (data.success) {
-        // Deduct entry fee
-        const newBalance = await updateServerBalance(battle.entryFee, 'deduct');
-        if (newBalance !== null) {
-          onBalanceChange?.(newBalance);
-        } else {
-          onBalanceChange?.(balance - battle.entryFee);
-        }
-        
         toast({
-          title: "Battle Joined!",
-          description: `₹${battle.entryFee} deducted. Battle is now running!`,
+          title: "Request Sent!",
+          description: "Waiting for creator to accept...",
         });
         fetchBattles();
       } else {
@@ -405,28 +468,14 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                     <Trash2 className="w-5 h-5 text-red-500" />
                   </button>
                 ) : (
-                  /* Other users see Start and Reject buttons */
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 rounded-full"
-                      onClick={() => handlePlayBattle(battle)}
-                    >
-                      Start
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-full"
-                      onClick={() => {
-                        toast({
-                          title: "Challenge Rejected",
-                          description: "You rejected this challenge",
-                        });
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  </div>
+                  /* Other users see Play button */
+                  <Button 
+                    size="sm" 
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-6 rounded-full"
+                    onClick={() => handlePlayBattle(battle)}
+                  >
+                    Play
+                  </Button>
                 )}
               </div>
               
@@ -465,6 +514,81 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
           ))}
         </div>
       </div>
+
+      {/* Requested Battles - Creator sees Start/Reject here */}
+      {requestedBattles.length > 0 && (
+        <div className="p-4 bg-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <X className="w-5 h-5 text-orange-500" />
+              <h3 className="font-semibold text-orange-600">Play Requests</h3>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {requestedBattles.map((battle) => (
+              <div 
+                key={battle.id} 
+                className="bg-orange-50 border-2 border-orange-300 rounded-xl overflow-hidden"
+              >
+                <div className="flex items-center justify-between p-3 pb-2 border-b border-orange-200">
+                  <span className="text-sm text-gray-700">
+                    {battle.creatorId === "YOU" ? (
+                      <>Request from <span className="text-orange-600 font-bold">{battle.opponentName}</span></>
+                    ) : (
+                      <>Waiting for <span className="text-green-600 font-bold">{battle.creatorName}</span> to accept</>
+                    )}
+                  </span>
+                  {battle.creatorId === "YOU" && (
+                    /* Creator sees Start and Reject buttons */
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 rounded-full"
+                        onClick={() => handleAcceptBattle(battle)}
+                      >
+                        Start
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-full"
+                        onClick={() => handleRejectBattle(battle)}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-orange-100 p-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-orange-600 text-xs font-medium">ENTRY FEE</span>
+                    <div className="flex items-center gap-1">
+                      <RupeeIcon className="w-5 h-4" />
+                      <span className="text-gray-800 font-bold text-lg">{battle.entryFee}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-center">
+                    <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
+                    <span className="text-xs text-gray-700 font-medium mt-1">
+                      {battle.creatorId === "YOU" ? "Accept?" : "Waiting..."}
+                    </span>
+                  </div>
+                  
+                  <div>
+                    <span className="text-orange-600 text-xs font-medium">PRIZE</span>
+                    <div className="flex items-center gap-1">
+                      <RupeeIcon className="w-5 h-4" />
+                      <span className="text-gray-800 font-bold text-lg">{battle.prize}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Running Battles */}
       <div className="p-4 pb-32 bg-white">
