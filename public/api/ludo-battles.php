@@ -19,21 +19,41 @@ if (!file_exists('config.php')) {
     exit();
 }
 
-// Custom database connection to avoid die() in config.php
-function getLudoDBConnection() {
+// Custom database connection with detailed error reporting
+function getLudoDBConnection(&$error_message) {
     // Include config for constants only
     if (!defined('DB_HOST')) {
         @include_once 'config.php';
     }
     
     // Check if constants are defined
-    if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_PASS') || !defined('DB_NAME')) {
+    if (!defined('DB_HOST')) {
+        $error_message = 'DB_HOST not defined in config.php';
+        return null;
+    }
+    if (!defined('DB_USER')) {
+        $error_message = 'DB_USER not defined in config.php';
+        return null;
+    }
+    if (!defined('DB_PASS')) {
+        $error_message = 'DB_PASS not defined in config.php';
+        return null;
+    }
+    if (!defined('DB_NAME')) {
+        $error_message = 'DB_NAME not defined in config.php';
+        return null;
+    }
+    
+    // Check for placeholder values
+    if (DB_USER === 'your_db_username' || DB_NAME === 'your_db_name') {
+        $error_message = 'Database credentials are still placeholder values. Please update config.php on Hostinger with actual database credentials';
         return null;
     }
     
     // Create connection with error suppression
     $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
     if ($conn->connect_error) {
+        $error_message = 'MySQL connection error: ' . $conn->connect_error;
         return null;
     }
     $conn->set_charset('utf8mb4');
@@ -41,10 +61,11 @@ function getLudoDBConnection() {
 }
 
 // Get database connection
-$conn = getLudoDBConnection();
+$db_error = '';
+$conn = getLudoDBConnection($db_error);
 
 if (!$conn) {
-    echo json_encode(['success' => false, 'message' => 'Database connection failed - please check config.php credentials']);
+    echo json_encode(['success' => false, 'message' => $db_error ?: 'Database connection failed']);
     exit();
 }
 
