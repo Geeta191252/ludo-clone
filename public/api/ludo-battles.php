@@ -79,6 +79,10 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
     status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open',
     room_code VARCHAR(20) DEFAULT NULL,
     winner_id VARCHAR(50) DEFAULT NULL,
+    creator_result VARCHAR(20) DEFAULT NULL,
+    opponent_result VARCHAR(20) DEFAULT NULL,
+    creator_screenshot TEXT DEFAULT NULL,
+    opponent_screenshot TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )");
@@ -86,6 +90,10 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
 // Alter table to add columns if needed
 @$conn->query("ALTER TABLE ludo_battles MODIFY COLUMN status ENUM('open', 'requested', 'running', 'completed', 'cancelled') DEFAULT 'open'");
 @$conn->query("ALTER TABLE ludo_battles ADD COLUMN room_code VARCHAR(20) DEFAULT NULL");
+@$conn->query("ALTER TABLE ludo_battles ADD COLUMN creator_result VARCHAR(20) DEFAULT NULL");
+@$conn->query("ALTER TABLE ludo_battles ADD COLUMN opponent_result VARCHAR(20) DEFAULT NULL");
+@$conn->query("ALTER TABLE ludo_battles ADD COLUMN creator_screenshot TEXT DEFAULT NULL");
+@$conn->query("ALTER TABLE ludo_battles ADD COLUMN opponent_screenshot TEXT DEFAULT NULL");
 
 if (!$tableCreated) {
     echo json_encode(['success' => false, 'message' => 'Table creation failed: ' . $conn->error]);
@@ -282,6 +290,151 @@ if ($method === 'POST') {
             } else {
                 echo json_encode(['success' => false, 'message' => 'Battle not found']);
             }
+            break;
+            
+        case 'submit_result':
+            // Handle result submission with screenshot
+            $battleId = $conn->real_escape_string($data['battleId'] ?? '');
+            $userId = $conn->real_escape_string($data['userId'] ?? '');
+            $result_type = $conn->real_escape_string($data['result'] ?? '');
+            $screenshot = $data['screenshot'] ?? null;
+            $mobile = $conn->real_escape_string($data['mobile'] ?? '');
+            $entryFee = (int)($data['entryFee'] ?? 0);
+            
+            // Get battle details
+            $battleResult = $conn->query("SELECT * FROM ludo_battles WHERE id = '$battleId' AND status = 'running'");
+            if (!$battleResult || !$battle_data = $battleResult->fetch_assoc()) {
+                echo json_encode(['success' => false, 'message' => 'Battle not found or not running']);
+                break;
+            }
+            
+            $isCreator = ($userId === $battle_data['creator_id'] || $userId === 'YOU');
+            $isOpponent = ($userId === $battle_data['opponent_id'] || $userId === 'YOU');
+            
+            // Determine which player is submitting based on context
+            // If creator_result is null and user claims to be YOU as creator, treat as creator
+            // This is a simplified check - in production, use proper user session
+            if ($battle_data['creator_result'] === null && $result_type !== null) {
+                // First submission - could be either player
+                if ($isCreator || $battle_data['opponent_result'] !== null) {
+                    // Treat as creator
+                    $updateField = 'creator_result';
+                    $screenshotField = 'creator_screenshot';
+                    $submitter = 'creator';
+                } else {
+                    $updateField = 'opponent_result';
+                    $screenshotField = 'opponent_screenshot';
+                    $submitter = 'opponent';
+                }
+            } else if ($battle_data['creator_result'] !== null && $battle_data['opponent_result'] === null) {
+                // Creator already submitted, this must be opponent
+                $updateField = 'opponent_result';
+                $screenshotField = 'opponent_screenshot';
+                $submitter = 'opponent';
+            } else if ($battle_data['creator_result'] === null) {
+                $updateField = 'creator_result';
+                $screenshotField = 'creator_screenshot';
+                $submitter = 'creator';
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Both players already submitted results']);
+                break;
+            }
+            
+            // Save the result and screenshot
+            $screenshotData = $screenshot ? $conn->real_escape_string($screenshot) : '';
+            $sql = "UPDATE ludo_battles SET $updateField = '$result_type', $screenshotField = '$screenshotData' WHERE id = '$battleId'";
+            $conn->query($sql);
+            
+            // Reload battle data
+            $battleResult = $conn->query("SELECT * FROM ludo_battles WHERE id = '$battleId'");
+            $battle_data = $battleResult->fetch_assoc();
+            
+            // Check if both players submitted
+            if ($battle_data['creator_result'] !== null && $battle_data['opponent_result'] !== null) {
+                // Both submitted - determine winner
+                $creatorResult = $battle_data['creator_result'];
+                $opponentResult = $battle_data['opponent_result'];
+                $winnerMobile = null;
+                $winnerId = null;
+                $winnerName = null;
+                
+                // Prize calculation: 200 total bet (100 each) - 5% = 190 winner gets
+                $totalBet = $entryFee * 2;
+                $commission = floor($totalBet * 0.05); // 5% commission
+                $winAmount = $totalBet - $commission;
+                
+                if ($creatorResult === 'won' && $opponentResult === 'lost') {
+                    // Creator wins
+                    $winnerId = $battle_data['creator_id'];
+                    $winnerName = $battle_data['creator_name'];
+                    // Get creator mobile from users table or use passed mobile
+                } else if ($creatorResult === 'lost' && $opponentResult === 'won') {
+                    // Opponent wins  
+                    $winnerId = $battle_data['opponent_id'];
+                    $winnerName = $battle_data['opponent_name'];
+                } else if ($creatorResult === 'won' && $opponentResult === 'won') {
+                    // Both claim win - admin/platform wins, battle disputed
+                    $conn->query("UPDATE ludo_battles SET status = 'completed', winner_id = 'ADMIN_DISPUTE' WHERE id = '$battleId'");
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Both players claimed win. Match disputed - Admin will review.',
+                        'winner' => false,
+                        'disputed' => true
+                    ]);
+                    break;
+                } else if ($creatorResult === 'cancel' || $opponentResult === 'cancel') {
+                    // Cancel - refund both
+                    $conn->query("UPDATE ludo_battles SET status = 'cancelled' WHERE id = '$battleId'");
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Match cancelled. Entry fees will be refunded.',
+                        'winner' => false,
+                        'cancelled' => true
+                    ]);
+                    break;
+                } else if ($creatorResult === 'lost' && $opponentResult === 'lost') {
+                    // Both claim loss - unusual, treat as cancel
+                    $conn->query("UPDATE ludo_battles SET status = 'cancelled' WHERE id = '$battleId'");
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Both players claimed loss. Match cancelled.',
+                        'winner' => false
+                    ]);
+                    break;
+                }
+                
+                // Update winner in database
+                if ($winnerId) {
+                    $conn->query("UPDATE ludo_battles SET status = 'completed', winner_id = '$winnerId' WHERE id = '$battleId'");
+                    
+                    // Add winnings to winner's wallet
+                    // Get winner's mobile from users table
+                    $userResult = $conn->query("SELECT mobile FROM users WHERE id = '$winnerId' OR name = '$winnerName' LIMIT 1");
+                    if ($userResult && $userRow = $userResult->fetch_assoc()) {
+                        $winnerMobile = $userRow['mobile'];
+                        $conn->query("UPDATE users SET winning_balance = winning_balance + $winAmount WHERE mobile = '$winnerMobile'");
+                    }
+                    
+                    $isWinner = ($submitter === 'creator' && $winnerId === $battle_data['creator_id']) || 
+                                ($submitter === 'opponent' && $winnerId === $battle_data['opponent_id']);
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'message' => $isWinner ? "Congratulations! You won ₹$winAmount!" : "You lost this match.",
+                        'winner' => $isWinner,
+                        'winAmount' => $winAmount
+                    ]);
+                    break;
+                }
+            }
+            
+            // Only one player submitted so far
+            echo json_encode([
+                'success' => true,
+                'message' => 'Result submitted. Waiting for opponent to submit their result.',
+                'winner' => false,
+                'waiting' => true
+            ]);
             break;
             
         default:
