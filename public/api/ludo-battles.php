@@ -83,6 +83,7 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
     opponent_result VARCHAR(20) DEFAULT NULL,
     creator_screenshot TEXT DEFAULT NULL,
     opponent_screenshot TEXT DEFAULT NULL,
+    game_type VARCHAR(50) DEFAULT 'ludo-classic',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )");
@@ -94,6 +95,7 @@ $tableCreated = $conn->query("CREATE TABLE IF NOT EXISTS ludo_battles (
 @$conn->query("ALTER TABLE ludo_battles ADD COLUMN opponent_result VARCHAR(20) DEFAULT NULL");
 @$conn->query("ALTER TABLE ludo_battles ADD COLUMN creator_screenshot TEXT DEFAULT NULL");
 @$conn->query("ALTER TABLE ludo_battles ADD COLUMN opponent_screenshot TEXT DEFAULT NULL");
+@$conn->query("ALTER TABLE ludo_battles ADD COLUMN game_type VARCHAR(50) DEFAULT 'ludo-classic'");
 
 if (!$tableCreated) {
     echo json_encode(['success' => false, 'message' => 'Table creation failed: ' . $conn->error]);
@@ -103,13 +105,17 @@ if (!$tableCreated) {
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    // Get game_type from query parameter
+    $gameType = isset($_GET['game_type']) ? $conn->real_escape_string($_GET['game_type']) : '';
+    $gameTypeCondition = $gameType ? " AND game_type = '$gameType'" : "";
+    
     // Get all open, requested and running battles
     $openBattles = [];
     $requestedBattles = [];
     $runningBattles = [];
     
     // Open battles (waiting for someone to click Play)
-    $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'open' ORDER BY created_at DESC LIMIT 20");
+    $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'open'$gameTypeCondition ORDER BY created_at DESC LIMIT 20");
     if ($result) {
         while ($row = $result->fetch_assoc()) {
             $openBattles[] = [
@@ -118,13 +124,14 @@ if ($method === 'GET') {
                 'creatorName' => $row['creator_name'],
                 'entryFee' => (int)$row['entry_fee'],
                 'prize' => (int)$row['prize'],
-                'createdAt' => $row['created_at']
+                'createdAt' => $row['created_at'],
+                'gameType' => $row['game_type'] ?? 'ludo-classic'
             ];
         }
     }
     
     // Requested battles (someone clicked Play, waiting for creator to Start/Reject)
-    $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'requested' ORDER BY updated_at DESC LIMIT 20");
+    $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'requested'$gameTypeCondition ORDER BY updated_at DESC LIMIT 20");
     if ($result) {
         while ($row = $result->fetch_assoc()) {
             $requestedBattles[] = [
@@ -134,13 +141,14 @@ if ($method === 'GET') {
                 'opponentId' => $row['opponent_id'],
                 'opponentName' => $row['opponent_name'],
                 'entryFee' => (int)$row['entry_fee'],
-                'prize' => (int)$row['prize']
+                'prize' => (int)$row['prize'],
+                'gameType' => $row['game_type'] ?? 'ludo-classic'
             ];
         }
     }
     
     // Running battles
-    $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'running' ORDER BY updated_at DESC LIMIT 20");
+    $result = $conn->query("SELECT * FROM ludo_battles WHERE status = 'running'$gameTypeCondition ORDER BY updated_at DESC LIMIT 20");
     if ($result) {
         while ($row = $result->fetch_assoc()) {
             $runningBattles[] = [
@@ -149,7 +157,8 @@ if ($method === 'GET') {
                 'player2' => ['id' => $row['opponent_id'], 'name' => $row['opponent_name']],
                 'entryFee' => (int)$row['entry_fee'],
                 'prize' => (int)$row['prize'],
-                'roomCode' => $row['room_code']
+                'roomCode' => $row['room_code'],
+                'gameType' => $row['game_type'] ?? 'ludo-classic'
             ];
         }
     }
@@ -173,6 +182,7 @@ if ($method === 'POST') {
             $creatorId = $conn->real_escape_string($data['creatorId'] ?? '');
             $creatorName = $conn->real_escape_string($data['creatorName'] ?? '');
             $entryFee = (int)($data['entryFee'] ?? 0);
+            $gameType = $conn->real_escape_string($data['gameType'] ?? 'ludo-classic');
             $prize = (int)floor($entryFee * 2 - $entryFee * 0.05);
             
             if (empty($creatorId) || $entryFee <= 0) {
@@ -180,7 +190,7 @@ if ($method === 'POST') {
                 exit();
             }
             
-            $sql = "INSERT INTO ludo_battles (id, creator_id, creator_name, entry_fee, prize) VALUES ('$id', '$creatorId', '$creatorName', $entryFee, $prize)";
+            $sql = "INSERT INTO ludo_battles (id, creator_id, creator_name, entry_fee, prize, game_type) VALUES ('$id', '$creatorId', '$creatorName', $entryFee, $prize, '$gameType')";
             
             if ($conn->query($sql)) {
                 echo json_encode([
@@ -190,7 +200,8 @@ if ($method === 'POST') {
                         'creatorId' => $creatorId,
                         'creatorName' => $creatorName,
                         'entryFee' => $entryFee,
-                        'prize' => $prize
+                        'prize' => $prize,
+                        'gameType' => $gameType
                     ]
                 ]);
             } else {

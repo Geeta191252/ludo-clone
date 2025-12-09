@@ -35,6 +35,7 @@ interface RunningBattle {
 
 interface BattleArenaProps {
   gameName: string;
+  gameType: string;
   onClose: () => void;
   balance?: number;
   onBalanceChange?: (balance: number) => void;
@@ -100,7 +101,7 @@ const updateServerBalance = async (amount: number, type: 'deduct' | 'add') => {
   }
 };
 
-const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: BattleArenaProps) => {
+const BattleArena = ({ gameName, gameType, onClose, balance = 10000, onBalanceChange }: BattleArenaProps) => {
   const { toast } = useToast();
   const [amount, setAmount] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -119,7 +120,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
   const fetchBattles = useCallback(async () => {
     try {
       setIsRefreshing(true);
-      const response = await fetch(`${API_BASE}/api/ludo-battles.php`);
+      const response = await fetch(`${API_BASE}/api/ludo-battles.php?game_type=${encodeURIComponent(gameType)}`);
       const data = await response.json();
       
       if (data.success) {
@@ -155,14 +156,14 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
         
         setOpenBattles(openWithMarker);
         setRequestedBattles(requestedWithMarker);
-        setRunningBattles(runningWithMarker);
+      setRunningBattles(runningWithMarker);
       }
     } catch (error) {
       console.error('Error fetching battles:', error);
     } finally {
       setIsRefreshing(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, gameType]);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -210,7 +211,8 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
           action: 'create',
           creatorId: currentUserId,
           creatorName: currentUserName,
-          entryFee
+          entryFee,
+          gameType
         })
       });
       
