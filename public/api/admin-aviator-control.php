@@ -15,13 +15,23 @@ require_once 'config.php';
 // Verify admin token
 function verifyAdminToken($conn) {
     $headers = getallheaders();
-    $authHeader = $headers['Authorization'] ?? '';
     
-    if (!preg_match('/Bearer\s+(.+)/', $authHeader, $matches)) {
+    // Handle case-insensitive header lookup
+    $authHeader = '';
+    if ($headers) {
+        foreach ($headers as $key => $value) {
+            if (strtolower($key) === 'authorization') {
+                $authHeader = $value;
+                break;
+            }
+        }
+    }
+    
+    if (empty($authHeader) || strpos($authHeader, 'Bearer ') !== 0) {
         return false;
     }
     
-    $token = $matches[1];
+    $token = substr($authHeader, 7);
     $stmt = $conn->prepare("SELECT * FROM admin_tokens WHERE token = ? AND expires_at > NOW()");
     $stmt->bind_param("s", $token);
     $stmt->execute();
