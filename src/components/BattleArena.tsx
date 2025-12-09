@@ -272,7 +272,7 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
     }
   };
 
-  // Creator clicks Start - accept the request and move to running
+  // Creator clicks Start - accept the request and navigate to BattleDetailView
   const handleAcceptBattle = async (battle: RequestedBattle) => {
     try {
       const response = await fetch(`${API_BASE}/api/ludo-battles.php`, {
@@ -291,7 +291,16 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
           title: "Battle Started!",
           description: `Battle with ${battle.opponentName} is now running!`,
         });
-        fetchBattles();
+        
+        // Navigate directly to BattleDetailView
+        const runningBattle: RunningBattle = {
+          id: battle.id,
+          player1: { id: 'YOU', name: 'YOU' },
+          player2: { id: battle.opponentId, name: battle.opponentName },
+          entryFee: battle.entryFee,
+          prize: battle.prize
+        };
+        setSelectedBattle(runningBattle);
       } else {
         toast({
           title: "Error",
