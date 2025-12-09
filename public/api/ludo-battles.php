@@ -19,24 +19,32 @@ if (!file_exists('config.php')) {
     exit();
 }
 
-require_once 'config.php';
+// Custom database connection to avoid die() in config.php
+function getLudoDBConnection() {
+    // Include config for constants only
+    if (!defined('DB_HOST')) {
+        @include_once 'config.php';
+    }
+    
+    // Check if constants are defined
+    if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_PASS') || !defined('DB_NAME')) {
+        return null;
+    }
+    
+    // Create connection with error suppression
+    $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+    if ($conn->connect_error) {
+        return null;
+    }
+    $conn->set_charset('utf8mb4');
+    return $conn;
+}
 
 // Get database connection
-try {
-    $conn = getDBConnection();
-    
-    // Check database connection
-    if (!$conn) {
-        echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-        exit();
-    }
-    
-    if ($conn->connect_error) {
-        echo json_encode(['success' => false, 'message' => 'Database connection error: ' . $conn->connect_error]);
-        exit();
-    }
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+$conn = getLudoDBConnection();
+
+if (!$conn) {
+    echo json_encode(['success' => false, 'message' => 'Database connection failed - please check config.php credentials']);
     exit();
 }
 
