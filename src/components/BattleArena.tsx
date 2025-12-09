@@ -187,6 +187,16 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
       return;
     }
 
+    // Check if user has sufficient balance
+    if (balance < entryFee) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ₹${entryFee} to create this battle. Your balance: ₹${balance}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log('Creating battle with:', { currentUserId, currentUserName, entryFee, API_BASE });
 
     try {
