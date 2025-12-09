@@ -30,6 +30,9 @@ const AdminAviatorControl = () => {
 
   const fetchGameState = async () => {
     try {
+      const token = localStorage.getItem('admin_token');
+      console.log('Token being sent:', token ? 'exists' : 'null');
+      
       const response = await fetch(`${API_BASE}/admin-aviator-control.php?action=get_state`, {
         headers: getAuthHeaders()
       });
@@ -46,6 +49,12 @@ const AdminAviatorControl = () => {
           history: Array.isArray(data.state.history) ? data.state.history : []
         });
         setAutoMode(data.state.admin_control !== 1);
+      } else if (data.message === 'Unauthorized') {
+        toast({ 
+          title: "Error", 
+          description: `Unauthorized: ${data.debug || 'Unknown reason'}`,
+          variant: "destructive" 
+        });
       }
     } catch (error) {
       console.error('Fetch error:', error);
