@@ -12,11 +12,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once 'config.php';
 
 // Get database connection
-$conn = getDBConnection();
-
-// Check database connection
-if (!$conn) {
-    echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $conn->connect_error]);
+try {
+    $conn = getDBConnection();
+    
+    // Check database connection
+    if (!$conn) {
+        echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+        exit();
+    }
+    
+    if ($conn->connect_error) {
+        echo json_encode(['success' => false, 'message' => 'Database connection error: ' . $conn->connect_error]);
+        exit();
+    }
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     exit();
 }
 
