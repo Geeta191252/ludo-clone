@@ -29,7 +29,7 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
   const [countdown, setCountdown] = useState(300);
   const [roomCode, setRoomCode] = useState("");
   const [generatedCode] = useState(() => generateRoomCode());
-  const [codeSent, setCodeSent] = useState(false);
+  const [codeSent, setCodeSent] = useState(!!battle.roomCode);
   const [currentRoomCode, setCurrentRoomCode] = useState(battle.roomCode || "");
   
   // Result submission states
@@ -43,6 +43,32 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
   // Check if current user is the creator (player1 = YOU) or joiner (player2 = YOU)
   const isCreator = battle.player1.id === "YOU";
   const isJoiner = battle.player2.id === "YOU";
+
+  // Fetch existing room code on mount (for both creator and joiner)
+  useEffect(() => {
+    const fetchBattleData = async () => {
+      try {
+        const response = await fetch(`${apiBase}/api/ludo-battles.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'get_battle',
+            battleId: battle.id
+          })
+        });
+        const data = await response.json();
+        if (data.success && data.battle.roomCode) {
+          setCurrentRoomCode(data.battle.roomCode);
+          setRoomCode(data.battle.roomCode);
+          setCodeSent(true);
+        }
+      } catch (error) {
+        console.error('Error fetching battle data:', error);
+      }
+    };
+
+    fetchBattleData();
+  }, [battle.id, apiBase]);
 
   // Poll for room code updates (for joiner/opponent)
   useEffect(() => {
@@ -496,11 +522,11 @@ const BattleDetailView = ({ battle, onBack, onSendCode, apiBase = '' }: BattleDe
       ) : isCreator ? (
         <>
           {/* Creator View - Set Room Code */}
-          {codeSent ? (
+          {codeSent || currentRoomCode ? (
             <div className="mx-4 mt-4 bg-gray-200 rounded-xl p-6">
               <div className="text-center">
                 <h2 className="text-xl font-medium text-green-600">Room Code Sent!</h2>
-                <p className="text-2xl font-bold text-gray-800 mt-2">{roomCode}</p>
+                <p className="text-2xl font-bold text-gray-800 mt-2">{roomCode || currentRoomCode}</p>
                 <p className="text-gray-600 mt-4">Waiting for opponent to join...</p>
               </div>
             </div>
