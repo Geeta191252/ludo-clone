@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import NoticeBox from "@/components/NoticeBox";
@@ -10,12 +10,29 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 
 type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
 
+const validGameTypes: GameType[] = ['ludo-classic', 'ludo-popular', 'snake', 'dragon-tiger', 'aviator'];
+
 const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get selected game from URL params
+  const gameParam = searchParams.get('game');
+  const selectedGame: GameType | null = gameParam && validGameTypes.includes(gameParam as GameType) 
+    ? (gameParam as GameType) 
+    : null;
+
+  // Function to set selected game (updates URL)
+  const setSelectedGame = (game: GameType | null) => {
+    if (game) {
+      setSearchParams({ game });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   // Fetch balance from server
   const fetchBalance = async (mobile: string) => {
