@@ -11,7 +11,8 @@ import {
   X,
   ChevronRight,
   Plane,
-  Crown
+  Crown,
+  Dice5
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +25,7 @@ const menuItems = [
   { title: "Users", icon: Users, path: "/admin/users" },
   { title: "Transactions", icon: CreditCard, path: "/admin/transactions" },
   { title: "Games", icon: Gamepad2, path: "/admin/games" },
+  { title: "Ludo Classic", icon: Dice5, path: "/admin/ludo-control" },
   { title: "Aviator Control", icon: Plane, path: "/admin/aviator-control" },
   { title: "Dragon Tiger", icon: Crown, path: "/admin/dragon-tiger-control" },
   { title: "Settings", icon: Settings, path: "/admin/settings" },

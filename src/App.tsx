@@ -19,6 +19,7 @@ import AdminGames from "./pages/admin/AdminGames";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminAviatorControl from "./pages/admin/AdminAviatorControl";
 import AdminDragonTigerControl from "./pages/admin/AdminDragonTigerControl";
+import AdminLudoControl from "./pages/admin/AdminLudoControl";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/transactions" element={<AdminTransactions />} />
           <Route path="/admin/games" element={<AdminGames />} />
+          <Route path="/admin/ludo-control" element={<AdminLudoControl />} />
           <Route path="/admin/aviator-control" element={<AdminAviatorControl />} />
           <Route path="/admin/dragon-tiger-control" element={<AdminDragonTigerControl />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
