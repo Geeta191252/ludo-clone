@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Info, X, RefreshCw } from "lucide-react";
+import { Info, X, RefreshCw, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -392,35 +392,41 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                 animation: index === 0 && isRefreshing ? 'slideIn 0.3s ease-out' : 'none'
               }}
             >
-              <div className="flex items-center justify-between p-3 pb-2">
+              <div className="flex items-center justify-between p-3 pb-2 border-b border-gray-300">
                 <span className="text-sm text-gray-700">
                   Challange From <span className="text-green-600 font-bold">{battle.creatorName}</span>
                 </span>
                 {battle.creatorId === "YOU" ? (
+                  /* Creator sees delete button only */
+                  <button 
+                    onClick={() => handleCancelBattle(battle)}
+                    className="w-10 h-10 rounded-full border-2 border-red-500 flex items-center justify-center hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                  </button>
+                ) : (
+                  /* Other users see Start and Reject buttons */
                   <div className="flex gap-2">
                     <Button 
                       size="sm" 
-                      className="bg-green-500 hover:bg-green-600 text-white px-4"
-                      onClick={() => handleStartBattle(battle)}
+                      className="bg-green-500 hover:bg-green-600 text-white px-4 rounded-full"
+                      onClick={() => handlePlayBattle(battle)}
                     >
                       Start
                     </Button>
                     <Button 
                       size="sm" 
-                      className="bg-red-500 hover:bg-red-600 text-white px-4"
-                      onClick={() => handleCancelBattle(battle)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 rounded-full"
+                      onClick={() => {
+                        toast({
+                          title: "Challenge Rejected",
+                          description: "You rejected this challenge",
+                        });
+                      }}
                     >
                       Reject
                     </Button>
                   </div>
-                ) : (
-                  <Button 
-                    size="sm" 
-                    onClick={() => handlePlayBattle(battle)}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-6"
-                  >
-                    Play
-                  </Button>
                 )}
               </div>
               
@@ -433,16 +439,21 @@ const BattleArena = ({ gameName, onClose, balance = 10000, onBalanceChange }: Ba
                   </div>
                 </div>
                 
-                {battle.creatorId === "YOU" && (
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-orange-100 border-2 border-orange-300 flex items-center justify-center">
-                      <span className="text-xl">😊</span>
-                    </div>
-                    <span className="text-xs text-gray-700 font-medium mt-1">Waiting...</span>
-                  </div>
-                )}
+                {/* Center - Loading spinner for creator, Waiting emoji for others */}
+                <div className="flex flex-col items-center">
+                  {battle.creatorId === "YOU" ? (
+                    <Loader2 className="w-8 h-8 text-red-400 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-orange-100 border-2 border-orange-300 flex items-center justify-center">
+                        <span className="text-xl">😊</span>
+                      </div>
+                      <span className="text-xs text-gray-700 font-medium mt-1">Waiting...</span>
+                    </>
+                  )}
+                </div>
                 
-                <div className={battle.creatorId === "YOU" ? "" : "ml-auto"}>
+                <div>
                   <span className="text-green-600 text-xs font-medium">PRIZE</span>
                   <div className="flex items-center gap-1">
                     <RupeeIcon className="w-5 h-4" />
