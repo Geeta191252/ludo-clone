@@ -8,9 +8,31 @@ export const useViewportControl = () => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }, []);
   
+  const resetStyles = useCallback(() => {
+    const container = document.querySelector('.mobile-container') as HTMLElement;
+    if (container) {
+      container.style.transform = '';
+      container.style.transformOrigin = '';
+      container.style.width = '';
+      container.style.height = '';
+      container.style.minHeight = '';
+      container.style.marginLeft = '';
+      container.style.marginRight = '';
+      container.style.overflowY = '';
+      container.style.maxHeight = '';
+    }
+    document.body.style.overflow = '';
+    document.body.style.height = '';
+  }, []);
+
   const applyMobileScale = useCallback(() => {
     const isAdminRoute = location.pathname.startsWith('/admin');
-    if (isAdminRoute) return;
+    
+    // Admin routes - always reset and never scale
+    if (isAdminRoute) {
+      resetStyles();
+      return;
+    }
     
     const container = document.querySelector('.mobile-container') as HTMLElement;
     if (!container) return;
@@ -31,25 +53,10 @@ export const useViewportControl = () => {
       document.body.style.height = '100vh';
       container.style.overflowY = 'auto';
       container.style.maxHeight = `${100 / scale}vh`;
-      
-      // For mobile devices in desktop mode - fill entire screen
-      if (isMobileDevice()) {
-        container.style.transformOrigin = 'top left';
-      }
     } else {
-      container.style.transform = '';
-      container.style.transformOrigin = '';
-      container.style.width = '';
-      container.style.height = '';
-      container.style.minHeight = '';
-      container.style.marginLeft = '';
-      container.style.marginRight = '';
-      container.style.overflowY = '';
-      container.style.maxHeight = '';
-      document.body.style.overflow = '';
-      document.body.style.height = '';
+      resetStyles();
     }
-  }, [location.pathname, isMobileDevice]);
+  }, [location.pathname, resetStyles]);
   
   useEffect(() => {
     const isAdminRoute = location.pathname.startsWith('/admin');
