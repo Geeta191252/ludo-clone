@@ -3,9 +3,10 @@ import ludoPopular from "@/assets/ludo-popular.png";
 import snakeLadders from "@/assets/snake-ladders.png";
 import dragonTiger from "@/assets/dragon-tiger.png";
 import aviator from "@/assets/aviator.png";
+import teenPatti from "@/assets/teen-patti.png";
 
 interface GameCardProps {
-  gameType: 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
+  gameType: 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator' | 'teen-patti';
   isLive?: boolean;
   onClick?: () => void;
 }
@@ -16,6 +17,7 @@ const gameImages = {
   'snake': snakeLadders,
   'dragon-tiger': dragonTiger,
   'aviator': aviator,
+  'teen-patti': teenPatti,
 };
 
 const gameNames = {
@@ -24,6 +26,7 @@ const gameNames = {
   'snake': 'Snake & Ladders',
   'dragon-tiger': 'Dragon Tiger',
   'aviator': 'Aviator',
+  'teen-patti': 'Teen Patti',
 };
 
 const GameCard = ({ gameType, isLive = true, onClick }: GameCardProps) => {
