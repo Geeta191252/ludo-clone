@@ -451,23 +451,52 @@ if ($method === 'POST') {
                         'disputed' => true
                     ]);
                     break;
-                } else if ($creatorResult === 'cancel' || $opponentResult === 'cancel') {
-                    // Cancel - refund both
+                } else if ($creatorResult === 'cancel' && $opponentResult === 'cancel') {
+                    // Both cancel - refund both players automatically
                     $conn->query("UPDATE ludo_battles SET status = 'cancelled' WHERE id = '$battleId'");
+                    
+                    // Refund both players
+                    $creatorMobile = $battle_data['creator_id'];
+                    $opponentMobile = $battle_data['opponent_id'];
+                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$creatorMobile'");
+                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$opponentMobile'");
+                    
+                    error_log("Ludo Cancel Refund: Battle $battleId, Creator $creatorMobile, Opponent $opponentMobile, Amount $entryFee each");
+                    
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Match cancelled. Entry fees will be refunded.',
+                        'message' => 'Both players cancelled. Entry fees refunded to both.',
                         'winner' => false,
-                        'cancelled' => true
+                        'cancelled' => true,
+                        'refunded' => true
+                    ]);
+                    break;
+                } else if (($creatorResult === 'won' && $opponentResult === 'cancel') || 
+                           ($creatorResult === 'cancel' && $opponentResult === 'won')) {
+                    // One claims win, other cancels - Admin needs to decide
+                    $conn->query("UPDATE ludo_battles SET status = 'completed', winner_id = 'ADMIN_DISPUTE' WHERE id = '$battleId'");
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'One player claimed win, other cancelled. Admin will review and decide.',
+                        'winner' => false,
+                        'disputed' => true
                     ]);
                     break;
                 } else if ($creatorResult === 'lost' && $opponentResult === 'lost') {
-                    // Both claim loss - unusual, treat as cancel
+                    // Both claim loss - unusual, treat as cancel with refund
                     $conn->query("UPDATE ludo_battles SET status = 'cancelled' WHERE id = '$battleId'");
+                    
+                    // Refund both players
+                    $creatorMobile = $battle_data['creator_id'];
+                    $opponentMobile = $battle_data['opponent_id'];
+                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$creatorMobile'");
+                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$opponentMobile'");
+                    
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Both players claimed loss. Match cancelled.',
-                        'winner' => false
+                        'message' => 'Both players claimed loss. Entry fees refunded.',
+                        'winner' => false,
+                        'refunded' => true
                     ]);
                     break;
                 }
