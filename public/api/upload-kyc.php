@@ -31,12 +31,16 @@ try {
                 name VARCHAR(100),
                 email VARCHAR(100),
                 doc_number VARCHAR(50),
-                front_image TEXT,
-                back_image TEXT,
+                front_image LONGTEXT,
+                back_image LONGTEXT,
                 status VARCHAR(20) DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ");
+    } else {
+        // Alter existing table to use LONGTEXT if needed
+        $conn->query("ALTER TABLE kyc_documents MODIFY front_image LONGTEXT");
+        $conn->query("ALTER TABLE kyc_documents MODIFY back_image LONGTEXT");
     }
 
     $mobile = $_POST['mobile'] ?? null;
@@ -59,8 +63,8 @@ try {
     $user_id = $user ? $user['id'] : 0;
 
     // Handle file uploads - convert to base64
-    $front_image = '';
-    $back_image = '';
+    $front_image = null;
+    $back_image = null;
 
     if (isset($_FILES['front_image']) && $_FILES['front_image']['error'] === UPLOAD_ERR_OK) {
         $front_image = 'data:' . $_FILES['front_image']['type'] . ';base64,' . base64_encode(file_get_contents($_FILES['front_image']['tmp_name']));
@@ -77,11 +81,24 @@ try {
     $existing = $checkStmt->get_result()->fetch_assoc();
 
     if ($existing) {
-        // Update existing
-        $stmt = $conn->prepare("UPDATE kyc_documents SET doc_type = ?, name = ?, email = ?, doc_number = ?, front_image = ?, back_image = ?, status = 'pending' WHERE mobile = ?");
-        $stmt->bind_param("sssssss", $doc_type, $name, $email, $doc_number, $front_image, $back_image, $mobile);
+        // Update existing - only update images if new ones are uploaded
+        if ($front_image && $back_image) {
+            $stmt = $conn->prepare("UPDATE kyc_documents SET doc_type = ?, name = ?, email = ?, doc_number = ?, front_image = ?, back_image = ?, status = 'pending' WHERE mobile = ?");
+            $stmt->bind_param("sssssss", $doc_type, $name, $email, $doc_number, $front_image, $back_image, $mobile);
+        } elseif ($front_image) {
+            $stmt = $conn->prepare("UPDATE kyc_documents SET doc_type = ?, name = ?, email = ?, doc_number = ?, front_image = ?, status = 'pending' WHERE mobile = ?");
+            $stmt->bind_param("ssssss", $doc_type, $name, $email, $doc_number, $front_image, $mobile);
+        } elseif ($back_image) {
+            $stmt = $conn->prepare("UPDATE kyc_documents SET doc_type = ?, name = ?, email = ?, doc_number = ?, back_image = ?, status = 'pending' WHERE mobile = ?");
+            $stmt->bind_param("ssssss", $doc_type, $name, $email, $doc_number, $back_image, $mobile);
+        } else {
+            $stmt = $conn->prepare("UPDATE kyc_documents SET doc_type = ?, name = ?, email = ?, doc_number = ?, status = 'pending' WHERE mobile = ?");
+            $stmt->bind_param("sssss", $doc_type, $name, $email, $doc_number, $mobile);
+        }
     } else {
         // Insert new
+        $front_image = $front_image ?? '';
+        $back_image = $back_image ?? '';
         $stmt = $conn->prepare("INSERT INTO kyc_documents (user_id, mobile, doc_type, name, email, doc_number, front_image, back_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("isssssss", $user_id, $mobile, $doc_type, $name, $email, $doc_number, $front_image, $back_image);
     }
@@ -94,7 +111,7 @@ try {
         
         echo json_encode(['status' => true, 'message' => 'KYC documents uploaded successfully']);
     } else {
-        echo json_encode(['status' => false, 'message' => 'Failed to upload documents']);
+        echo json_encode(['status' => false, 'message' => 'Failed to upload documents: ' . $stmt->error]);
     }
     
     $conn->close();
