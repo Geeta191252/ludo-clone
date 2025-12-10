@@ -194,6 +194,66 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
     }, 1000);
   };
 
+  // Get count of active (non-folded) players
+  const getActivePlayers = () => players.filter(p => !p.isFolded);
+  
+  // Side show - only available when exactly 2 players remain
+  const requestSideShow = () => {
+    const activePlayers = getActivePlayers();
+    if (activePlayers.length !== 2) {
+      toast.error(`Side Show sirf 2 players bachne pe available hai! Abhi ${activePlayers.length} players hai.`);
+      return;
+    }
+    
+    // Cost for side show (if seen, pay double)
+    const sideShowCost = isSeen ? currentBet * 2 : currentBet;
+    if (walletBalance < sideShowCost) {
+      toast.error('Insufficient balance for side show!');
+      return;
+    }
+    
+    onWalletChange(walletBalance - sideShowCost);
+    setPotAmount(prev => prev + sideShowCost);
+    
+    // Compare cards and determine winner
+    const opponent = activePlayers.find(p => p.id !== 'player');
+    const myRank = getHandRank(myCards);
+    const opponentRank = opponent ? getHandRank(opponent.cards) : 0;
+    
+    if (myRank >= opponentRank) {
+      // I win the side show - opponent folds
+      setPlayers(prev => prev.map(p => 
+        p.id === opponent?.id ? { ...p, isFolded: true } : p
+      ));
+      toast.success(`Side Show jeet gaye! ${opponent?.name} packed.`);
+      setTimeout(() => endGame(players.find(p => p.id === 'player')!), 1500);
+    } else {
+      // I lose the side show - I fold
+      setPlayers(prev => prev.map(p => 
+        p.id === 'player' ? { ...p, isFolded: true } : p
+      ));
+      toast.error(`Side Show haar gaye! ${opponent?.name} ke cards better hai.`);
+      setTimeout(() => endGame(opponent!), 1500);
+    }
+  };
+
+  // 2x Chaal - double the bet
+  const placeBet2x = () => {
+    const betAmount = isSeen ? currentBet * 4 : currentBet * 2;
+    if (walletBalance < betAmount) {
+      toast.error('Insufficient balance for 2x Chaal!');
+      return;
+    }
+    
+    onWalletChange(walletBalance - betAmount);
+    setPotAmount(prev => prev + betAmount);
+    setPlayers(prev => prev.map(p => 
+      p.id === 'player' ? { ...p, bet: p.bet + betAmount } : p
+    ));
+    
+    simulateBotTurns(betAmount);
+  };
+
   const simulateBotTurns = (playerBet: number) => {
     setIsMyTurn(false);
     
@@ -560,39 +620,67 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
 
         {/* Action Buttons */}
         <div className="fixed bottom-0 left-0 right-0 p-3 z-30">
-          {/* Bet Info */}
+          {/* Active Players Count */}
           {isMyTurn && (
-            <div className="flex justify-center mb-2">
-              <div className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-center">
-                <div className="font-bold text-lg">₹{isSeen ? currentBet * 4 : currentBet * 2}</div>
-                <div className="text-xs">2X CHAAL</div>
+            <div className="flex justify-center mb-2 gap-2">
+              <div className="bg-gray-700 text-white px-3 py-1 rounded-lg text-sm">
+                Active: {getActivePlayers().length} players
               </div>
+              {getActivePlayers().length === 2 && (
+                <div className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm animate-pulse">
+                  Side Show Available!
+                </div>
+              )}
             </div>
           )}
           
           {isMyTurn ? (
-            <div className="flex gap-2 justify-center max-w-md mx-auto">
-              <Button 
-                onClick={fold}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-4 text-lg rounded-xl"
-              >
-                PACK
-              </Button>
-              <Button 
-                onClick={() => placeBet(currentBet)}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-4 text-lg rounded-xl"
-              >
-                <div className="text-center">
-                  <div>₹{isSeen ? currentBet * 2 : currentBet}</div>
-                  <div className="text-xs">CHAAL</div>
-                </div>
-              </Button>
-              <Button 
-                onClick={showdown}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 text-lg rounded-xl"
-              >
-                SIDE<br/>SHOW
-              </Button>
+            <div className="flex flex-col gap-2 max-w-md mx-auto">
+              {/* Row 1: PACK and CHAAL */}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={fold}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 text-base rounded-xl"
+                >
+                  PACK
+                </Button>
+                <Button 
+                  onClick={() => placeBet(currentBet)}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 text-base rounded-xl"
+                >
+                  <div className="text-center">
+                    <div>₹{isSeen ? currentBet * 2 : currentBet}</div>
+                    <div className="text-xs">CHAAL</div>
+                  </div>
+                </Button>
+              </div>
+              
+              {/* Row 2: 2X CHAAL and SIDE SHOW */}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={placeBet2x}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base rounded-xl"
+                >
+                  <div className="text-center">
+                    <div>₹{isSeen ? currentBet * 4 : currentBet * 2}</div>
+                    <div className="text-xs">2X CHAAL</div>
+                  </div>
+                </Button>
+                <Button 
+                  onClick={requestSideShow}
+                  disabled={getActivePlayers().length !== 2}
+                  className={`flex-1 font-bold py-3 text-base rounded-xl ${
+                    getActivePlayers().length === 2 
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                      : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div>SIDE SHOW</div>
+                    <div className="text-xs">{getActivePlayers().length !== 2 ? `${getActivePlayers().length} players` : 'Challenge!'}</div>
+                  </div>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="text-center text-white py-4 bg-black/40 rounded-xl max-w-md mx-auto">
