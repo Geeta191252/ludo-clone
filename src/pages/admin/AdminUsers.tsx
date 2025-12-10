@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, Edit, Trash2, Plus, Minus } from "lucide-react";
+import { Search, Edit, Trash2, Plus, Minus, CheckCircle, Clock } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 
 interface User {
@@ -15,6 +15,7 @@ interface User {
   winning_balance: number;
   created_at: string;
   status: string;
+  kyc_status: string;
 }
 
 const AdminUsers = () => {
@@ -120,6 +121,30 @@ const AdminUsers = () => {
     }
   };
 
+  const handleAcceptKyc = async (userId: number) => {
+    try {
+      const token = localStorage.getItem("admin_token");
+      const response = await fetch("/api/admin-update-kyc.php", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ user_id: userId, kyc_status: 'accepted' }),
+      });
+      const data = await response.json();
+      
+      if (data.status) {
+        toast({ title: "Success", description: "KYC accepted successfully" });
+        fetchUsers();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update KYC status", variant: "destructive" });
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.mobile.includes(search) || 
     (user.player_name && user.player_name.toLowerCase().includes(search.toLowerCase()))
@@ -155,6 +180,7 @@ const AdminUsers = () => {
                     <th className="text-left py-4 px-4 text-slate-400 text-sm">Name</th>
                     <th className="text-left py-4 px-4 text-slate-400 text-sm">Wallet</th>
                     <th className="text-left py-4 px-4 text-slate-400 text-sm">Winning</th>
+                    <th className="text-left py-4 px-4 text-slate-400 text-sm">KYC</th>
                     <th className="text-left py-4 px-4 text-slate-400 text-sm">Registered</th>
                     <th className="text-left py-4 px-4 text-slate-400 text-sm">Actions</th>
                   </tr>
@@ -167,6 +193,21 @@ const AdminUsers = () => {
                       <td className="py-4 px-4 text-white">{user.player_name || '-'}</td>
                       <td className="py-4 px-4 text-green-400">₹{user.wallet_balance.toLocaleString()}</td>
                       <td className="py-4 px-4 text-yellow-400">₹{user.winning_balance.toLocaleString()}</td>
+                      <td className="py-4 px-4">
+                        {user.kyc_status === 'accepted' ? (
+                          <span className="flex items-center gap-1 text-green-400">
+                            <CheckCircle className="w-4 h-4" /> Accepted
+                          </span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                            onClick={() => handleAcceptKyc(user.id)}
+                          >
+                            Accept KYC
+                          </Button>
+                        )}
+                      </td>
                       <td className="py-4 px-4 text-slate-400 text-sm">{user.created_at}</td>
                       <td className="py-4 px-4">
                         <div className="flex gap-2">
@@ -200,7 +241,7 @@ const AdminUsers = () => {
                   ))}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-500">
+                      <td colSpan={8} className="py-8 text-center text-slate-500">
                         {loading ? "Loading..." : "No users found"}
                       </td>
                     </tr>

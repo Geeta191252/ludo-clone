@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, Car, FileText } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, Car, FileText, CheckCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,6 +21,7 @@ const Profile = () => {
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
+  const [kycStatus, setKycStatus] = useState<string>('pending');
   
   // Profile state
   const [profile, setProfile] = useState({
@@ -42,6 +43,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchUserData();
+    fetchKycStatus();
   }, []);
 
   const fetchUserData = async () => {
@@ -84,6 +86,22 @@ const Profile = () => {
       console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchKycStatus = async () => {
+    try {
+      const mobile = localStorage.getItem('userMobile');
+      if (!mobile) return;
+      
+      const response = await fetch(`${API_BASE_URL}/get-kyc-status.php?mobile=${mobile}`);
+      const data = await response.json();
+      
+      if (data.status) {
+        setKycStatus(data.kyc_status || 'pending');
+      }
+    } catch (error) {
+      console.error('Error fetching KYC status:', error);
     }
   };
 
@@ -212,12 +230,16 @@ const Profile = () => {
             <button onClick={() => setIsKycOpen(true)} className="flex-1">
               <div 
                 className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-white font-bold text-sm"
-                style={{ backgroundColor: '#1D7A7A' }}
+                style={{ backgroundColor: kycStatus === 'accepted' ? '#16a34a' : '#1D7A7A' }}
               >
                 <div className="w-7 h-7 rounded-md bg-blue-500 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-white" />
+                  {kycStatus === 'accepted' ? (
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  ) : (
+                    <CreditCard className="w-4 h-4 text-white" />
+                  )}
                 </div>
-                <span>KYC ACCEPTED</span>
+                <span>KYC {kycStatus === 'accepted' ? 'ACCEPTED ✓' : 'VERIFY'}</span>
               </div>
             </button>
           </div>
