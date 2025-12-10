@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MobileLayout from "./components/MobileLayout";
+import ViewportController from "./components/ViewportController";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -31,6 +32,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ViewportController />
         <Routes>
           {/* Mobile Layout Routes */}
           <Route path="/" element={<MobileLayout><Index /></MobileLayout>} />
