@@ -8,9 +8,9 @@ import GamesSection from "@/components/GamesSection";
 import BottomNav from "@/components/BottomNav";
 import WhatsAppButton from "@/components/WhatsAppButton";
 
-type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
+type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator' | 'teen-patti';
 
-const validGameTypes: GameType[] = ['ludo-classic', 'ludo-popular', 'snake', 'dragon-tiger', 'aviator'];
+const validGameTypes: GameType[] = ['ludo-classic', 'ludo-popular', 'snake', 'dragon-tiger', 'aviator', 'teen-patti'];
 
 const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -94,7 +94,7 @@ const Index = () => {
   // When a game is selected, show only the battle arena
   if (selectedGame) {
     // For Aviator, show fullscreen without Header/Nav
-    if (selectedGame === 'aviator') {
+    if (selectedGame === 'aviator' || selectedGame === 'teen-patti') {
       return (
         <div className="min-h-screen bg-background">
           <GamesSection 
