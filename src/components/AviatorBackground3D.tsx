@@ -1,403 +1,287 @@
-import { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Cloud, Stars } from '@react-three/drei';
-import * as THREE from 'three';
-
-// Animated colorful clouds that move across the sky
-const ColorfulClouds = () => {
-  const groupRef = useRef<THREE.Group>(null);
-  
-  const cloudPositions = useMemo(() => [
-    { pos: [-15, 8, -20], color: '#ff6b6b', scale: 3 },
-    { pos: [10, 12, -25], color: '#ffd93d', scale: 4 },
-    { pos: [-8, 15, -30], color: '#6bcb77', scale: 3.5 },
-    { pos: [20, 10, -22], color: '#4d96ff', scale: 2.8 },
-    { pos: [-20, 6, -18], color: '#ff6b6b', scale: 2.5 },
-    { pos: [15, 14, -28], color: '#c9b1ff', scale: 3.2 },
-    { pos: [0, 18, -35], color: '#ffd93d', scale: 4.5 },
-    { pos: [-12, 5, -15], color: '#ff9ff3', scale: 2 },
-    { pos: [25, 8, -20], color: '#54a0ff', scale: 3 },
-    { pos: [-25, 12, -25], color: '#5f27cd', scale: 3.5 },
-  ], []);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.position.x = Math.sin(state.clock.elapsedTime * 0.1) * 2;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      {cloudPositions.map((cloud, i) => (
-        <Cloud
-          key={i}
-          position={cloud.pos as [number, number, number]}
-          speed={0.2 + i * 0.05}
-          opacity={0.6}
-          color={cloud.color}
-          scale={cloud.scale}
-        />
-      ))}
-    </group>
-  );
-};
-
-// 3D Trees
-const Tree = ({ position }: { position: [number, number, number] }) => {
-  const treeRef = useRef<THREE.Group>(null);
-  
-  useFrame((state) => {
-    if (treeRef.current) {
-      // Gentle swaying
-      treeRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5 + position[0]) * 0.02;
-    }
-  });
-
-  return (
-    <group ref={treeRef} position={position}>
-      {/* Trunk */}
-      <mesh position={[0, 0.4, 0]}>
-        <cylinderGeometry args={[0.08, 0.12, 0.8, 8]} />
-        <meshStandardMaterial color="#5D4037" roughness={0.9} />
-      </mesh>
-      {/* Foliage layers */}
-      <mesh position={[0, 1.0, 0]}>
-        <coneGeometry args={[0.5, 0.8, 8]} />
-        <meshStandardMaterial color="#2E7D32" roughness={0.8} />
-      </mesh>
-      <mesh position={[0, 1.5, 0]}>
-        <coneGeometry args={[0.4, 0.7, 8]} />
-        <meshStandardMaterial color="#388E3C" roughness={0.8} />
-      </mesh>
-      <mesh position={[0, 1.9, 0]}>
-        <coneGeometry args={[0.25, 0.5, 8]} />
-        <meshStandardMaterial color="#43A047" roughness={0.8} />
-      </mesh>
-    </group>
-  );
-};
-
-// Palm Tree for variety
-const PalmTree = ({ position }: { position: [number, number, number] }) => {
-  const palmRef = useRef<THREE.Group>(null);
-  
-  useFrame((state) => {
-    if (palmRef.current) {
-      palmRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.8 + position[0]) * 0.03;
-    }
-  });
-
-  return (
-    <group ref={palmRef} position={position}>
-      {/* Trunk */}
-      <mesh position={[0, 0.8, 0]}>
-        <cylinderGeometry args={[0.06, 0.1, 1.6, 8]} />
-        <meshStandardMaterial color="#8B6914" roughness={0.9} />
-      </mesh>
-      {/* Palm leaves */}
-      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-        <mesh key={i} position={[0, 1.6, 0]} rotation={[0.5, (angle * Math.PI) / 180, 0]}>
-          <boxGeometry args={[0.8, 0.02, 0.15]} />
-          <meshStandardMaterial color="#4CAF50" roughness={0.7} />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-// Plants/Bushes
-const Bush = ({ position, color = "#4CAF50" }: { position: [number, number, number], color?: string }) => {
-  return (
-    <group position={position}>
-      <mesh position={[0, 0.15, 0]}>
-        <sphereGeometry args={[0.2, 8, 8]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
-      </mesh>
-      <mesh position={[0.12, 0.1, 0.1]}>
-        <sphereGeometry args={[0.15, 8, 8]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
-      </mesh>
-      <mesh position={[-0.1, 0.12, -0.08]}>
-        <sphereGeometry args={[0.18, 8, 8]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
-      </mesh>
-    </group>
-  );
-};
-
-// Moving Road
-const Road = ({ scrollSpeed }: { scrollSpeed: number }) => {
-  const roadRef = useRef<THREE.Group>(null);
-  const stripeOffsetRef = useRef(0);
-  const stripesRef = useRef<THREE.Group>(null);
-
-  useFrame((state, delta) => {
-    stripeOffsetRef.current += delta * scrollSpeed * 5;
-    if (stripesRef.current) {
-      stripesRef.current.position.x = -(stripeOffsetRef.current % 2);
-    }
-  });
-
-  return (
-    <group ref={roadRef} position={[0, 0.01, 5]}>
-      {/* Main road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[100, 3]} />
-        <meshStandardMaterial color="#37474F" roughness={0.9} />
-      </mesh>
-      {/* Road stripes */}
-      <group ref={stripesRef}>
-        {Array.from({ length: 50 }).map((_, i) => (
-          <mesh key={i} position={[-50 + i * 2, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.8, 0.1]} />
-            <meshStandardMaterial color="#FFC107" roughness={0.5} />
-          </mesh>
-        ))}
-      </group>
-      {/* Road edges */}
-      <mesh position={[0, 0.015, 1.4]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[100, 0.1]} />
-        <meshStandardMaterial color="#FFFFFF" roughness={0.5} />
-      </mesh>
-      <mesh position={[0, 0.015, -1.4]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[100, 0.1]} />
-        <meshStandardMaterial color="#FFFFFF" roughness={0.5} />
-      </mesh>
-    </group>
-  );
-};
-
-// Ground with grass
-const Ground = () => {
-  return (
-    <group>
-      {/* Main ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[200, 100]} />
-        <meshStandardMaterial color="#7CB342" roughness={0.9} />
-      </mesh>
-      {/* Grass patches */}
-      {Array.from({ length: 30 }).map((_, i) => (
-        <mesh
-          key={i}
-          position={[Math.random() * 60 - 30, 0.02, Math.random() * 20 - 10]}
-          rotation={[-Math.PI / 2, 0, Math.random() * Math.PI]}
-        >
-          <circleGeometry args={[0.5 + Math.random() * 0.5, 6]} />
-          <meshStandardMaterial color={`hsl(${100 + Math.random() * 20}, 60%, ${35 + Math.random() * 15}%)`} roughness={0.9} />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-// Hills in background
-const Hills = () => {
-  return (
-    <group position={[0, 0, -30]}>
-      <mesh position={[-20, 2, 0]}>
-        <sphereGeometry args={[8, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#558B2F" roughness={0.9} />
-      </mesh>
-      <mesh position={[0, 3, -5]}>
-        <sphereGeometry args={[10, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#689F38" roughness={0.9} />
-      </mesh>
-      <mesh position={[25, 2.5, 0]}>
-        <sphereGeometry args={[9, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#7CB342" roughness={0.9} />
-      </mesh>
-    </group>
-  );
-};
-
-// Sun with glow
-const Sun = () => {
-  const sunRef = useRef<THREE.Mesh>(null);
-  
-  useFrame((state) => {
-    if (sunRef.current) {
-      sunRef.current.rotation.z = state.clock.elapsedTime * 0.1;
-    }
-  });
-
-  return (
-    <group position={[30, 25, -50]}>
-      <mesh ref={sunRef}>
-        <sphereGeometry args={[5, 32, 32]} />
-        <meshBasicMaterial color="#FDD835" />
-      </mesh>
-      {/* Sun rays */}
-      {Array.from({ length: 12 }).map((_, i) => (
-        <mesh key={i} rotation={[0, 0, (i * Math.PI * 2) / 12]}>
-          <boxGeometry args={[0.3, 8, 0.1]} />
-          <meshBasicMaterial color="#FFEB3B" transparent opacity={0.5} />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-// Flying birds
-const Bird = ({ startPosition }: { startPosition: [number, number, number] }) => {
-  const birdRef = useRef<THREE.Group>(null);
-  const wingRef1 = useRef<THREE.Mesh>(null);
-  const wingRef2 = useRef<THREE.Mesh>(null);
-  
-  useFrame((state) => {
-    if (birdRef.current) {
-      birdRef.current.position.x = startPosition[0] + Math.sin(state.clock.elapsedTime * 0.5 + startPosition[0]) * 10;
-      birdRef.current.position.y = startPosition[1] + Math.sin(state.clock.elapsedTime * 1.5) * 0.5;
-    }
-    if (wingRef1.current && wingRef2.current) {
-      const wingAngle = Math.sin(state.clock.elapsedTime * 8) * 0.4;
-      wingRef1.current.rotation.z = wingAngle;
-      wingRef2.current.rotation.z = -wingAngle;
-    }
-  });
-
-  return (
-    <group ref={birdRef} position={startPosition}>
-      {/* Body */}
-      <mesh>
-        <sphereGeometry args={[0.1, 8, 8]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
-      {/* Wings */}
-      <mesh ref={wingRef1} position={[0, 0, 0.15]}>
-        <boxGeometry args={[0.05, 0.02, 0.3]} />
-        <meshStandardMaterial color="#333" />
-      </mesh>
-      <mesh ref={wingRef2} position={[0, 0, -0.15]}>
-        <boxGeometry args={[0.05, 0.02, 0.3]} />
-        <meshStandardMaterial color="#333" />
-      </mesh>
-    </group>
-  );
-};
+import { useRef, useMemo, useEffect, useState } from 'react';
 
 interface AviatorBackground3DProps {
   isFlying: boolean;
   multiplier: number;
 }
 
-const SceneContent = ({ isFlying, multiplier }: AviatorBackground3DProps) => {
-  const scrollSpeed = isFlying ? Math.min(multiplier * 0.5, 5) : 0.1;
+// Individual Building component
+const Building = ({ 
+  x, 
+  width, 
+  height, 
+  color, 
+  windowColor,
+  scrollOffset,
+  layer 
+}: { 
+  x: number; 
+  width: number; 
+  height: number; 
+  color: string;
+  windowColor: string;
+  scrollOffset: number;
+  layer: number;
+}) => {
+  const speed = layer === 0 ? 0.3 : layer === 1 ? 0.6 : 1;
+  const adjustedX = ((x - scrollOffset * speed) % 1200) - 100;
   
-  // Generate tree positions
-  const treePositions = useMemo(() => {
-    const positions: [number, number, number][] = [];
-    for (let i = 0; i < 25; i++) {
-      positions.push([
-        Math.random() * 80 - 40,
-        0,
-        Math.random() * 15 - 20
-      ]);
-    }
-    return positions;
-  }, []);
-
-  // Generate palm positions
-  const palmPositions = useMemo(() => {
-    const positions: [number, number, number][] = [];
-    for (let i = 0; i < 10; i++) {
-      positions.push([
-        Math.random() * 60 - 30,
-        0,
-        8 + Math.random() * 5
-      ]);
-    }
-    return positions;
-  }, []);
-
-  // Generate bush positions
-  const bushPositions = useMemo(() => {
-    const positions: { pos: [number, number, number], color: string }[] = [];
-    const colors = ['#4CAF50', '#66BB6A', '#81C784', '#A5D6A7'];
-    for (let i = 0; i < 40; i++) {
-      positions.push({
-        pos: [
-          Math.random() * 70 - 35,
-          0,
-          Math.random() * 25 - 15
-        ],
-        color: colors[Math.floor(Math.random() * colors.length)]
-      });
-    }
-    return positions;
-  }, []);
-
-  // Bird positions
-  const birdPositions: [number, number, number][] = useMemo(() => [
-    [-10, 15, -15],
-    [5, 18, -20],
-    [15, 12, -18],
-    [-15, 20, -25],
-    [0, 16, -22],
-  ], []);
-
   return (
-    <>
-      {/* Sky gradient background */}
-      <color attach="background" args={['#87CEEB']} />
+    <g transform={`translate(${adjustedX}, ${300 - height})`}>
+      {/* Building body */}
+      <rect width={width} height={height} fill={color} />
       
-      {/* Lighting */}
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 20, 10]} intensity={1.2} color="#FFF8E1" castShadow />
-      <directionalLight position={[-5, 10, -5]} intensity={0.4} color="#B3E5FC" />
-      <hemisphereLight args={['#87CEEB', '#7CB342', 0.5]} />
-      
-      {/* Stars (visible faintly) */}
-      <Stars radius={100} depth={50} count={1000} factor={2} saturation={0} fade speed={0.5} />
-      
-      {/* Sun */}
-      <Sun />
-      
-      {/* Colorful clouds */}
-      <ColorfulClouds />
-      
-      {/* Hills */}
-      <Hills />
-      
-      {/* Ground */}
-      <Ground />
-      
-      {/* Road */}
-      <Road scrollSpeed={scrollSpeed} />
-      
-      {/* Trees */}
-      {treePositions.map((pos, i) => (
-        <Tree key={`tree-${i}`} position={pos} />
+      {/* Windows */}
+      {Array.from({ length: Math.floor(height / 25) }).map((_, row) => (
+        Array.from({ length: Math.floor(width / 20) }).map((_, col) => (
+          <rect
+            key={`${row}-${col}`}
+            x={8 + col * 18}
+            y={10 + row * 22}
+            width={10}
+            height={14}
+            fill={Math.random() > 0.3 ? windowColor : '#1a1a2e'}
+            opacity={0.9}
+          />
+        ))
       ))}
       
-      {/* Palm trees */}
-      {palmPositions.map((pos, i) => (
-        <PalmTree key={`palm-${i}`} position={pos} />
-      ))}
+      {/* Roof details */}
+      {height > 100 && (
+        <rect x={width/2 - 5} y={-15} width={10} height={15} fill={color} />
+      )}
+    </g>
+  );
+};
+
+// Cloud component
+const Cloud = ({ 
+  x, 
+  y, 
+  scale, 
+  scrollOffset 
+}: { 
+  x: number; 
+  y: number; 
+  scale: number;
+  scrollOffset: number;
+}) => {
+  const adjustedX = ((x - scrollOffset * 0.1) % 1100) - 50;
+  
+  return (
+    <g transform={`translate(${adjustedX}, ${y}) scale(${scale})`}>
+      <ellipse cx="0" cy="0" rx="50" ry="25" fill="white" opacity="0.95" />
+      <ellipse cx="-35" cy="8" rx="35" ry="20" fill="white" opacity="0.95" />
+      <ellipse cx="35" cy="8" rx="40" ry="22" fill="white" opacity="0.95" />
+      <ellipse cx="0" cy="15" rx="45" ry="18" fill="white" opacity="0.95" />
+    </g>
+  );
+};
+
+// Tree component (round top tree like in reference)
+const Tree = ({ 
+  x, 
+  scrollOffset 
+}: { 
+  x: number; 
+  scrollOffset: number;
+}) => {
+  const adjustedX = ((x - scrollOffset) % 1200) - 50;
+  
+  return (
+    <g transform={`translate(${adjustedX}, 255)`}>
+      {/* Trunk */}
+      <rect x="-5" y="20" width="10" height="25" fill="#5D4E37" />
+      {/* Foliage (round bush style) */}
+      <circle cx="0" cy="5" r="25" fill="#2D5A27" />
+      <circle cx="-15" cy="12" r="20" fill="#3D7A35" />
+      <circle cx="15" cy="12" r="20" fill="#3D7A35" />
+      <circle cx="0" cy="-10" r="18" fill="#4A8B42" />
+    </g>
+  );
+};
+
+// Road component
+const Road = ({ scrollOffset }: { scrollOffset: number }) => {
+  return (
+    <g>
+      {/* Main road surface */}
+      <rect x="0" y="300" width="100%" height="40" fill="#4A4A4A" />
       
-      {/* Bushes */}
-      {bushPositions.map((bush, i) => (
-        <Bush key={`bush-${i}`} position={bush.pos} color={bush.color} />
-      ))}
+      {/* Road stripes */}
+      {Array.from({ length: 30 }).map((_, i) => {
+        const stripeX = ((i * 60 - scrollOffset * 2) % 1500) - 60;
+        return (
+          <rect
+            key={i}
+            x={stripeX}
+            y="318"
+            width="40"
+            height="5"
+            fill="#FFD700"
+          />
+        );
+      })}
       
-      {/* Birds */}
-      {birdPositions.map((pos, i) => (
-        <Bird key={`bird-${i}`} startPosition={pos} />
-      ))}
-    </>
+      {/* Road edges */}
+      <rect x="0" y="340" width="100%" height="60" fill="#C4A35A" />
+      <rect x="0" y="338" width="100%" height="4" fill="#8B7355" />
+    </g>
   );
 };
 
 const AviatorBackground3D = ({ isFlying, multiplier }: AviatorBackground3DProps) => {
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const animationRef = useRef<number>();
+  const lastTimeRef = useRef<number>(0);
+
+  // Generate buildings for different layers
+  const backgroundBuildings = useMemo(() => {
+    return Array.from({ length: 20 }).map((_, i) => ({
+      x: i * 80 + Math.random() * 30,
+      width: 50 + Math.random() * 40,
+      height: 120 + Math.random() * 80,
+      color: '#1a3a5c',
+      windowColor: '#87CEEB',
+      layer: 0
+    }));
+  }, []);
+
+  const midBuildings = useMemo(() => {
+    return Array.from({ length: 15 }).map((_, i) => ({
+      x: i * 100 + Math.random() * 40,
+      width: 60 + Math.random() * 50,
+      height: 80 + Math.random() * 100,
+      color: '#' + ['E8976E', 'F5DEB3', 'C4A35A', 'E8B87A', 'D4A574'][Math.floor(Math.random() * 5)],
+      windowColor: '#87CEEB',
+      layer: 1
+    }));
+  }, []);
+
+  const frontBuildings = useMemo(() => {
+    return Array.from({ length: 10 }).map((_, i) => ({
+      x: i * 150 + Math.random() * 50,
+      width: 80 + Math.random() * 60,
+      height: 60 + Math.random() * 80,
+      color: '#' + ['D4765C', 'F5E6D3', 'E8C97A', 'D98C5F'][Math.floor(Math.random() * 4)],
+      windowColor: '#A8D8EA',
+      layer: 2
+    }));
+  }, []);
+
+  const clouds = useMemo(() => [
+    { x: 200, y: 60, scale: 1.5 },
+    { x: 500, y: 40, scale: 1 },
+    { x: 800, y: 80, scale: 1.2 },
+    { x: 1000, y: 50, scale: 0.9 },
+    { x: 100, y: 100, scale: 0.8 },
+    { x: 650, y: 30, scale: 1.3 },
+  ], []);
+
+  const trees = useMemo(() => {
+    return Array.from({ length: 12 }).map((_, i) => ({
+      x: i * 120 + Math.random() * 60
+    }));
+  }, []);
+
+  useEffect(() => {
+    const animate = (time: number) => {
+      if (lastTimeRef.current === 0) {
+        lastTimeRef.current = time;
+      }
+      
+      const deltaTime = time - lastTimeRef.current;
+      lastTimeRef.current = time;
+      
+      // Only scroll when flying
+      if (isFlying) {
+        const speed = Math.min(multiplier * 0.8, 8);
+        setScrollOffset(prev => prev + speed * deltaTime * 0.05);
+      }
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isFlying, multiplier]);
+
   return (
-    <div className="absolute inset-0 w-full h-full">
-      <Canvas
-        camera={{ position: [0, 8, 25], fov: 60, near: 0.1, far: 200 }}
-        style={{ background: 'linear-gradient(180deg, #1a237e 0%, #3949ab 30%, #7986cb 60%, #c5cae9 100%)' }}
-        gl={{ antialias: true, alpha: false }}
+    <div className="absolute inset-0 w-full h-full overflow-hidden">
+      <svg 
+        viewBox="0 0 1000 400" 
+        preserveAspectRatio="xMidYMid slice"
+        className="w-full h-full"
       >
-        <SceneContent isFlying={isFlying} multiplier={multiplier} />
-      </Canvas>
+        {/* Sky gradient */}
+        <defs>
+          <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#87CEEB" />
+            <stop offset="50%" stopColor="#B0E2FF" />
+            <stop offset="100%" stopColor="#E0F4FF" />
+          </linearGradient>
+          
+          {/* City silhouette gradient for background */}
+          <linearGradient id="citySilhouette" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#2C4A6B" />
+            <stop offset="100%" stopColor="#1a3a5c" />
+          </linearGradient>
+        </defs>
+        
+        {/* Sky background */}
+        <rect width="100%" height="100%" fill="url(#skyGradient)" />
+        
+        {/* Clouds */}
+        {clouds.map((cloud, i) => (
+          <Cloud 
+            key={i} 
+            x={cloud.x} 
+            y={cloud.y} 
+            scale={cloud.scale}
+            scrollOffset={scrollOffset}
+          />
+        ))}
+        
+        {/* Background city silhouette (far) */}
+        {backgroundBuildings.map((building, i) => (
+          <Building
+            key={`bg-${i}`}
+            {...building}
+            scrollOffset={scrollOffset}
+          />
+        ))}
+        
+        {/* Mid-ground buildings */}
+        {midBuildings.map((building, i) => (
+          <Building
+            key={`mid-${i}`}
+            {...building}
+            scrollOffset={scrollOffset}
+          />
+        ))}
+        
+        {/* Trees */}
+        {trees.map((tree, i) => (
+          <Tree key={i} x={tree.x} scrollOffset={scrollOffset} />
+        ))}
+        
+        {/* Front buildings */}
+        {frontBuildings.map((building, i) => (
+          <Building
+            key={`front-${i}`}
+            {...building}
+            scrollOffset={scrollOffset}
+          />
+        ))}
+        
+        {/* Road */}
+        <Road scrollOffset={scrollOffset} />
+      </svg>
     </div>
   );
 };
