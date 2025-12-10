@@ -70,7 +70,8 @@ export const useViewportControl = () => {
     
     if (viewport) {
       if (isAdminRoute) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+        // Force desktop view for admin - set fixed width of 1024px
+        viewport.setAttribute('content', 'width=1024, initial-scale=0.4, user-scalable=yes');
       } else {
         // Use device-width for normal mobile, scaling handles desktop mode
         viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
