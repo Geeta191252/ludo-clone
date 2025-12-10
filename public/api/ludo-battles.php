@@ -368,7 +368,6 @@ if ($method === 'POST') {
             $result_type = $conn->real_escape_string($data['result'] ?? '');
             $screenshot = $data['screenshot'] ?? null;
             $mobile = $conn->real_escape_string($data['mobile'] ?? '');
-            $entryFee = (int)($data['entryFee'] ?? 0);
             
             // Get battle details
             $battleResult = $conn->query("SELECT * FROM ludo_battles WHERE id = '$battleId' AND status = 'running'");
@@ -376,6 +375,9 @@ if ($method === 'POST') {
                 echo json_encode(['success' => false, 'message' => 'Battle not found or not running']);
                 break;
             }
+            
+            // Get entry fee from database, not client request
+            $entryFee = (int)$battle_data['entry_fee'];
             
             $isCreator = ($userId === $battle_data['creator_id'] || $userId === 'YOU');
             $isOpponent = ($userId === $battle_data['opponent_id'] || $userId === 'YOU');
