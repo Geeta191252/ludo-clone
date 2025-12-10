@@ -3,8 +3,9 @@ import GameCard, { gameNames } from "./GameCard";
 import BattleArena from "./BattleArena";
 import DragonTigerGame from "./DragonTigerGame";
 import AviatorGame from "./AviatorGame";
+import TeenPattiGame from "./TeenPattiGame";
 
-type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator';
+type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator' | 'teen-patti';
 
 interface GamesSectionProps {
   onGameSelect?: (game: GameType | null) => void;
@@ -53,6 +54,17 @@ const GamesSection = ({
     );
   }
 
+  // Show Teen Patti game
+  if (selectedGame === 'teen-patti') {
+    return (
+      <TeenPattiGame 
+        walletBalance={walletBalance}
+        onWalletChange={onWalletChange || (() => {})}
+        onBack={() => setSelectedGame(null)}
+      />
+    );
+  }
+
   // Show Battle Arena for other games
   if (selectedGame) {
     return (
@@ -90,6 +102,11 @@ const GamesSection = ({
             gameType="dragon-tiger" 
             isLive={true}
             onClick={() => setSelectedGame('dragon-tiger')}
+          />
+          <GameCard 
+            gameType="teen-patti" 
+            isLive={true}
+            onClick={() => setSelectedGame('teen-patti')}
           />
           <GameCard 
             gameType="aviator" 
