@@ -360,6 +360,8 @@ const Profile = () => {
       <Dialog open={isKycOpen} onOpenChange={setIsKycOpen}>
         <DialogContent className="bg-white max-w-md mx-auto">
           <DialogHeader>
+            <p className="text-sm text-gray-700 text-center mb-1">1. You Need To Choice One Way To Verify Your Document</p>
+            <p className="text-sm text-gray-700 text-center mb-3">2. आपको अपने दस्तावेज़ को सत्यापित करने के लिए एक तरीका चुनना होगा।</p>
             <DialogTitle className="text-2xl font-bold text-black text-center">Select Document Type</DialogTitle>
           </DialogHeader>
           
