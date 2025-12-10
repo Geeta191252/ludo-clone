@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, Car, FileText, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, Car, FileText, CheckCircle, Clock, XCircle, AlertTriangle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -230,16 +230,32 @@ const Profile = () => {
             <button onClick={() => setIsKycOpen(true)} className="flex-1">
               <div 
                 className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-white font-bold text-sm"
-                style={{ backgroundColor: kycStatus === 'accepted' ? '#16a34a' : '#1D7A7A' }}
+                style={{ 
+                  backgroundColor: kycStatus === 'accepted' ? '#16a34a' : 
+                                   kycStatus === 'rejected' ? '#dc2626' : 
+                                   kycStatus === 'pending' ? '#ca8a04' : '#1D7A7A' 
+                }}
               >
-                <div className="w-7 h-7 rounded-md bg-blue-500 flex items-center justify-center">
+                <div className={`w-7 h-7 rounded-md flex items-center justify-center ${
+                  kycStatus === 'accepted' ? 'bg-green-700' : 
+                  kycStatus === 'rejected' ? 'bg-red-700' : 
+                  kycStatus === 'pending' ? 'bg-yellow-700' : 'bg-blue-500'
+                }`}>
                   {kycStatus === 'accepted' ? (
                     <CheckCircle className="w-4 h-4 text-white" />
+                  ) : kycStatus === 'rejected' ? (
+                    <XCircle className="w-4 h-4 text-white" />
+                  ) : kycStatus === 'pending' ? (
+                    <Clock className="w-4 h-4 text-white" />
                   ) : (
                     <CreditCard className="w-4 h-4 text-white" />
                   )}
                 </div>
-                <span>KYC {kycStatus === 'accepted' ? 'ACCEPTED ✓' : 'VERIFY'}</span>
+                <span>
+                  {kycStatus === 'accepted' ? 'KYC ACCEPTED ✓' : 
+                   kycStatus === 'rejected' ? 'KYC REJECTED ✗' : 
+                   kycStatus === 'pending' ? 'KYC PENDING' : 'KYC VERIFY'}
+                </span>
               </div>
             </button>
           </div>
@@ -387,7 +403,75 @@ const Profile = () => {
       {/* KYC Document Selection Dialog */}
       <Dialog open={isKycOpen} onOpenChange={(open) => { setIsKycOpen(open); if (!open) setSelectedDocType(null); }}>
         <DialogContent className="bg-white max-w-md mx-auto">
-          {!selectedDocType ? (
+          {/* KYC Accepted State */}
+          {kycStatus === 'accepted' ? (
+            <div className="py-8 text-center space-y-4">
+              <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-12 h-12 text-green-600" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-green-600">KYC Verified!</DialogTitle>
+              <p className="text-gray-600">आपकी KYC सफलतापूर्वक सत्यापित हो गई है।</p>
+              <p className="text-gray-600">Your KYC has been successfully verified.</p>
+              <Button 
+                className="mt-4 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => setIsKycOpen(false)}
+              >
+                OK
+              </Button>
+            </div>
+          ) : kycStatus === 'pending' ? (
+            /* KYC Pending State */
+            <div className="py-8 text-center space-y-4">
+              <div className="w-20 h-20 mx-auto rounded-full bg-yellow-100 flex items-center justify-center">
+                <Clock className="w-12 h-12 text-yellow-600" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-yellow-600">KYC Pending</DialogTitle>
+              <p className="text-gray-600 font-medium">आपके दस्तावेज़ सत्यापन के लिए जमा किए गए हैं।</p>
+              <p className="text-gray-600">Your documents have been submitted for verification.</p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> KYC verification usually takes 24-48 hours. Please wait for admin approval.
+                </p>
+              </div>
+              <Button 
+                className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white"
+                onClick={() => setIsKycOpen(false)}
+              >
+                OK
+              </Button>
+            </div>
+          ) : kycStatus === 'rejected' ? (
+            /* KYC Rejected State */
+            <div className="py-6 text-center space-y-4">
+              <div className="w-20 h-20 mx-auto rounded-full bg-red-100 flex items-center justify-center">
+                <XCircle className="w-12 h-12 text-red-600" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-red-600">KYC Rejected</DialogTitle>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-left">
+                    <p className="text-red-800 font-medium">गलत दस्तावेज़ - Wrong Documents</p>
+                    <p className="text-sm text-red-700 mt-1">आपकी KYC रद्द कर दी गई है। कृपया सही दस्तावेज़ के साथ दोबारा जमा करें।</p>
+                    <p className="text-sm text-red-700 mt-1">Your KYC has been cancelled. Please resubmit with correct documents.</p>
+                  </div>
+                </div>
+              </div>
+              <Button 
+                className="w-full py-5 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => setKycStatus('')}
+              >
+                Resubmit KYC / दोबारा जमा करें
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full"
+                onClick={() => setIsKycOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+          ) : !selectedDocType ? (
             <>
               <DialogHeader>
                 <p className="text-sm text-gray-700 text-center mb-1">1. You Need To Choice One Way To Verify Your Document</p>
