@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, Car, FileText } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,10 @@ const Profile = () => {
   const [isKycOpen, setIsKycOpen] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState<string | null>(null);
   const [kycForm, setKycForm] = useState({ name: '', email: '', docNumber: '' });
+  const [frontImage, setFrontImage] = useState<File | null>(null);
+  const [backImage, setBackImage] = useState<File | null>(null);
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const backInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   
   // Profile state
@@ -424,12 +428,44 @@ const Profile = () => {
                   className="border-gray-300 py-5"
                 />
                 
-                <Button className="w-full py-5 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white">
-                  UPLOAD FRONT {selectedDocType === 'AADHAR CARD' ? 'AADHAR' : selectedDocType === 'DRIVING LICENCE' ? 'LICENCE' : 'PAN'}
+                <input 
+                  type="file" 
+                  ref={frontInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFrontImage(file);
+                      toast({ title: "Front Image Selected", description: file.name });
+                    }
+                  }}
+                />
+                <Button 
+                  className={`w-full py-5 text-base font-bold ${frontImage ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+                  onClick={() => frontInputRef.current?.click()}
+                >
+                  {frontImage ? '✓ FRONT UPLOADED' : `UPLOAD FRONT ${selectedDocType === 'AADHAR CARD' ? 'AADHAR' : selectedDocType === 'DRIVING LICENCE' ? 'LICENCE' : 'PAN'}`}
                 </Button>
                 
-                <Button className="w-full py-5 text-base font-bold bg-blue-400 hover:bg-blue-500 text-white">
-                  UPLOAD BACK {selectedDocType === 'AADHAR CARD' ? 'AADHAR' : selectedDocType === 'DRIVING LICENCE' ? 'LICENCE' : 'PAN'}
+                <input 
+                  type="file" 
+                  ref={backInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setBackImage(file);
+                      toast({ title: "Back Image Selected", description: file.name });
+                    }
+                  }}
+                />
+                <Button 
+                  className={`w-full py-5 text-base font-bold ${backImage ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-400 hover:bg-blue-500'} text-white`}
+                  onClick={() => backInputRef.current?.click()}
+                >
+                  {backImage ? '✓ BACK UPLOADED' : `UPLOAD BACK ${selectedDocType === 'AADHAR CARD' ? 'AADHAR' : selectedDocType === 'DRIVING LICENCE' ? 'LICENCE' : 'PAN'}`}
                 </Button>
                 
                 <div className="flex justify-center">
@@ -440,6 +476,8 @@ const Profile = () => {
                       setIsKycOpen(false);
                       setSelectedDocType(null);
                       setKycForm({ name: '', email: '', docNumber: '' });
+                      setFrontImage(null);
+                      setBackImage(null);
                     }}
                   >
                     SUBMIT
