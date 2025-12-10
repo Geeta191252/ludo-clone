@@ -32,15 +32,31 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("admin_token");
+      console.log("Fetching users with token:", token ? "Present" : "Missing");
+      
       const response = await fetch("/api/admin-users.php", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
-      if (data.status) {
-        setUsers(data.users);
+      
+      console.log("Response status:", response.status);
+      const text = await response.text();
+      console.log("Raw response:", text);
+      
+      try {
+        const data = JSON.parse(text);
+        console.log("Parsed data:", data);
+        if (data.status) {
+          setUsers(data.users || []);
+        } else {
+          toast({ title: "Error", description: data.message || "Failed to fetch users", variant: "destructive" });
+        }
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        toast({ title: "Error", description: "Invalid response from server", variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to fetch users", variant: "destructive" });
+      console.error("Fetch error:", error);
+      toast({ title: "Error", description: "Failed to connect to server", variant: "destructive" });
     } finally {
       setLoading(false);
     }
