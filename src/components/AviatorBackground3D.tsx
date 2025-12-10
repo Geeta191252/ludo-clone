@@ -1,287 +1,358 @@
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 
 interface AviatorBackground3DProps {
   isFlying: boolean;
   multiplier: number;
 }
 
-// Individual Building component
+// 3D Building Component
 const Building = ({ 
-  x, 
+  position, 
   width, 
   height, 
-  color, 
-  windowColor,
-  scrollOffset,
-  layer 
+  depth, 
+  color,
+  scrollSpeed
 }: { 
-  x: number; 
+  position: [number, number, number]; 
   width: number; 
   height: number; 
+  depth: number;
   color: string;
-  windowColor: string;
-  scrollOffset: number;
-  layer: number;
+  scrollSpeed: number;
 }) => {
-  const speed = layer === 0 ? 0.3 : layer === 1 ? 0.6 : 1;
-  const adjustedX = ((x - scrollOffset * speed) % 1200) - 100;
+  const meshRef = useRef<THREE.Mesh>(null);
+  const initialX = useRef(position[0]);
   
+  useFrame((_, delta) => {
+    if (meshRef.current) {
+      meshRef.current.position.x -= delta * scrollSpeed;
+      // Reset position when out of view
+      if (meshRef.current.position.x < -60) {
+        meshRef.current.position.x = 60;
+      }
+    }
+  });
+
+  // Generate window positions
+  const windows = useMemo(() => {
+    const wins: { x: number; y: number }[] = [];
+    const rows = Math.floor(height / 1.2);
+    const cols = Math.floor(width / 0.8);
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (Math.random() > 0.2) {
+          wins.push({
+            x: -width/2 + 0.4 + col * 0.8,
+            y: -height/2 + 0.6 + row * 1.2
+          });
+        }
+      }
+    }
+    return wins;
+  }, [width, height]);
+
   return (
-    <g transform={`translate(${adjustedX}, ${300 - height})`}>
-      {/* Building body */}
-      <rect width={width} height={height} fill={color} />
-      
-      {/* Windows */}
-      {Array.from({ length: Math.floor(height / 25) }).map((_, row) => (
-        Array.from({ length: Math.floor(width / 20) }).map((_, col) => (
-          <rect
-            key={`${row}-${col}`}
-            x={8 + col * 18}
-            y={10 + row * 22}
-            width={10}
-            height={14}
-            fill={Math.random() > 0.3 ? windowColor : '#1a1a2e'}
-            opacity={0.9}
-          />
-        ))
-      ))}
-      
-      {/* Roof details */}
-      {height > 100 && (
-        <rect x={width/2 - 5} y={-15} width={10} height={15} fill={color} />
-      )}
-    </g>
+    <group>
+      <mesh ref={meshRef} position={[initialX.current, position[1] + height/2, position[2]]}>
+        {/* Building body */}
+        <boxGeometry args={[width, height, depth]} />
+        <meshStandardMaterial color={color} />
+        
+        {/* Windows */}
+        {windows.map((win, i) => (
+          <mesh key={i} position={[win.x, win.y, depth/2 + 0.01]}>
+            <planeGeometry args={[0.5, 0.7]} />
+            <meshBasicMaterial color="#87CEEB" />
+          </mesh>
+        ))}
+      </mesh>
+    </group>
   );
 };
 
-// Cloud component
+// 3D Cloud
 const Cloud = ({ 
-  x, 
-  y, 
-  scale, 
-  scrollOffset 
+  position, 
+  scale,
+  scrollSpeed
 }: { 
-  x: number; 
-  y: number; 
+  position: [number, number, number]; 
   scale: number;
-  scrollOffset: number;
+  scrollSpeed: number;
 }) => {
-  const adjustedX = ((x - scrollOffset * 0.1) % 1100) - 50;
+  const groupRef = useRef<THREE.Group>(null);
+  const initialX = useRef(position[0]);
   
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      groupRef.current.position.x -= delta * scrollSpeed * 0.3;
+      if (groupRef.current.position.x < -80) {
+        groupRef.current.position.x = 80;
+      }
+    }
+  });
+
   return (
-    <g transform={`translate(${adjustedX}, ${y}) scale(${scale})`}>
-      <ellipse cx="0" cy="0" rx="50" ry="25" fill="white" opacity="0.95" />
-      <ellipse cx="-35" cy="8" rx="35" ry="20" fill="white" opacity="0.95" />
-      <ellipse cx="35" cy="8" rx="40" ry="22" fill="white" opacity="0.95" />
-      <ellipse cx="0" cy="15" rx="45" ry="18" fill="white" opacity="0.95" />
-    </g>
+    <group ref={groupRef} position={[initialX.current, position[1], position[2]]} scale={scale}>
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[2, 16, 16]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
+      <mesh position={[-1.5, -0.3, 0]}>
+        <sphereGeometry args={[1.5, 16, 16]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
+      <mesh position={[1.5, -0.3, 0]}>
+        <sphereGeometry args={[1.8, 16, 16]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
+      <mesh position={[0, -0.5, 0]}>
+        <sphereGeometry args={[1.6, 16, 16]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
+    </group>
   );
 };
 
-// Tree component (round top tree like in reference)
+// 3D Tree (round bush style like reference)
 const Tree = ({ 
-  x, 
-  scrollOffset 
+  position,
+  scrollSpeed
 }: { 
-  x: number; 
-  scrollOffset: number;
+  position: [number, number, number];
+  scrollSpeed: number;
 }) => {
-  const adjustedX = ((x - scrollOffset) % 1200) - 50;
+  const groupRef = useRef<THREE.Group>(null);
+  const initialX = useRef(position[0]);
   
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      groupRef.current.position.x -= delta * scrollSpeed;
+      if (groupRef.current.position.x < -60) {
+        groupRef.current.position.x = 60;
+      }
+    }
+  });
+
   return (
-    <g transform={`translate(${adjustedX}, 255)`}>
+    <group ref={groupRef} position={[initialX.current, position[1], position[2]]}>
       {/* Trunk */}
-      <rect x="-5" y="20" width="10" height="25" fill="#5D4E37" />
-      {/* Foliage (round bush style) */}
-      <circle cx="0" cy="5" r="25" fill="#2D5A27" />
-      <circle cx="-15" cy="12" r="20" fill="#3D7A35" />
-      <circle cx="15" cy="12" r="20" fill="#3D7A35" />
-      <circle cx="0" cy="-10" r="18" fill="#4A8B42" />
-    </g>
+      <mesh position={[0, 0.8, 0]}>
+        <cylinderGeometry args={[0.15, 0.2, 1.6, 8]} />
+        <meshStandardMaterial color="#5D4E37" />
+      </mesh>
+      {/* Foliage (round style) */}
+      <mesh position={[0, 2.2, 0]}>
+        <sphereGeometry args={[1.2, 16, 16]} />
+        <meshStandardMaterial color="#2D5A27" />
+      </mesh>
+      <mesh position={[-0.6, 1.9, 0.3]}>
+        <sphereGeometry args={[0.9, 16, 16]} />
+        <meshStandardMaterial color="#3D7A35" />
+      </mesh>
+      <mesh position={[0.6, 1.9, -0.3]}>
+        <sphereGeometry args={[0.9, 16, 16]} />
+        <meshStandardMaterial color="#3D7A35" />
+      </mesh>
+      <mesh position={[0, 2.8, 0]}>
+        <sphereGeometry args={[0.8, 16, 16]} />
+        <meshStandardMaterial color="#4A8B42" />
+      </mesh>
+    </group>
   );
 };
 
-// Road component
-const Road = ({ scrollOffset }: { scrollOffset: number }) => {
+// Road with moving stripes
+const Road = ({ scrollSpeed }: { scrollSpeed: number }) => {
+  const stripesRef = useRef<THREE.Group>(null);
+  const offsetRef = useRef(0);
+
+  useFrame((_, delta) => {
+    offsetRef.current += delta * scrollSpeed * 3;
+    if (stripesRef.current) {
+      stripesRef.current.position.x = -(offsetRef.current % 4);
+    }
+  });
+
   return (
-    <g>
-      {/* Main road surface */}
-      <rect x="0" y="300" width="100%" height="40" fill="#4A4A4A" />
+    <group position={[0, 0.01, 8]}>
+      {/* Main road */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[150, 4]} />
+        <meshStandardMaterial color="#4A4A4A" />
+      </mesh>
       
       {/* Road stripes */}
-      {Array.from({ length: 30 }).map((_, i) => {
-        const stripeX = ((i * 60 - scrollOffset * 2) % 1500) - 60;
-        return (
-          <rect
-            key={i}
-            x={stripeX}
-            y="318"
-            width="40"
-            height="5"
-            fill="#FFD700"
-          />
-        );
-      })}
+      <group ref={stripesRef}>
+        {Array.from({ length: 40 }).map((_, i) => (
+          <mesh key={i} position={[-80 + i * 4, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[2, 0.2]} />
+            <meshBasicMaterial color="#FFD700" />
+          </mesh>
+        ))}
+      </group>
       
-      {/* Road edges */}
-      <rect x="0" y="340" width="100%" height="60" fill="#C4A35A" />
-      <rect x="0" y="338" width="100%" height="4" fill="#8B7355" />
-    </g>
+      {/* Sidewalk */}
+      <mesh position={[0, 0.05, -2.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[150, 1]} />
+        <meshStandardMaterial color="#C4A35A" />
+      </mesh>
+    </group>
   );
 };
 
-const AviatorBackground3D = ({ isFlying, multiplier }: AviatorBackground3DProps) => {
-  const [scrollOffset, setScrollOffset] = useState(0);
-  const animationRef = useRef<number>();
-  const lastTimeRef = useRef<number>(0);
+// Ground
+const Ground = () => {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+      <planeGeometry args={[200, 100]} />
+      <meshStandardMaterial color="#7CB342" />
+    </mesh>
+  );
+};
 
-  // Generate buildings for different layers
-  const backgroundBuildings = useMemo(() => {
-    return Array.from({ length: 20 }).map((_, i) => ({
-      x: i * 80 + Math.random() * 30,
-      width: 50 + Math.random() * 40,
-      height: 120 + Math.random() * 80,
-      color: '#1a3a5c',
-      windowColor: '#87CEEB',
-      layer: 0
+// City Silhouette (far background)
+const CitySilhouette = () => {
+  const buildings = useMemo(() => {
+    return Array.from({ length: 30 }).map((_, i) => ({
+      x: -70 + i * 5,
+      height: 8 + Math.random() * 15,
+      width: 3 + Math.random() * 2
     }));
   }, []);
 
+  return (
+    <group position={[0, 0, -40]}>
+      {buildings.map((b, i) => (
+        <mesh key={i} position={[b.x, b.height / 2, 0]}>
+          <boxGeometry args={[b.width, b.height, 2]} />
+          <meshStandardMaterial color="#1a3a5c" />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+const SceneContent = ({ isFlying, multiplier }: AviatorBackground3DProps) => {
+  const scrollSpeed = isFlying ? Math.min(multiplier * 2, 15) : 0;
+
+  // Generate buildings for different layers
   const midBuildings = useMemo(() => {
-    return Array.from({ length: 15 }).map((_, i) => ({
-      x: i * 100 + Math.random() * 40,
-      width: 60 + Math.random() * 50,
-      height: 80 + Math.random() * 100,
-      color: '#' + ['E8976E', 'F5DEB3', 'C4A35A', 'E8B87A', 'D4A574'][Math.floor(Math.random() * 5)],
-      windowColor: '#87CEEB',
-      layer: 1
+    const colors = ['#E8976E', '#F5DEB3', '#C4A35A', '#E8B87A', '#D4A574'];
+    return Array.from({ length: 12 }).map((_, i) => ({
+      position: [-50 + i * 10, 0, -5 - Math.random() * 5] as [number, number, number],
+      width: 3 + Math.random() * 2,
+      height: 5 + Math.random() * 8,
+      depth: 3,
+      color: colors[Math.floor(Math.random() * colors.length)]
     }));
   }, []);
 
   const frontBuildings = useMemo(() => {
-    return Array.from({ length: 10 }).map((_, i) => ({
-      x: i * 150 + Math.random() * 50,
-      width: 80 + Math.random() * 60,
-      height: 60 + Math.random() * 80,
-      color: '#' + ['D4765C', 'F5E6D3', 'E8C97A', 'D98C5F'][Math.floor(Math.random() * 4)],
-      windowColor: '#A8D8EA',
-      layer: 2
+    const colors = ['#D4765C', '#F5E6D3', '#E8C97A', '#D98C5F'];
+    return Array.from({ length: 8 }).map((_, i) => ({
+      position: [-40 + i * 12, 0, 2] as [number, number, number],
+      width: 4 + Math.random() * 3,
+      height: 4 + Math.random() * 5,
+      depth: 4,
+      color: colors[Math.floor(Math.random() * colors.length)]
     }));
   }, []);
 
   const clouds = useMemo(() => [
-    { x: 200, y: 60, scale: 1.5 },
-    { x: 500, y: 40, scale: 1 },
-    { x: 800, y: 80, scale: 1.2 },
-    { x: 1000, y: 50, scale: 0.9 },
-    { x: 100, y: 100, scale: 0.8 },
-    { x: 650, y: 30, scale: 1.3 },
+    { position: [-30, 18, -30] as [number, number, number], scale: 1.5 },
+    { position: [20, 22, -35] as [number, number, number], scale: 1.2 },
+    { position: [50, 16, -28] as [number, number, number], scale: 1 },
+    { position: [-60, 20, -32] as [number, number, number], scale: 1.3 },
+    { position: [0, 25, -40] as [number, number, number], scale: 1.8 },
   ], []);
 
   const trees = useMemo(() => {
-    return Array.from({ length: 12 }).map((_, i) => ({
-      x: i * 120 + Math.random() * 60
+    return Array.from({ length: 10 }).map((_, i) => ({
+      position: [-45 + i * 10, 0, 5] as [number, number, number]
     }));
   }, []);
 
-  useEffect(() => {
-    const animate = (time: number) => {
-      if (lastTimeRef.current === 0) {
-        lastTimeRef.current = time;
-      }
-      
-      const deltaTime = time - lastTimeRef.current;
-      lastTimeRef.current = time;
-      
-      // Only scroll when flying
-      if (isFlying) {
-        const speed = Math.min(multiplier * 0.8, 8);
-        setScrollOffset(prev => prev + speed * deltaTime * 0.05);
-      }
-      
-      animationRef.current = requestAnimationFrame(animate);
-    };
-    
-    animationRef.current = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isFlying, multiplier]);
-
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden">
-      <svg 
-        viewBox="0 0 1000 400" 
-        preserveAspectRatio="xMidYMid slice"
-        className="w-full h-full"
+    <>
+      {/* Sky gradient background */}
+      <color attach="background" args={['#87CEEB']} />
+      
+      {/* Lighting */}
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[10, 20, 10]} intensity={1} color="#FFF8E1" />
+      <hemisphereLight args={['#87CEEB', '#7CB342', 0.4]} />
+      
+      {/* Far city silhouette */}
+      <CitySilhouette />
+      
+      {/* Clouds */}
+      {clouds.map((cloud, i) => (
+        <Cloud 
+          key={i} 
+          position={cloud.position} 
+          scale={cloud.scale}
+          scrollSpeed={scrollSpeed}
+        />
+      ))}
+      
+      {/* Mid buildings */}
+      {midBuildings.map((building, i) => (
+        <Building
+          key={`mid-${i}`}
+          position={building.position}
+          width={building.width}
+          height={building.height}
+          depth={building.depth}
+          color={building.color}
+          scrollSpeed={scrollSpeed * 0.6}
+        />
+      ))}
+      
+      {/* Front buildings */}
+      {frontBuildings.map((building, i) => (
+        <Building
+          key={`front-${i}`}
+          position={building.position}
+          width={building.width}
+          height={building.height}
+          depth={building.depth}
+          color={building.color}
+          scrollSpeed={scrollSpeed}
+        />
+      ))}
+      
+      {/* Trees */}
+      {trees.map((tree, i) => (
+        <Tree 
+          key={i} 
+          position={tree.position}
+          scrollSpeed={scrollSpeed}
+        />
+      ))}
+      
+      {/* Ground */}
+      <Ground />
+      
+      {/* Road */}
+      <Road scrollSpeed={scrollSpeed} />
+    </>
+  );
+};
+
+const AviatorBackground3D = ({ isFlying, multiplier }: AviatorBackground3DProps) => {
+  return (
+    <div className="absolute inset-0 w-full h-full">
+      <Canvas
+        camera={{ position: [0, 8, 20], fov: 50, near: 0.1, far: 200 }}
+        style={{ background: 'linear-gradient(180deg, #5BA3D9 0%, #87CEEB 40%, #B0E2FF 100%)' }}
+        gl={{ antialias: true, alpha: false }}
       >
-        {/* Sky gradient */}
-        <defs>
-          <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#87CEEB" />
-            <stop offset="50%" stopColor="#B0E2FF" />
-            <stop offset="100%" stopColor="#E0F4FF" />
-          </linearGradient>
-          
-          {/* City silhouette gradient for background */}
-          <linearGradient id="citySilhouette" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#2C4A6B" />
-            <stop offset="100%" stopColor="#1a3a5c" />
-          </linearGradient>
-        </defs>
-        
-        {/* Sky background */}
-        <rect width="100%" height="100%" fill="url(#skyGradient)" />
-        
-        {/* Clouds */}
-        {clouds.map((cloud, i) => (
-          <Cloud 
-            key={i} 
-            x={cloud.x} 
-            y={cloud.y} 
-            scale={cloud.scale}
-            scrollOffset={scrollOffset}
-          />
-        ))}
-        
-        {/* Background city silhouette (far) */}
-        {backgroundBuildings.map((building, i) => (
-          <Building
-            key={`bg-${i}`}
-            {...building}
-            scrollOffset={scrollOffset}
-          />
-        ))}
-        
-        {/* Mid-ground buildings */}
-        {midBuildings.map((building, i) => (
-          <Building
-            key={`mid-${i}`}
-            {...building}
-            scrollOffset={scrollOffset}
-          />
-        ))}
-        
-        {/* Trees */}
-        {trees.map((tree, i) => (
-          <Tree key={i} x={tree.x} scrollOffset={scrollOffset} />
-        ))}
-        
-        {/* Front buildings */}
-        {frontBuildings.map((building, i) => (
-          <Building
-            key={`front-${i}`}
-            {...building}
-            scrollOffset={scrollOffset}
-          />
-        ))}
-        
-        {/* Road */}
-        <Road scrollOffset={scrollOffset} />
-      </svg>
+        <SceneContent isFlying={isFlying} multiplier={multiplier} />
+      </Canvas>
     </div>
   );
 };
