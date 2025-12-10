@@ -9,7 +9,6 @@ import {
   LogOut, 
   Menu, 
   X,
-  ChevronRight,
   Plane,
   Crown,
   Dice5
@@ -38,7 +37,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   // Check token immediately - no async needed
   const token = localStorage.getItem("admin_token");
   
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   
   // Redirect only if no token - use useEffect to prevent redirect loop
@@ -78,25 +76,14 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       {/* Sidebar */}
       <aside className={`
         fixed top-0 left-0 z-50 h-full bg-slate-800/95 backdrop-blur-lg border-r border-slate-700
-        transition-all duration-300 ease-in-out
-        ${sidebarOpen ? 'w-64' : 'w-20'}
+        transition-all duration-300 ease-in-out w-56
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700">
-          {sidebarOpen && (
-            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Admin Panel
-            </h1>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex text-slate-400 hover:text-white"
-          >
-            <ChevronRight className={`w-5 h-5 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`} />
-          </Button>
+          <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Admin Panel
+          </h1>
           <Button
             variant="ghost"
             size="icon"
@@ -124,7 +111,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               `}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
-              {sidebarOpen && <span>{item.title}</span>}
+              <span className="text-sm">{item.title}</span>
+              
             </button>
           ))}
         </nav>
@@ -136,13 +124,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-all"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span>Logout</span>}
+            <span className="text-sm">Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className={`transition-all duration-300 ml-0 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+      <div className="transition-all duration-300 ml-0 lg:ml-56">
         {/* Top Bar */}
         <header className="h-16 bg-slate-800/50 backdrop-blur-lg border-b border-slate-700 flex items-center justify-between px-4">
           <Button
