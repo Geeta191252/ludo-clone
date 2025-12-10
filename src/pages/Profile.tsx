@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, CheckCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isKycOpen, setIsKycOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   
   // Profile state
@@ -189,18 +190,30 @@ const Profile = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Link to="/wallet" className="flex-1">
-            <div className="flex items-center justify-center gap-3 p-4 rounded-xl text-white font-bold" style={{ backgroundColor: '#1D9A8C' }}>
-              <Wallet className="w-6 h-6" />
-              <span>WALLET</span>
-            </div>
-          </Link>
-          <div className="flex-1">
-            <div className="flex items-center justify-center gap-3 p-4 rounded-xl text-white font-bold" style={{ backgroundColor: '#1D9A8C' }}>
-              <CreditCard className="w-6 h-6" />
-              <span>KYC ACCEPTED</span>
-            </div>
+        <div className="p-3 rounded-2xl border-2 border-gray-400/50" style={{ backgroundColor: '#F5D547' }}>
+          <div className="flex gap-3">
+            <Link to="/wallet" className="flex-1">
+              <div 
+                className="flex items-center justify-center gap-3 py-5 px-6 rounded-2xl text-white font-bold text-lg"
+                style={{ backgroundColor: '#1D7A7A' }}
+              >
+                <div className="w-10 h-10 rounded-lg bg-orange-400 flex items-center justify-center">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <span>WALLET</span>
+              </div>
+            </Link>
+            <button onClick={() => setIsKycOpen(true)} className="flex-1">
+              <div 
+                className="flex items-center justify-center gap-3 py-5 px-6 rounded-2xl text-white font-bold text-lg"
+                style={{ backgroundColor: '#1D7A7A' }}
+              >
+                <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
+                  <CreditCard className="w-6 h-6 text-white" />
+                </div>
+                <span>KYC ACCEPTED</span>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -340,6 +353,30 @@ const Profile = () => {
               SAVE CHANGES
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* KYC Status Dialog */}
+      <Dialog open={isKycOpen} onOpenChange={setIsKycOpen}>
+        <DialogContent className="bg-white max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-black text-center">KYC Status</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-8 flex flex-col items-center justify-center space-y-4">
+            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle className="w-12 h-12 text-green-500" />
+            </div>
+            <h3 className="text-xl font-bold text-green-600">KYC Verified</h3>
+            <p className="text-gray-600 text-center">Your KYC has been successfully verified. You can now withdraw funds without any restrictions.</p>
+          </div>
+          
+          <Button
+            onClick={() => setIsKycOpen(false)}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-lg py-6"
+          >
+            OK
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
