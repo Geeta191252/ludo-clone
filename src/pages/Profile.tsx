@@ -129,49 +129,49 @@ const Profile = () => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5D547' }}>
       {/* Header */}
-      <div className="flex items-center gap-4 p-4 border-b border-black/10">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-black/10 rounded-lg">
-          <ArrowLeft className="w-5 h-5 text-black" />
+      <div className="flex items-center gap-3 p-3 border-b border-black/10">
+        <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-black/10 rounded-lg">
+          <ArrowLeft className="w-4 h-4 text-black" />
         </button>
-        <h1 className="text-xl font-bold text-black">My Profile</h1>
+        <h1 className="text-lg font-bold text-black">My Profile</h1>
       </div>
 
       {/* Profile Content */}
-      <div className="p-4 space-y-4">
+      <div className="p-3 space-y-3">
         {/* Profile Card with Background */}
         <div 
-          className="relative rounded-2xl overflow-hidden p-4"
+          className="relative rounded-xl overflow-hidden p-3"
           style={{
             background: 'linear-gradient(135deg, #4a90a4 0%, #2d5a6b 100%)',
-            minHeight: '140px'
+            minHeight: '100px'
           }}
         >
           {/* Decorative background pattern */}
           <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-2 right-2 w-16 h-16 rounded-full bg-white/20" />
-            <div className="absolute bottom-2 left-1/2 w-12 h-12 rounded-full bg-white/10" />
+            <div className="absolute top-2 right-2 w-12 h-12 rounded-full bg-white/20" />
+            <div className="absolute bottom-2 left-1/2 w-8 h-8 rounded-full bg-white/10" />
           </div>
           
           <div className="relative flex items-center justify-between">
             {/* User Info */}
-            <div className="space-y-2 text-white">
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span className="font-semibold">{profile.name}</span>
+            <div className="space-y-1 text-white">
+              <div className="flex items-center gap-1.5">
+                <User className="w-3 h-3" />
+                <span className="font-semibold text-sm">{profile.name}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                <span className="text-sm">{profile.phone}</span>
+              <div className="flex items-center gap-1.5">
+                <Phone className="w-3 h-3" />
+                <span className="text-xs">{profile.phone}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                <span className="text-sm">{profile.email || "Email"}</span>
+              <div className="flex items-center gap-1.5">
+                <Mail className="w-3 h-3" />
+                <span className="text-xs">{profile.email || "Email"}</span>
               </div>
             </div>
 
             {/* Avatar */}
-            <div className="w-16 h-16 rounded-full bg-purple-300/50 flex items-center justify-center border-2 border-white/30">
-              <User className="w-8 h-8 text-white/70" />
+            <div className="w-10 h-10 rounded-full bg-purple-300/50 flex items-center justify-center border-2 border-white/30">
+              <User className="w-5 h-5 text-white/70" />
             </div>
 
             {/* Edit Profile Button */}
@@ -182,7 +182,7 @@ const Profile = () => {
                 setEditForm({ ...profile });
                 setIsEditOpen(true);
               }}
-              className="bg-white text-black hover:bg-white/90 font-semibold rounded-full px-4"
+              className="bg-white text-black hover:bg-white/90 font-semibold rounded-full px-3 py-1 text-xs"
             >
               Edit Profile
             </Button>
@@ -190,26 +190,26 @@ const Profile = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="p-3 rounded-2xl border-2 border-gray-400/50" style={{ backgroundColor: '#F5D547' }}>
-          <div className="flex gap-3">
+        <div className="p-2 rounded-xl border-2 border-gray-400/50" style={{ backgroundColor: '#F5D547' }}>
+          <div className="flex gap-2">
             <Link to="/wallet" className="flex-1">
               <div 
-                className="flex items-center justify-center gap-3 py-5 px-6 rounded-2xl text-white font-bold text-lg"
+                className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-white font-bold text-sm"
                 style={{ backgroundColor: '#1D7A7A' }}
               >
-                <div className="w-10 h-10 rounded-lg bg-orange-400 flex items-center justify-center">
-                  <Wallet className="w-6 h-6 text-white" />
+                <div className="w-7 h-7 rounded-md bg-orange-400 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-white" />
                 </div>
                 <span>WALLET</span>
               </div>
             </Link>
             <button onClick={() => setIsKycOpen(true)} className="flex-1">
               <div 
-                className="flex items-center justify-center gap-3 py-5 px-6 rounded-2xl text-white font-bold text-lg"
+                className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-white font-bold text-sm"
                 style={{ backgroundColor: '#1D7A7A' }}
               >
-                <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                  <CreditCard className="w-6 h-6 text-white" />
+                <div className="w-7 h-7 rounded-md bg-blue-500 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-white" />
                 </div>
                 <span>KYC ACCEPTED</span>
               </div>
@@ -218,33 +218,33 @@ const Profile = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="space-y-3 mt-6">
+        <div className="space-y-2 mt-3">
           {/* Coin Won */}
           <div 
-            className="flex items-center gap-4 p-4 rounded-xl border-2"
+            className="flex items-center gap-3 p-3 rounded-lg border-2"
             style={{ backgroundColor: '#D4A84B', borderColor: '#8B7355' }}
           >
-            <div className="w-12 h-12 rounded-full bg-pink-200 flex items-center justify-center">
-              <Coins className="w-6 h-6 text-pink-600" />
+            <div className="w-9 h-9 rounded-full bg-pink-200 flex items-center justify-center">
+              <Coins className="w-4 h-4 text-pink-600" />
             </div>
             <div>
-              <p className="text-lg font-bold text-teal-700">Coin Won</p>
-              <p className="text-xl font-bold text-teal-700">₹{stats.coinWon}</p>
+              <p className="text-sm font-bold text-teal-700">Coin Won</p>
+              <p className="text-base font-bold text-teal-700">₹{stats.coinWon}</p>
             </div>
           </div>
 
           {/* Battle Played */}
           <Link to="/game-history?tab=Game">
             <div 
-              className="flex items-center gap-4 p-4 rounded-xl border-2 mt-3"
+              className="flex items-center gap-3 p-3 rounded-lg border-2 mt-2"
               style={{ backgroundColor: '#E57373', borderColor: '#8B7355' }}
             >
-              <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center">
-                <Swords className="w-6 h-6 text-gray-800" />
+              <div className="w-9 h-9 rounded-full bg-pink-100 flex items-center justify-center">
+                <Swords className="w-4 h-4 text-gray-800" />
               </div>
               <div>
-                <p className="text-lg font-bold text-teal-700">Battle Played</p>
-                <p className="text-xl font-bold text-teal-700">{stats.battlePlayed}</p>
+                <p className="text-sm font-bold text-teal-700">Battle Played</p>
+                <p className="text-base font-bold text-teal-700">{stats.battlePlayed}</p>
               </div>
             </div>
           </Link>
@@ -252,15 +252,15 @@ const Profile = () => {
           {/* Referral */}
           <Link to="/refer-earn">
             <div 
-              className="flex items-center gap-4 p-4 rounded-xl border-2 mt-3"
+              className="flex items-center gap-3 p-3 rounded-lg border-2 mt-2"
               style={{ backgroundColor: '#FFF8DC', borderColor: '#8B7355' }}
             >
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <Users className="w-6 h-6 text-green-600" />
+              <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                <Users className="w-4 h-4 text-green-600" />
               </div>
               <div>
-                <p className="text-lg font-bold text-teal-700">Referral</p>
-                <p className="text-xl font-bold text-teal-700">{stats.referralCount}</p>
+                <p className="text-sm font-bold text-teal-700">Referral</p>
+                <p className="text-base font-bold text-teal-700">{stats.referralCount}</p>
               </div>
             </div>
           </Link>
@@ -270,9 +270,9 @@ const Profile = () => {
         <Button 
           variant="outline" 
           onClick={handleLogout}
-          className="w-full mt-6 bg-white text-black border-2 border-black font-bold py-6 text-lg hover:bg-gray-100"
+          className="w-full mt-4 bg-white text-black border-2 border-black font-bold py-4 text-sm hover:bg-gray-100"
         >
-          <LogOut className="w-5 h-5 mr-2" />
+          <LogOut className="w-4 h-4 mr-2" />
           LOG OUT
         </Button>
       </div>
