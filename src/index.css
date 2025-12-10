@@ -4,17 +4,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Force mobile layout on all devices */
+/* Force mobile layout on all devices - except admin */
 html, body {
   background-color: hsl(var(--background));
 }
 
 #root {
-  max-width: 480px;
-  margin: 0 auto;
   min-height: 100vh;
   position: relative;
+}
+
+/* Mobile layout for non-admin pages */
+#root:not(:has(.admin-layout)) {
+  max-width: 480px;
+  margin: 0 auto;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Full width for admin pages */
+#root:has(.admin-layout) {
+  max-width: 100%;
+  margin: 0;
+  box-shadow: none;
 }
 
 @layer base {
