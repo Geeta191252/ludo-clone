@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Wallet, CreditCard, Coins, Swords, Users, LogOut, Car, FileText } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -356,27 +356,50 @@ const Profile = () => {
         </DialogContent>
       </Dialog>
 
-      {/* KYC Status Dialog */}
+      {/* KYC Document Selection Dialog */}
       <Dialog open={isKycOpen} onOpenChange={setIsKycOpen}>
         <DialogContent className="bg-white max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-black text-center">KYC Status</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-black text-center">Select Document Type</DialogTitle>
           </DialogHeader>
           
-          <div className="py-8 flex flex-col items-center justify-center space-y-4">
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="w-12 h-12 text-green-500" />
-            </div>
-            <h3 className="text-xl font-bold text-green-600">KYC Verified</h3>
-            <p className="text-gray-600 text-center">Your KYC has been successfully verified. You can now withdraw funds without any restrictions.</p>
+          <div className="py-4 space-y-4">
+            {/* AADHAR CARD - Blue */}
+            <Button 
+              className="w-full py-6 text-lg font-bold bg-blue-500 hover:bg-blue-600 text-white"
+              onClick={() => {
+                setIsKycOpen(false);
+                toast({ title: "AADHAR CARD Selected", description: "KYC submission coming soon!" });
+              }}
+            >
+              <CreditCard className="mr-3 w-6 h-6" />
+              AADHAR CARD
+            </Button>
+            
+            {/* DRIVING LICENCE - Green */}
+            <Button 
+              className="w-full py-6 text-lg font-bold bg-green-500 hover:bg-green-600 text-white"
+              onClick={() => {
+                setIsKycOpen(false);
+                toast({ title: "DRIVING LICENCE Selected", description: "KYC submission coming soon!" });
+              }}
+            >
+              <Car className="mr-3 w-6 h-6" />
+              DRIVING LICENCE
+            </Button>
+            
+            {/* PAN CARD - Orange */}
+            <Button 
+              className="w-full py-6 text-lg font-bold bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={() => {
+                setIsKycOpen(false);
+                toast({ title: "PAN CARD Selected", description: "KYC submission coming soon!" });
+              }}
+            >
+              <FileText className="mr-3 w-6 h-6" />
+              PAN CARD
+            </Button>
           </div>
-          
-          <Button
-            onClick={() => setIsKycOpen(false)}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold text-lg py-6"
-          >
-            OK
-          </Button>
         </DialogContent>
       </Dialog>
     </div>
