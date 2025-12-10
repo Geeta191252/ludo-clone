@@ -1,14 +1,16 @@
-import { ArrowLeft, Bell, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Bell, CheckCircle, XCircle, Clock, AlertTriangle, Wallet, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 interface Notification {
-  id: number;
-  type: 'kyc_accepted' | 'kyc_rejected' | 'kyc_pending' | 'general';
+  id: string;
+  type: 'kyc_accepted' | 'kyc_rejected' | 'kyc_pending' | 'deposit' | 'withdrawal' | 'general';
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
+  amount?: number;
+  status?: string;
 }
 
 const Notifications = () => {
@@ -23,7 +25,6 @@ const Notifications = () => {
   const fetchNotifications = async () => {
     setLoading(true);
     
-    // Get user data from localStorage
     const userData = localStorage.getItem('user');
     if (!userData) {
       setLoading(false);
@@ -31,14 +32,59 @@ const Notifications = () => {
     }
     
     const user = JSON.parse(userData);
+    const mobile = user.mobile;
     const kycStatus = user.kyc_status || localStorage.getItem('kycStatus');
     
-    // Generate notifications based on KYC status
     const generatedNotifications: Notification[] = [];
     
+    // Fetch deposits
+    try {
+      const depositRes = await fetch(`/api/get-transaction-history.php?mobile=${mobile}&type=deposit`);
+      const depositData = await depositRes.json();
+      if (depositData.status === 'success' && depositData.transactions) {
+        depositData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
+          generatedNotifications.push({
+            id: `deposit_${tx.id || index}`,
+            type: 'deposit',
+            title: tx.status === 'SUCCESS' ? 'Deposit Successful ✓' : tx.status === 'PENDING' ? 'Deposit Pending' : 'Deposit Failed',
+            message: `₹${tx.amount} ${tx.status === 'SUCCESS' ? 'जमा हो गया' : tx.status === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
+            timestamp: tx.date || new Date().toISOString(),
+            read: true,
+            amount: tx.amount,
+            status: tx.status
+          });
+        });
+      }
+    } catch (e) {
+      console.log('Error fetching deposits:', e);
+    }
+
+    // Fetch withdrawals
+    try {
+      const withdrawRes = await fetch(`/api/get-transaction-history.php?mobile=${mobile}&type=withdrawal`);
+      const withdrawData = await withdrawRes.json();
+      if (withdrawData.status === 'success' && withdrawData.transactions) {
+        withdrawData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
+          generatedNotifications.push({
+            id: `withdraw_${tx.id || index}`,
+            type: 'withdrawal',
+            title: tx.status === 'SUCCESS' ? 'Withdrawal Successful ✓' : tx.status === 'PENDING' ? 'Withdrawal Pending' : 'Withdrawal Failed',
+            message: `₹${tx.amount} ${tx.status === 'SUCCESS' ? 'निकासी सफल' : tx.status === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
+            timestamp: tx.date || new Date().toISOString(),
+            read: true,
+            amount: tx.amount,
+            status: tx.status
+          });
+        });
+      }
+    } catch (e) {
+      console.log('Error fetching withdrawals:', e);
+    }
+
+    // KYC notifications
     if (kycStatus === 'accepted') {
-      generatedNotifications.push({
-        id: 1,
+      generatedNotifications.unshift({
+        id: 'kyc_accepted',
         type: 'kyc_accepted',
         title: 'KYC Approved ✓',
         message: 'आपकी KYC सफलतापूर्वक verify हो गई है। अब आप सभी features का उपयोग कर सकते हैं।',
@@ -46,8 +92,8 @@ const Notifications = () => {
         read: false
       });
     } else if (kycStatus === 'rejected') {
-      generatedNotifications.push({
-        id: 2,
+      generatedNotifications.unshift({
+        id: 'kyc_rejected',
         type: 'kyc_rejected',
         title: 'KYC Rejected ✗',
         message: 'Wrong documents - KYC cancel। कृपया सही documents के साथ दोबारा KYC submit करें।',
@@ -55,8 +101,8 @@ const Notifications = () => {
         read: false
       });
     } else if (kycStatus === 'pending') {
-      generatedNotifications.push({
-        id: 3,
+      generatedNotifications.unshift({
+        id: 'kyc_pending',
         type: 'kyc_pending',
         title: 'KYC Pending',
         message: 'आपकी KYC verification प्रक्रिया में है। कृपया प्रतीक्षा करें।',
@@ -65,9 +111,9 @@ const Notifications = () => {
       });
     }
     
-    // Add welcome notification
+    // Welcome notification at end
     generatedNotifications.push({
-      id: 4,
+      id: 'welcome',
       type: 'general',
       title: 'Welcome to RockyPlayers!',
       message: 'RockyPlayers में आपका स्वागत है। Games खेलें और जीतें!',
@@ -79,7 +125,7 @@ const Notifications = () => {
     setLoading(false);
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, status?: string) => {
     switch (type) {
       case 'kyc_accepted':
         return <CheckCircle className="w-6 h-6 text-green-500" />;
@@ -87,12 +133,25 @@ const Notifications = () => {
         return <XCircle className="w-6 h-6 text-red-500" />;
       case 'kyc_pending':
         return <Clock className="w-6 h-6 text-yellow-500" />;
+      case 'deposit':
+        return status === 'SUCCESS' ? <ArrowDownCircle className="w-6 h-6 text-green-500" /> : 
+               status === 'PENDING' ? <Clock className="w-6 h-6 text-yellow-500" /> : 
+               <XCircle className="w-6 h-6 text-red-500" />;
+      case 'withdrawal':
+        return status === 'SUCCESS' ? <ArrowUpCircle className="w-6 h-6 text-green-500" /> : 
+               status === 'PENDING' ? <Clock className="w-6 h-6 text-yellow-500" /> : 
+               <XCircle className="w-6 h-6 text-red-500" />;
       default:
         return <Bell className="w-6 h-6 text-primary" />;
     }
   };
 
-  const getNotificationBg = (type: string) => {
+  const getNotificationBg = (type: string, status?: string) => {
+    if (type === 'deposit' || type === 'withdrawal') {
+      if (status === 'SUCCESS') return 'bg-green-500/10 border-green-500/30';
+      if (status === 'PENDING') return 'bg-yellow-500/10 border-yellow-500/30';
+      return 'bg-red-500/10 border-red-500/30';
+    }
     switch (type) {
       case 'kyc_accepted':
         return 'bg-green-500/10 border-green-500/30';
@@ -137,13 +196,13 @@ const Notifications = () => {
           notifications.map((notification) => (
             <div
               key={notification.id}
-              className={`p-4 rounded-xl border ${getNotificationBg(notification.type)} ${
+              className={`p-4 rounded-xl border ${getNotificationBg(notification.type, notification.status)} ${
                 !notification.read ? 'ring-2 ring-primary/20' : ''
               }`}
             >
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-background flex items-center justify-center">
-                  {getNotificationIcon(notification.type)}
+                  {getNotificationIcon(notification.type, notification.status)}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
