@@ -55,23 +55,14 @@ $stmt = $conn->prepare("INSERT INTO otp_requests (mobile, otp, expires_at) VALUE
 $stmt->bind_param("sss", $mobile, $otp, $expires_at);
 
 if ($stmt->execute()) {
-    // Renflair SMS Gateway Integration
+    // Renflair SMS Gateway Integration - Correct API
     $apiKey = '29c4a0e4ef7d1969a94a5f4aadd20690';
-    $message = "Your Rajasthan Ludo OTP is: $otp. Valid for 10 minutes. Do not share with anyone.";
     
-    // Renflair SMS API URL
-    $smsApiUrl = "https://renflair.in/API/sms-api.php";
-    
-    $postData = [
-        'apikey' => $apiKey,
-        'mobile' => $mobile,
-        'msg' => $message
-    ];
+    // Correct Renflair SMS API URL (GET request with query params)
+    $smsApiUrl = "https://sms.renflair.in/V1.php?API=" . urlencode($apiKey) . "&PHONE=" . urlencode($mobile) . "&OTP=" . urlencode($otp);
     
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $smsApiUrl);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
@@ -82,9 +73,9 @@ if ($stmt->execute()) {
     curl_close($ch);
     
     // Log for debugging
-    error_log("SMS API Response: $smsResponse, HTTP Code: $httpCode, Error: $curlError");
+    error_log("Renflair SMS Response: $smsResponse, HTTP Code: $httpCode, Error: $curlError");
     
-    if ($smsResponse && strpos(strtolower($smsResponse), 'success') !== false) {
+    if ($httpCode === 200 && $smsResponse) {
         echo json_encode([
             'status' => true,
             'message' => 'OTP sent successfully to your mobile'
