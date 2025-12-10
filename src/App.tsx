@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MobileLayout from "./components/MobileLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -31,15 +32,16 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/game-history" element={<GameHistory />} />
-          <Route path="/refer-earn" element={<ReferEarn />} />
-          <Route path="/withdraw-history" element={<WithdrawHistory />} />
-          <Route path="/notifications" element={<Notifications />} />
-          {/* Admin Routes */}
+          {/* Mobile Layout Routes */}
+          <Route path="/" element={<MobileLayout><Index /></MobileLayout>} />
+          <Route path="/auth" element={<MobileLayout><Auth /></MobileLayout>} />
+          <Route path="/profile" element={<MobileLayout><Profile /></MobileLayout>} />
+          <Route path="/wallet" element={<MobileLayout><Wallet /></MobileLayout>} />
+          <Route path="/game-history" element={<MobileLayout><GameHistory /></MobileLayout>} />
+          <Route path="/refer-earn" element={<MobileLayout><ReferEarn /></MobileLayout>} />
+          <Route path="/withdraw-history" element={<MobileLayout><WithdrawHistory /></MobileLayout>} />
+          <Route path="/notifications" element={<MobileLayout><Notifications /></MobileLayout>} />
+          {/* Admin Routes - Full Width */}
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
@@ -50,7 +52,7 @@ const App = () => (
           <Route path="/admin/dragon-tiger-control" element={<AdminDragonTigerControl />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<MobileLayout><NotFound /></MobileLayout>} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
@@ -58,3 +60,4 @@ const App = () => (
 );
 
 export default App;
+

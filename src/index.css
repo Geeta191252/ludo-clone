@@ -6,7 +6,8 @@
 
 /* Force mobile layout on all devices - except admin */
 html, body {
-  background-color: hsl(var(--background));
+  background-color: hsl(220, 20%, 10%);
+  min-height: 100vh;
 }
 
 #root {
@@ -14,18 +15,20 @@ html, body {
   position: relative;
 }
 
-/* Mobile layout for non-admin pages */
-#root:not(:has(.admin-layout)) {
+/* Default: Mobile layout centered on desktop */
+.mobile-container {
   max-width: 480px;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+  min-height: 100vh;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+  background-color: hsl(var(--background));
 }
 
-/* Full width for admin pages */
-#root:has(.admin-layout) {
-  max-width: 100%;
-  margin: 0;
-  box-shadow: none;
+/* Admin layout - full width */
+.admin-layout {
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-shadow: none !important;
 }
 
 @layer base {
