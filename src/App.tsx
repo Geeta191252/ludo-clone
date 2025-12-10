@@ -10,6 +10,7 @@ import Wallet from "./pages/Wallet";
 import GameHistory from "./pages/GameHistory";
 import ReferEarn from "./pages/ReferEarn";
 import WithdrawHistory from "./pages/WithdrawHistory";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/game-history" element={<GameHistory />} />
           <Route path="/refer-earn" element={<ReferEarn />} />
           <Route path="/withdraw-history" element={<WithdrawHistory />} />
+          <Route path="/notifications" element={<Notifications />} />
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
