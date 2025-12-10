@@ -15,7 +15,7 @@ const menuItems = [
   { icon: Clock, label: "Transaction History", href: "/game-history" },
   { icon: Gift, label: "Refer & Earn", href: "/refer-earn" },
   { icon: Users, label: "Referral History", href: "/refer-earn" },
-  { icon: Bell, label: "Notification", href: "/" },
+  { icon: Bell, label: "Notification", href: "/notifications" },
   { icon: HelpCircle, label: "Support", href: "/" },
 ];
 
