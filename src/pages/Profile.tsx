@@ -14,6 +14,8 @@ const Profile = () => {
   const { toast } = useToast();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isKycOpen, setIsKycOpen] = useState(false);
+  const [selectedDocType, setSelectedDocType] = useState<string | null>(null);
+  const [kycForm, setKycForm] = useState({ name: '', email: '', docNumber: '' });
   const [loading, setLoading] = useState(true);
   
   // Profile state
@@ -357,51 +359,103 @@ const Profile = () => {
       </Dialog>
 
       {/* KYC Document Selection Dialog */}
-      <Dialog open={isKycOpen} onOpenChange={setIsKycOpen}>
+      <Dialog open={isKycOpen} onOpenChange={(open) => { setIsKycOpen(open); if (!open) setSelectedDocType(null); }}>
         <DialogContent className="bg-white max-w-md mx-auto">
-          <DialogHeader>
-            <p className="text-sm text-gray-700 text-center mb-1">1. You Need To Choice One Way To Verify Your Document</p>
-            <p className="text-sm text-gray-700 text-center mb-3">2. आपको अपने दस्तावेज़ को सत्यापित करने के लिए एक तरीका चुनना होगा।</p>
-            <DialogTitle className="text-2xl font-bold text-black text-center">Select Document Type</DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            {/* AADHAR CARD - Blue */}
-            <Button 
-              className="w-full py-6 text-lg font-bold bg-blue-500 hover:bg-blue-600 text-white"
-              onClick={() => {
-                setIsKycOpen(false);
-                toast({ title: "AADHAR CARD Selected", description: "KYC submission coming soon!" });
-              }}
-            >
-              <CreditCard className="mr-3 w-6 h-6" />
-              AADHAR CARD
-            </Button>
-            
-            {/* DRIVING LICENCE - Green */}
-            <Button 
-              className="w-full py-6 text-lg font-bold bg-green-500 hover:bg-green-600 text-white"
-              onClick={() => {
-                setIsKycOpen(false);
-                toast({ title: "DRIVING LICENCE Selected", description: "KYC submission coming soon!" });
-              }}
-            >
-              <Car className="mr-3 w-6 h-6" />
-              DRIVING LICENCE
-            </Button>
-            
-            {/* PAN CARD - Orange */}
-            <Button 
-              className="w-full py-6 text-lg font-bold bg-orange-500 hover:bg-orange-600 text-white"
-              onClick={() => {
-                setIsKycOpen(false);
-                toast({ title: "PAN CARD Selected", description: "KYC submission coming soon!" });
-              }}
-            >
-              <FileText className="mr-3 w-6 h-6" />
-              PAN CARD
-            </Button>
-          </div>
+          {!selectedDocType ? (
+            <>
+              <DialogHeader>
+                <p className="text-sm text-gray-700 text-center mb-1">1. You Need To Choice One Way To Verify Your Document</p>
+                <p className="text-sm text-gray-700 text-center mb-3">2. आपको अपने दस्तावेज़ को सत्यापित करने के लिए एक तरीका चुनना होगा।</p>
+                <DialogTitle className="text-2xl font-bold text-black text-center">Select Document Type</DialogTitle>
+              </DialogHeader>
+              
+              <div className="py-4 space-y-4">
+                <Button 
+                  className="w-full py-6 text-lg font-bold bg-blue-500 hover:bg-blue-600 text-white"
+                  onClick={() => setSelectedDocType('AADHAR CARD')}
+                >
+                  <CreditCard className="mr-3 w-6 h-6" />
+                  AADHAR CARD
+                </Button>
+                
+                <Button 
+                  className="w-full py-6 text-lg font-bold bg-green-500 hover:bg-green-600 text-white"
+                  onClick={() => setSelectedDocType('DRIVING LICENCE')}
+                >
+                  <Car className="mr-3 w-6 h-6" />
+                  DRIVING LICENCE
+                </Button>
+                
+                <Button 
+                  className="w-full py-6 text-lg font-bold bg-orange-500 hover:bg-orange-600 text-white"
+                  onClick={() => setSelectedDocType('PAN CARD')}
+                >
+                  <FileText className="mr-3 w-6 h-6" />
+                  PAN CARD
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-black text-center">
+                  Enter details of {selectedDocType === 'AADHAR CARD' ? 'Aadhar Card' : selectedDocType === 'DRIVING LICENCE' ? 'Driving Licence' : 'Pan Card'}:
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="py-4 space-y-4">
+                <Input 
+                  placeholder="Enter Name" 
+                  value={kycForm.name}
+                  onChange={(e) => setKycForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="border-gray-300 py-5"
+                />
+                <Input 
+                  placeholder="Email ID" 
+                  type="email"
+                  value={kycForm.email}
+                  onChange={(e) => setKycForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="border-gray-300 py-5"
+                />
+                <Input 
+                  placeholder={selectedDocType === 'AADHAR CARD' ? 'Aadhar Num' : selectedDocType === 'DRIVING LICENCE' ? 'Licence Num' : 'Pan Num'}
+                  value={kycForm.docNumber}
+                  onChange={(e) => setKycForm(prev => ({ ...prev, docNumber: e.target.value }))}
+                  className="border-gray-300 py-5"
+                />
+                
+                <Button className="w-full py-5 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white">
+                  UPLOAD FRONT {selectedDocType === 'AADHAR CARD' ? 'AADHAR' : selectedDocType === 'DRIVING LICENCE' ? 'LICENCE' : 'PAN'}
+                </Button>
+                
+                <Button className="w-full py-5 text-base font-bold bg-blue-400 hover:bg-blue-500 text-white">
+                  UPLOAD BACK {selectedDocType === 'AADHAR CARD' ? 'AADHAR' : selectedDocType === 'DRIVING LICENCE' ? 'LICENCE' : 'PAN'}
+                </Button>
+                
+                <div className="flex justify-center">
+                  <Button 
+                    className="px-8 py-4 text-base font-bold bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => {
+                      toast({ title: "KYC Submitted", description: `${selectedDocType} details submitted for verification!` });
+                      setIsKycOpen(false);
+                      setSelectedDocType(null);
+                      setKycForm({ name: '', email: '', docNumber: '' });
+                    }}
+                  >
+                    SUBMIT
+                  </Button>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setSelectedDocType(null)}
+                >
+                  Back to Document Selection
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
