@@ -17,7 +17,15 @@ try {
     // Check if users table exists
     $tableCheck = $conn->query("SHOW TABLES LIKE 'users'");
     if ($tableCheck && $tableCheck->num_rows > 0) {
-        $result = $conn->query("SELECT id, mobile, COALESCE(player_name, name) as player_name, wallet_balance, winning_balance, COALESCE(status, 'active') as status, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') as created_at FROM users ORDER BY id DESC");
+        // Check if kyc_status column exists
+        $kycColumnCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'kyc_status'");
+        $hasKycColumn = $kycColumnCheck && $kycColumnCheck->num_rows > 0;
+        
+        if ($hasKycColumn) {
+            $result = $conn->query("SELECT id, mobile, COALESCE(player_name, name) as player_name, wallet_balance, winning_balance, COALESCE(status, 'active') as status, COALESCE(kyc_status, 'pending') as kyc_status, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') as created_at FROM users ORDER BY id DESC");
+        } else {
+            $result = $conn->query("SELECT id, mobile, COALESCE(player_name, name) as player_name, wallet_balance, winning_balance, COALESCE(status, 'active') as status, 'pending' as kyc_status, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') as created_at FROM users ORDER BY id DESC");
+        }
         
         if ($result) {
             while ($row = $result->fetch_assoc()) {
