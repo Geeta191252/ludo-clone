@@ -1,5 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { Sky, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface AviatorBackground3DProps {
@@ -7,74 +8,121 @@ interface AviatorBackground3DProps {
   multiplier: number;
 }
 
-// 3D Building Component
-const Building = ({ 
+// Realistic 3D Building with glass and concrete textures
+const RealisticBuilding = ({ 
   position, 
   width, 
   height, 
   depth, 
-  color,
+  buildingType,
   scrollSpeed
 }: { 
   position: [number, number, number]; 
   width: number; 
   height: number; 
   depth: number;
-  color: string;
+  buildingType: 'glass' | 'concrete' | 'modern' | 'residential';
   scrollSpeed: number;
 }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const initialX = useRef(position[0]);
   
   useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.position.x -= delta * scrollSpeed;
-      // Reset position when out of view
-      if (meshRef.current.position.x < -60) {
-        meshRef.current.position.x = 60;
+    if (groupRef.current && scrollSpeed > 0) {
+      groupRef.current.position.x -= delta * scrollSpeed;
+      if (groupRef.current.position.x < -80) {
+        groupRef.current.position.x = 80;
       }
     }
   });
 
-  // Generate window positions
+  const getColors = () => {
+    switch (buildingType) {
+      case 'glass':
+        return { main: '#1a3a5c', window: '#4da6ff', accent: '#0d2a42' };
+      case 'concrete':
+        return { main: '#8b8b8b', window: '#87CEEB', accent: '#6b6b6b' };
+      case 'modern':
+        return { main: '#2c3e50', window: '#5dade2', accent: '#1a252f' };
+      case 'residential':
+        return { main: '#d4a574', window: '#ffe4b5', accent: '#a67c52' };
+    }
+  };
+
+  const colors = getColors();
+  
+  // Generate realistic window grid
   const windows = useMemo(() => {
-    const wins: { x: number; y: number }[] = [];
-    const rows = Math.floor(height / 1.2);
-    const cols = Math.floor(width / 0.8);
-    for (let row = 0; row < rows; row++) {
+    const wins: { x: number; y: number; lit: boolean }[] = [];
+    const floors = Math.floor(height / 0.8);
+    const cols = Math.floor(width / 0.6);
+    for (let floor = 1; floor < floors; floor++) {
       for (let col = 0; col < cols; col++) {
-        if (Math.random() > 0.2) {
-          wins.push({
-            x: -width/2 + 0.4 + col * 0.8,
-            y: -height/2 + 0.6 + row * 1.2
-          });
-        }
+        wins.push({
+          x: -width/2 + 0.3 + col * 0.6,
+          y: -height/2 + 0.5 + floor * 0.8,
+          lit: Math.random() > 0.4
+        });
       }
     }
     return wins;
   }, [width, height]);
 
   return (
-    <group>
-      <mesh ref={meshRef} position={[initialX.current, position[1] + height/2, position[2]]}>
-        {/* Building body */}
+    <group ref={groupRef} position={[initialX.current, position[1], position[2]]}>
+      {/* Main building structure */}
+      <mesh position={[0, height/2, 0]} castShadow receiveShadow>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} />
-        
-        {/* Windows */}
-        {windows.map((win, i) => (
-          <mesh key={i} position={[win.x, win.y, depth/2 + 0.01]}>
-            <planeGeometry args={[0.5, 0.7]} />
-            <meshBasicMaterial color="#87CEEB" />
-          </mesh>
-        ))}
+        <meshStandardMaterial 
+          color={colors.main} 
+          metalness={buildingType === 'glass' ? 0.8 : 0.1}
+          roughness={buildingType === 'glass' ? 0.2 : 0.8}
+        />
+      </mesh>
+      
+      {/* Building edge details */}
+      <mesh position={[0, height/2, depth/2 + 0.02]} castShadow>
+        <boxGeometry args={[width + 0.1, height, 0.05]} />
+        <meshStandardMaterial color={colors.accent} metalness={0.5} roughness={0.3} />
+      </mesh>
+      
+      {/* Roof structure */}
+      <mesh position={[0, height + 0.1, 0]}>
+        <boxGeometry args={[width + 0.2, 0.2, depth + 0.2]} />
+        <meshStandardMaterial color={colors.accent} />
+      </mesh>
+      
+      {/* AC units on roof */}
+      {Math.random() > 0.5 && (
+        <mesh position={[0, height + 0.4, 0]}>
+          <boxGeometry args={[0.8, 0.4, 0.6]} />
+          <meshStandardMaterial color="#7f8c8d" metalness={0.6} roughness={0.4} />
+        </mesh>
+      )}
+      
+      {/* Windows with glow effect */}
+      {windows.map((win, i) => (
+        <mesh key={i} position={[win.x, height/2 + win.y, depth/2 + 0.03]}>
+          <planeGeometry args={[0.4, 0.5]} />
+          <meshStandardMaterial 
+            color={win.lit ? colors.window : '#2c3e50'} 
+            emissive={win.lit ? colors.window : '#000000'}
+            emissiveIntensity={win.lit ? 0.3 : 0}
+          />
+        </mesh>
+      ))}
+      
+      {/* Ground floor entrance */}
+      <mesh position={[0, 0.6, depth/2 + 0.03]}>
+        <planeGeometry args={[width * 0.3, 1]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.1} />
       </mesh>
     </group>
   );
 };
 
-// 3D Cloud
-const Cloud = ({ 
+// Realistic Cloud with volumetric appearance
+const RealisticCloud = ({ 
   position, 
   scale,
   scrollSpeed
@@ -88,7 +136,255 @@ const Cloud = ({
   
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.position.x -= delta * scrollSpeed * 0.3;
+      groupRef.current.position.x -= delta * (scrollSpeed * 0.2 + 0.5);
+      if (groupRef.current.position.x < -100) {
+        groupRef.current.position.x = 100;
+      }
+    }
+  });
+
+  const cloudParts = useMemo(() => [
+    { pos: [0, 0, 0] as [number, number, number], size: 3 },
+    { pos: [-2, 0.3, 0.5] as [number, number, number], size: 2.2 },
+    { pos: [2, 0.2, -0.3] as [number, number, number], size: 2.5 },
+    { pos: [-1, 0.8, 0.2] as [number, number, number], size: 1.8 },
+    { pos: [1.5, 0.6, 0.4] as [number, number, number], size: 2 },
+    { pos: [0, 0.5, -0.8] as [number, number, number], size: 2.3 },
+    { pos: [-2.5, -0.2, -0.5] as [number, number, number], size: 1.5 },
+    { pos: [2.5, -0.1, 0.3] as [number, number, number], size: 1.7 },
+  ], []);
+
+  return (
+    <group ref={groupRef} position={[initialX.current, position[1], position[2]]} scale={scale}>
+      {cloudParts.map((part, i) => (
+        <mesh key={i} position={part.pos}>
+          <sphereGeometry args={[part.size, 24, 24]} />
+          <meshStandardMaterial 
+            color="#ffffff" 
+            transparent
+            opacity={0.95}
+            roughness={1}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// Realistic Tree with detailed foliage
+const RealisticTree = ({ 
+  position,
+  treeType,
+  scrollSpeed
+}: { 
+  position: [number, number, number];
+  treeType: 'oak' | 'pine' | 'palm';
+  scrollSpeed: number;
+}) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const initialX = useRef(position[0]);
+  
+  useFrame((_, delta) => {
+    if (groupRef.current && scrollSpeed > 0) {
+      groupRef.current.position.x -= delta * scrollSpeed;
+      if (groupRef.current.position.x < -80) {
+        groupRef.current.position.x = 80;
+      }
+    }
+  });
+
+  if (treeType === 'palm') {
+    return (
+      <group ref={groupRef} position={[initialX.current, position[1], position[2]]}>
+        {/* Palm trunk */}
+        <mesh position={[0, 2, 0]}>
+          <cylinderGeometry args={[0.15, 0.25, 4, 12]} />
+          <meshStandardMaterial color="#5d4037" roughness={0.9} />
+        </mesh>
+        {/* Palm fronds */}
+        {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+          <mesh 
+            key={i} 
+            position={[
+              Math.sin(angle * Math.PI / 180) * 1,
+              3.8,
+              Math.cos(angle * Math.PI / 180) * 1
+            ]}
+            rotation={[0.3, angle * Math.PI / 180, 0.5]}
+          >
+            <coneGeometry args={[0.3, 2.5, 4]} />
+            <meshStandardMaterial color="#2e7d32" roughness={0.8} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+
+  if (treeType === 'pine') {
+    return (
+      <group ref={groupRef} position={[initialX.current, position[1], position[2]]}>
+        <mesh position={[0, 1, 0]}>
+          <cylinderGeometry args={[0.12, 0.18, 2, 8]} />
+          <meshStandardMaterial color="#4e342e" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 2.5, 0]}>
+          <coneGeometry args={[1.2, 2, 8]} />
+          <meshStandardMaterial color="#1b5e20" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 3.8, 0]}>
+          <coneGeometry args={[0.9, 1.5, 8]} />
+          <meshStandardMaterial color="#2e7d32" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 4.8, 0]}>
+          <coneGeometry args={[0.5, 1, 8]} />
+          <meshStandardMaterial color="#388e3c" roughness={0.8} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // Oak tree (default)
+  return (
+    <group ref={groupRef} position={[initialX.current, position[1], position[2]]}>
+      <mesh position={[0, 1.2, 0]}>
+        <cylinderGeometry args={[0.2, 0.35, 2.4, 8]} />
+        <meshStandardMaterial color="#5d4037" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 3.2, 0]}>
+        <sphereGeometry args={[1.8, 16, 16]} />
+        <meshStandardMaterial color="#2e7d32" roughness={0.85} />
+      </mesh>
+      <mesh position={[-0.8, 2.8, 0.4]}>
+        <sphereGeometry args={[1.2, 16, 16]} />
+        <meshStandardMaterial color="#388e3c" roughness={0.85} />
+      </mesh>
+      <mesh position={[0.9, 2.9, -0.3]}>
+        <sphereGeometry args={[1.3, 16, 16]} />
+        <meshStandardMaterial color="#1b5e20" roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 4, 0]}>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshStandardMaterial color="#4caf50" roughness={0.85} />
+      </mesh>
+    </group>
+  );
+};
+
+// Realistic Road with proper markings and textures
+const RealisticRoad = ({ scrollSpeed }: { scrollSpeed: number }) => {
+  const stripesRef = useRef<THREE.Group>(null);
+  const offsetRef = useRef(0);
+
+  useFrame((_, delta) => {
+    if (scrollSpeed > 0) {
+      offsetRef.current += delta * scrollSpeed * 3;
+      if (stripesRef.current) {
+        stripesRef.current.position.x = -(offsetRef.current % 6);
+      }
+    }
+  });
+
+  return (
+    <group position={[0, 0.02, 12]}>
+      {/* Asphalt road surface */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[200, 8]} />
+        <meshStandardMaterial color="#2c2c2c" roughness={0.95} />
+      </mesh>
+      
+      {/* Road edges (white lines) */}
+      <mesh position={[0, 0.01, -3.8]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[200, 0.15]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0, 0.01, 3.8]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[200, 0.15]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      
+      {/* Center yellow dashed line */}
+      <group ref={stripesRef}>
+        {Array.from({ length: 50 }).map((_, i) => (
+          <mesh key={i} position={[-100 + i * 6, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[3, 0.12]} />
+            <meshBasicMaterial color="#ffc107" />
+          </mesh>
+        ))}
+      </group>
+      
+      {/* Sidewalk left */}
+      <mesh position={[0, 0.08, -5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[200, 2]} />
+        <meshStandardMaterial color="#9e9e9e" roughness={0.9} />
+      </mesh>
+      
+      {/* Sidewalk right */}
+      <mesh position={[0, 0.08, 5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[200, 2]} />
+        <meshStandardMaterial color="#9e9e9e" roughness={0.9} />
+      </mesh>
+      
+      {/* Curb left */}
+      <mesh position={[0, 0.1, -4.1]}>
+        <boxGeometry args={[200, 0.15, 0.2]} />
+        <meshStandardMaterial color="#757575" />
+      </mesh>
+      
+      {/* Curb right */}
+      <mesh position={[0, 0.1, 4.1]}>
+        <boxGeometry args={[200, 0.15, 0.2]} />
+        <meshStandardMaterial color="#757575" />
+      </mesh>
+    </group>
+  );
+};
+
+// Realistic Ground with grass texture feel
+const RealisticGround = () => {
+  return (
+    <group>
+      {/* Main grass ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+        <planeGeometry args={[300, 150]} />
+        <meshStandardMaterial color="#4caf50" roughness={0.95} />
+      </mesh>
+      
+      {/* Grass patches for variation */}
+      {Array.from({ length: 50 }).map((_, i) => (
+        <mesh 
+          key={i}
+          rotation={[-Math.PI / 2, 0, 0]} 
+          position={[
+            -80 + Math.random() * 160, 
+            0.01, 
+            -20 + Math.random() * 25
+          ]}
+        >
+          <circleGeometry args={[1 + Math.random() * 2, 16]} />
+          <meshStandardMaterial 
+            color={`hsl(${100 + Math.random() * 20}, ${60 + Math.random() * 20}%, ${35 + Math.random() * 15}%)`}
+            roughness={1}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// Street Lamp
+const StreetLamp = ({ 
+  position, 
+  scrollSpeed 
+}: { 
+  position: [number, number, number]; 
+  scrollSpeed: number 
+}) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const initialX = useRef(position[0]);
+
+  useFrame((_, delta) => {
+    if (groupRef.current && scrollSpeed > 0) {
+      groupRef.current.position.x -= delta * scrollSpeed;
       if (groupRef.current.position.x < -80) {
         groupRef.current.position.x = 80;
       }
@@ -96,140 +392,125 @@ const Cloud = ({
   });
 
   return (
-    <group ref={groupRef} position={[initialX.current, position[1], position[2]]} scale={scale}>
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[2, 16, 16]} />
-        <meshStandardMaterial color="white" />
+    <group ref={groupRef} position={[initialX.current, position[1], position[2]]}>
+      {/* Pole */}
+      <mesh position={[0, 2.5, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 5, 8]} />
+        <meshStandardMaterial color="#424242" metalness={0.8} roughness={0.3} />
       </mesh>
-      <mesh position={[-1.5, -0.3, 0]}>
-        <sphereGeometry args={[1.5, 16, 16]} />
-        <meshStandardMaterial color="white" />
+      {/* Arm */}
+      <mesh position={[0.4, 4.8, 0]} rotation={[0, 0, Math.PI / 6]}>
+        <cylinderGeometry args={[0.04, 0.04, 1, 6]} />
+        <meshStandardMaterial color="#424242" metalness={0.8} roughness={0.3} />
       </mesh>
-      <mesh position={[1.5, -0.3, 0]}>
-        <sphereGeometry args={[1.8, 16, 16]} />
-        <meshStandardMaterial color="white" />
+      {/* Light */}
+      <mesh position={[0.7, 4.7, 0]}>
+        <sphereGeometry args={[0.15, 16, 16]} />
+        <meshStandardMaterial 
+          color="#fff9c4" 
+          emissive="#fff9c4"
+          emissiveIntensity={0.5}
+        />
       </mesh>
-      <mesh position={[0, -0.5, 0]}>
-        <sphereGeometry args={[1.6, 16, 16]} />
-        <meshStandardMaterial color="white" />
-      </mesh>
+      {/* Light glow */}
+      <pointLight position={[0.7, 4.7, 0]} color="#fff9c4" intensity={0.5} distance={8} />
     </group>
   );
 };
 
-// 3D Tree (round bush style like reference)
-const Tree = ({ 
-  position,
-  scrollSpeed
+// Car
+const Car = ({ 
+  position, 
+  color,
+  scrollSpeed 
 }: { 
-  position: [number, number, number];
+  position: [number, number, number]; 
+  color: string;
   scrollSpeed: number;
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const initialX = useRef(position[0]);
-  
+
   useFrame((_, delta) => {
-    if (groupRef.current) {
-      groupRef.current.position.x -= delta * scrollSpeed;
-      if (groupRef.current.position.x < -60) {
-        groupRef.current.position.x = 60;
+    if (groupRef.current && scrollSpeed > 0) {
+      groupRef.current.position.x -= delta * scrollSpeed * 1.2;
+      if (groupRef.current.position.x < -80) {
+        groupRef.current.position.x = 80;
       }
     }
   });
 
   return (
     <group ref={groupRef} position={[initialX.current, position[1], position[2]]}>
-      {/* Trunk */}
-      <mesh position={[0, 0.8, 0]}>
-        <cylinderGeometry args={[0.15, 0.2, 1.6, 8]} />
-        <meshStandardMaterial color="#5D4E37" />
+      {/* Car body */}
+      <mesh position={[0, 0.4, 0]}>
+        <boxGeometry args={[2, 0.5, 1]} />
+        <meshStandardMaterial color={color} metalness={0.6} roughness={0.3} />
       </mesh>
-      {/* Foliage (round style) */}
-      <mesh position={[0, 2.2, 0]}>
-        <sphereGeometry args={[1.2, 16, 16]} />
-        <meshStandardMaterial color="#2D5A27" />
+      {/* Car top */}
+      <mesh position={[0.1, 0.75, 0]}>
+        <boxGeometry args={[1.2, 0.4, 0.9]} />
+        <meshStandardMaterial color={color} metalness={0.6} roughness={0.3} />
       </mesh>
-      <mesh position={[-0.6, 1.9, 0.3]}>
-        <sphereGeometry args={[0.9, 16, 16]} />
-        <meshStandardMaterial color="#3D7A35" />
+      {/* Windows */}
+      <mesh position={[0.1, 0.75, 0.46]}>
+        <planeGeometry args={[1.1, 0.35]} />
+        <meshStandardMaterial color="#1a237e" metalness={0.9} roughness={0.1} />
       </mesh>
-      <mesh position={[0.6, 1.9, -0.3]}>
-        <sphereGeometry args={[0.9, 16, 16]} />
-        <meshStandardMaterial color="#3D7A35" />
-      </mesh>
-      <mesh position={[0, 2.8, 0]}>
-        <sphereGeometry args={[0.8, 16, 16]} />
-        <meshStandardMaterial color="#4A8B42" />
-      </mesh>
+      {/* Wheels */}
+      {[[-0.6, 0.2, 0.5], [-0.6, 0.2, -0.5], [0.6, 0.2, 0.5], [0.6, 0.2, -0.5]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.2, 0.2, 0.15, 16]} />
+          <meshStandardMaterial color="#212121" roughness={0.9} />
+        </mesh>
+      ))}
     </group>
   );
 };
 
-// Road with moving stripes
-const Road = ({ scrollSpeed }: { scrollSpeed: number }) => {
-  const stripesRef = useRef<THREE.Group>(null);
-  const offsetRef = useRef(0);
+// Mountains in far distance
+const Mountains = () => {
+  return (
+    <group position={[0, 0, -80]}>
+      {[-60, -30, 0, 30, 60].map((x, i) => (
+        <mesh key={i} position={[x, 5 + i * 2, 0]} rotation={[0, 0, 0]}>
+          <coneGeometry args={[15 + i * 3, 15 + i * 4, 4]} />
+          <meshStandardMaterial color={`hsl(210, 20%, ${30 + i * 5}%)`} roughness={0.9} />
+        </mesh>
+      ))}
+      {/* Snow caps */}
+      {[-60, -30, 0, 30, 60].map((x, i) => (
+        <mesh key={`snow-${i}`} position={[x, 12 + i * 3, 0]}>
+          <coneGeometry args={[5 + i, 4, 4]} />
+          <meshStandardMaterial color="#fafafa" roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// Birds flying
+const FlyingBirds = ({ scrollSpeed }: { scrollSpeed: number }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const timeRef = useRef(0);
 
   useFrame((_, delta) => {
-    offsetRef.current += delta * scrollSpeed * 3;
-    if (stripesRef.current) {
-      stripesRef.current.position.x = -(offsetRef.current % 4);
+    if (groupRef.current) {
+      timeRef.current += delta;
+      groupRef.current.position.x -= delta * (scrollSpeed * 0.1 + 2);
+      groupRef.current.position.y = 25 + Math.sin(timeRef.current * 2) * 2;
+      if (groupRef.current.position.x < -100) {
+        groupRef.current.position.x = 100;
+      }
     }
   });
 
   return (
-    <group position={[0, 0.01, 8]}>
-      {/* Main road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[150, 4]} />
-        <meshStandardMaterial color="#4A4A4A" />
-      </mesh>
-      
-      {/* Road stripes */}
-      <group ref={stripesRef}>
-        {Array.from({ length: 40 }).map((_, i) => (
-          <mesh key={i} position={[-80 + i * 4, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[2, 0.2]} />
-            <meshBasicMaterial color="#FFD700" />
-          </mesh>
-        ))}
-      </group>
-      
-      {/* Sidewalk */}
-      <mesh position={[0, 0.05, -2.5]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[150, 1]} />
-        <meshStandardMaterial color="#C4A35A" />
-      </mesh>
-    </group>
-  );
-};
-
-// Ground
-const Ground = () => {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-      <planeGeometry args={[200, 100]} />
-      <meshStandardMaterial color="#7CB342" />
-    </mesh>
-  );
-};
-
-// City Silhouette (far background)
-const CitySilhouette = () => {
-  const buildings = useMemo(() => {
-    return Array.from({ length: 30 }).map((_, i) => ({
-      x: -70 + i * 5,
-      height: 8 + Math.random() * 15,
-      width: 3 + Math.random() * 2
-    }));
-  }, []);
-
-  return (
-    <group position={[0, 0, -40]}>
-      {buildings.map((b, i) => (
-        <mesh key={i} position={[b.x, b.height / 2, 0]}>
-          <boxGeometry args={[b.width, b.height, 2]} />
-          <meshStandardMaterial color="#1a3a5c" />
+    <group ref={groupRef} position={[50, 25, -30]}>
+      {[0, 3, 6, 2, 5].map((offset, i) => (
+        <mesh key={i} position={[offset, Math.sin(offset) * 0.5, i * 0.5]} rotation={[0, 0, Math.sin(timeRef.current * 5 + offset) * 0.3]}>
+          <coneGeometry args={[0.1, 0.5, 3]} />
+          <meshBasicMaterial color="#1a1a1a" />
         </mesh>
       ))}
     </group>
@@ -237,61 +518,94 @@ const CitySilhouette = () => {
 };
 
 const SceneContent = ({ isFlying, multiplier }: AviatorBackground3DProps) => {
-  const scrollSpeed = isFlying ? Math.min(multiplier * 2, 15) : 0;
+  const scrollSpeed = isFlying ? Math.min(multiplier * 3, 20) : 0;
 
-  // Generate buildings for different layers
-  const midBuildings = useMemo(() => {
-    const colors = ['#E8976E', '#F5DEB3', '#C4A35A', '#E8B87A', '#D4A574'];
-    return Array.from({ length: 12 }).map((_, i) => ({
-      position: [-50 + i * 10, 0, -5 - Math.random() * 5] as [number, number, number],
-      width: 3 + Math.random() * 2,
-      height: 5 + Math.random() * 8,
-      depth: 3,
-      color: colors[Math.floor(Math.random() * colors.length)]
+  // Generate varied buildings
+  const buildings = useMemo(() => {
+    const types: ('glass' | 'concrete' | 'modern' | 'residential')[] = ['glass', 'concrete', 'modern', 'residential'];
+    return Array.from({ length: 20 }).map((_, i) => ({
+      position: [-90 + i * 10, 0, -8 - Math.random() * 10] as [number, number, number],
+      width: 3 + Math.random() * 4,
+      height: 6 + Math.random() * 18,
+      depth: 3 + Math.random() * 2,
+      type: types[Math.floor(Math.random() * types.length)]
     }));
   }, []);
 
   const frontBuildings = useMemo(() => {
-    const colors = ['#D4765C', '#F5E6D3', '#E8C97A', '#D98C5F'];
-    return Array.from({ length: 8 }).map((_, i) => ({
-      position: [-40 + i * 12, 0, 2] as [number, number, number],
+    const types: ('glass' | 'concrete' | 'modern' | 'residential')[] = ['residential', 'concrete', 'modern'];
+    return Array.from({ length: 12 }).map((_, i) => ({
+      position: [-70 + i * 12, 0, 0] as [number, number, number],
       width: 4 + Math.random() * 3,
-      height: 4 + Math.random() * 5,
-      depth: 4,
-      color: colors[Math.floor(Math.random() * colors.length)]
+      height: 4 + Math.random() * 8,
+      depth: 3,
+      type: types[Math.floor(Math.random() * types.length)]
     }));
   }, []);
 
-  const clouds = useMemo(() => [
-    { position: [-30, 18, -30] as [number, number, number], scale: 1.5 },
-    { position: [20, 22, -35] as [number, number, number], scale: 1.2 },
-    { position: [50, 16, -28] as [number, number, number], scale: 1 },
-    { position: [-60, 20, -32] as [number, number, number], scale: 1.3 },
-    { position: [0, 25, -40] as [number, number, number], scale: 1.8 },
-  ], []);
+  const clouds = useMemo(() => 
+    Array.from({ length: 12 }).map((_, i) => ({
+      position: [-100 + i * 20, 20 + Math.random() * 15, -40 - Math.random() * 30] as [number, number, number],
+      scale: 0.8 + Math.random() * 0.8
+    }))
+  , []);
 
   const trees = useMemo(() => {
-    return Array.from({ length: 10 }).map((_, i) => ({
-      position: [-45 + i * 10, 0, 5] as [number, number, number]
+    const types: ('oak' | 'pine' | 'palm')[] = ['oak', 'pine', 'palm'];
+    return Array.from({ length: 15 }).map((_, i) => ({
+      position: [-70 + i * 10, 0, 6 + Math.random() * 2] as [number, number, number],
+      type: types[Math.floor(Math.random() * types.length)]
+    }));
+  }, []);
+
+  const streetLamps = useMemo(() => 
+    Array.from({ length: 10 }).map((_, i) => ({
+      position: [-80 + i * 18, 0, 6.5] as [number, number, number]
+    }))
+  , []);
+
+  const cars = useMemo(() => {
+    const colors = ['#e53935', '#1e88e5', '#43a047', '#fdd835', '#6d4c41', '#ffffff', '#212121'];
+    return Array.from({ length: 6 }).map((_, i) => ({
+      position: [-60 + i * 25, 0.15, 13 + (i % 2) * 2] as [number, number, number],
+      color: colors[Math.floor(Math.random() * colors.length)]
     }));
   }, []);
 
   return (
     <>
-      {/* Sky gradient background */}
-      <color attach="background" args={['#87CEEB']} />
+      {/* Realistic Sky */}
+      <Sky
+        distance={450000}
+        sunPosition={[100, 20, 100]}
+        inclination={0.5}
+        azimuth={0.25}
+      />
       
-      {/* Lighting */}
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[10, 20, 10]} intensity={1} color="#FFF8E1" />
-      <hemisphereLight args={['#87CEEB', '#7CB342', 0.4]} />
+      {/* Environment lighting for realism */}
+      <Environment preset="city" />
       
-      {/* Far city silhouette */}
-      <CitySilhouette />
+      {/* Main lighting */}
+      <ambientLight intensity={0.4} />
+      <directionalLight 
+        position={[50, 50, 25]} 
+        intensity={1.2} 
+        color="#fff8e1"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
+      <hemisphereLight args={['#87ceeb', '#4caf50', 0.3]} />
+      
+      {/* Fog for depth */}
+      <fog attach="fog" args={['#a5d6f7', 60, 150]} />
+      
+      {/* Mountains in far background */}
+      <Mountains />
       
       {/* Clouds */}
       {clouds.map((cloud, i) => (
-        <Cloud 
+        <RealisticCloud 
           key={i} 
           position={cloud.position} 
           scale={cloud.scale}
@@ -299,46 +613,69 @@ const SceneContent = ({ isFlying, multiplier }: AviatorBackground3DProps) => {
         />
       ))}
       
-      {/* Mid buildings */}
-      {midBuildings.map((building, i) => (
-        <Building
-          key={`mid-${i}`}
+      {/* Flying birds */}
+      <FlyingBirds scrollSpeed={scrollSpeed} />
+      
+      {/* Back row buildings */}
+      {buildings.map((building, i) => (
+        <RealisticBuilding
+          key={`back-${i}`}
           position={building.position}
           width={building.width}
           height={building.height}
           depth={building.depth}
-          color={building.color}
-          scrollSpeed={scrollSpeed * 0.6}
+          buildingType={building.type}
+          scrollSpeed={scrollSpeed * 0.5}
         />
       ))}
       
-      {/* Front buildings */}
+      {/* Front row buildings */}
       {frontBuildings.map((building, i) => (
-        <Building
+        <RealisticBuilding
           key={`front-${i}`}
           position={building.position}
           width={building.width}
           height={building.height}
           depth={building.depth}
-          color={building.color}
-          scrollSpeed={scrollSpeed}
+          buildingType={building.type}
+          scrollSpeed={scrollSpeed * 0.8}
         />
       ))}
       
       {/* Trees */}
       {trees.map((tree, i) => (
-        <Tree 
+        <RealisticTree 
           key={i} 
           position={tree.position}
+          treeType={tree.type}
+          scrollSpeed={scrollSpeed}
+        />
+      ))}
+      
+      {/* Street lamps */}
+      {streetLamps.map((lamp, i) => (
+        <StreetLamp
+          key={i}
+          position={lamp.position}
+          scrollSpeed={scrollSpeed}
+        />
+      ))}
+      
+      {/* Cars on road */}
+      {cars.map((car, i) => (
+        <Car
+          key={i}
+          position={car.position}
+          color={car.color}
           scrollSpeed={scrollSpeed}
         />
       ))}
       
       {/* Ground */}
-      <Ground />
+      <RealisticGround />
       
       {/* Road */}
-      <Road scrollSpeed={scrollSpeed} />
+      <RealisticRoad scrollSpeed={scrollSpeed} />
     </>
   );
 };
@@ -347,9 +684,14 @@ const AviatorBackground3D = ({ isFlying, multiplier }: AviatorBackground3DProps)
   return (
     <div className="absolute inset-0 w-full h-full">
       <Canvas
-        camera={{ position: [0, 8, 20], fov: 50, near: 0.1, far: 200 }}
-        style={{ background: 'linear-gradient(180deg, #5BA3D9 0%, #87CEEB 40%, #B0E2FF 100%)' }}
-        gl={{ antialias: true, alpha: false }}
+        camera={{ position: [0, 12, 30], fov: 55, near: 0.1, far: 500 }}
+        shadows
+        gl={{ 
+          antialias: true, 
+          alpha: false,
+          powerPreference: 'high-performance'
+        }}
+        dpr={[1, 2]}
       >
         <SceneContent isFlying={isFlying} multiplier={multiplier} />
       </Canvas>
