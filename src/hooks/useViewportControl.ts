@@ -59,7 +59,8 @@ export const useViewportControl = () => {
       if (isAdminRoute) {
         viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
       } else {
-        viewport.setAttribute('content', 'width=520, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        // Use device-width for normal mobile, scaling handles desktop mode
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
       }
     }
     
