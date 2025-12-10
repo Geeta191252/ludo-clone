@@ -457,11 +457,13 @@ if ($method === 'POST') {
                     // Both cancel - refund both players automatically
                     $conn->query("UPDATE ludo_battles SET status = 'cancelled' WHERE id = '$battleId'");
                     
-                    // Refund both players
+                    // Refund both players to wallet_balance
                     $creatorMobile = $battle_data['creator_id'];
                     $opponentMobile = $battle_data['opponent_id'];
-                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$creatorMobile'");
-                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$opponentMobile'");
+                    $refund1 = $conn->query("UPDATE users SET wallet_balance = wallet_balance + $entryFee WHERE mobile = '$creatorMobile'");
+                    $refund2 = $conn->query("UPDATE users SET wallet_balance = wallet_balance + $entryFee WHERE mobile = '$opponentMobile'");
+                    
+                    error_log("Ludo Cancel Refund Debug: Creator=$creatorMobile, Opponent=$opponentMobile, EntryFee=$entryFee, Refund1=" . ($refund1 ? 'OK' : $conn->error) . ", Refund2=" . ($refund2 ? 'OK' : $conn->error));
                     
                     error_log("Ludo Cancel Refund: Battle $battleId, Creator $creatorMobile, Opponent $opponentMobile, Amount $entryFee each");
                     
@@ -488,11 +490,11 @@ if ($method === 'POST') {
                     // Both claim loss - unusual, treat as cancel with refund
                     $conn->query("UPDATE ludo_battles SET status = 'cancelled' WHERE id = '$battleId'");
                     
-                    // Refund both players
+                    // Refund both players to wallet_balance
                     $creatorMobile = $battle_data['creator_id'];
                     $opponentMobile = $battle_data['opponent_id'];
-                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$creatorMobile'");
-                    $conn->query("UPDATE users SET deposit_balance = deposit_balance + $entryFee WHERE mobile = '$opponentMobile'");
+                    $conn->query("UPDATE users SET wallet_balance = wallet_balance + $entryFee WHERE mobile = '$creatorMobile'");
+                    $conn->query("UPDATE users SET wallet_balance = wallet_balance + $entryFee WHERE mobile = '$opponentMobile'");
                     
                     echo json_encode([
                         'success' => true,
