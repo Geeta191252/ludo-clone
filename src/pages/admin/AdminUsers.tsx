@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, Edit, Trash2, Plus, Minus, CheckCircle, Clock } from "lucide-react";
+import { Search, Edit, Trash2, Plus, Minus, CheckCircle, Clock, Eye, FileText } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 
 interface User {
@@ -18,6 +18,18 @@ interface User {
   kyc_status: string;
 }
 
+interface KycDocument {
+  id: number;
+  doc_type: string;
+  name: string;
+  email: string;
+  doc_number: string;
+  front_image: string;
+  back_image: string;
+  status: string;
+  created_at: string;
+}
+
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
@@ -25,6 +37,8 @@ const AdminUsers = () => {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [balanceDialog, setBalanceDialog] = useState<{ user: User; type: 'add' | 'subtract' } | null>(null);
   const [balanceAmount, setBalanceAmount] = useState("");
+  const [kycDialog, setKycDialog] = useState<{ user: User; kyc: KycDocument | null } | null>(null);
+  const [kycLoading, setKycLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -137,11 +151,33 @@ const AdminUsers = () => {
       if (data.status) {
         toast({ title: "Success", description: "KYC accepted successfully" });
         fetchUsers();
+        setKycDialog(null);
       } else {
         toast({ title: "Error", description: data.message, variant: "destructive" });
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to update KYC status", variant: "destructive" });
+    }
+  };
+
+  const handleViewKyc = async (user: User) => {
+    setKycLoading(true);
+    try {
+      const token = localStorage.getItem("admin_token");
+      const response = await fetch(`/api/admin-get-kyc-docs.php?user_id=${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      
+      if (data.status && data.kyc) {
+        setKycDialog({ user, kyc: data.kyc });
+      } else {
+        toast({ title: "No Documents", description: "User has not submitted KYC documents yet", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to fetch KYC documents", variant: "destructive" });
+    } finally {
+      setKycLoading(false);
     }
   };
 
@@ -194,19 +230,25 @@ const AdminUsers = () => {
                       <td className="py-4 px-4 text-green-400">₹{user.wallet_balance.toLocaleString()}</td>
                       <td className="py-4 px-4 text-yellow-400">₹{user.winning_balance.toLocaleString()}</td>
                       <td className="py-4 px-4">
-                        {user.kyc_status === 'accepted' ? (
-                          <span className="flex items-center gap-1 text-green-400">
-                            <CheckCircle className="w-4 h-4" /> Accepted
-                          </span>
-                        ) : (
+                        <div className="flex items-center gap-2">
+                          {user.kyc_status === 'accepted' ? (
+                            <span className="flex items-center gap-1 text-green-400">
+                              <CheckCircle className="w-4 h-4" /> Accepted
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-yellow-400">
+                              <Clock className="w-4 h-4" /> Pending
+                            </span>
+                          )}
                           <Button
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                            onClick={() => handleAcceptKyc(user.id)}
+                            variant="outline"
+                            className="border-purple-500 text-purple-500 hover:bg-purple-500/10 text-xs"
+                            onClick={() => handleViewKyc(user)}
                           >
-                            Accept KYC
+                            <Eye className="w-3 h-3 mr-1" /> View
                           </Button>
-                        )}
+                        </div>
                       </td>
                       <td className="py-4 px-4 text-slate-400 text-sm">{user.created_at}</td>
                       <td className="py-4 px-4">
@@ -285,6 +327,78 @@ const AdminUsers = () => {
                 {balanceDialog?.type === 'add' ? 'Add Balance' : 'Subtract Balance'}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* KYC Documents Dialog */}
+        <Dialog open={!!kycDialog} onOpenChange={() => setKycDialog(null)}>
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                KYC Documents - {kycDialog?.user.player_name || kycDialog?.user.mobile}
+              </DialogTitle>
+            </DialogHeader>
+            {kycDialog?.kyc ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-slate-400">Document Type:</span>
+                    <p className="text-white font-medium">{kycDialog.kyc.doc_type}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Name:</span>
+                    <p className="text-white font-medium">{kycDialog.kyc.name || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Email:</span>
+                    <p className="text-white font-medium">{kycDialog.kyc.email || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Document Number:</span>
+                    <p className="text-white font-medium">{kycDialog.kyc.doc_number || '-'}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <h4 className="text-slate-400 text-sm">Front Image:</h4>
+                  {kycDialog.kyc.front_image ? (
+                    <img 
+                      src={kycDialog.kyc.front_image} 
+                      alt="Front Document" 
+                      className="w-full max-h-64 object-contain rounded border border-slate-600"
+                    />
+                  ) : (
+                    <p className="text-slate-500">No front image uploaded</p>
+                  )}
+                </div>
+                
+                <div className="space-y-3">
+                  <h4 className="text-slate-400 text-sm">Back Image:</h4>
+                  {kycDialog.kyc.back_image ? (
+                    <img 
+                      src={kycDialog.kyc.back_image} 
+                      alt="Back Document" 
+                      className="w-full max-h-64 object-contain rounded border border-slate-600"
+                    />
+                  ) : (
+                    <p className="text-slate-500">No back image uploaded</p>
+                  )}
+                </div>
+
+                {kycDialog.user.kyc_status !== 'accepted' && (
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={() => handleAcceptKyc(kycDialog.user.id)}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Accept KYC
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="text-slate-400 text-center py-8">No KYC documents found</p>
+            )}
           </DialogContent>
         </Dialog>
       </div>
