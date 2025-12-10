@@ -64,7 +64,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="admin-layout min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div 
