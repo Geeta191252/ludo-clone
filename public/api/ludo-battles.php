@@ -477,12 +477,12 @@ if ($method === 'POST') {
                     $conn->query("UPDATE ludo_battles SET status = 'completed', winner_id = '$winnerId' WHERE id = '$battleId'");
                     
                     // Add winnings to winner's wallet
-                    // Get winner's mobile from users table
-                    $userResult = $conn->query("SELECT mobile FROM users WHERE id = '$winnerId' OR name = '$winnerName' LIMIT 1");
-                    if ($userResult && $userRow = $userResult->fetch_assoc()) {
-                        $winnerMobile = $userRow['mobile'];
-                        $conn->query("UPDATE users SET winning_balance = winning_balance + $winAmount WHERE mobile = '$winnerMobile'");
-                    }
+                    // winnerId is actually the mobile number (creator_id/opponent_id stores mobile)
+                    $winnerMobile = $winnerId;
+                    $updateResult = $conn->query("UPDATE users SET winning_balance = winning_balance + $winAmount WHERE mobile = '$winnerMobile'");
+                    
+                    // Log for debugging
+                    error_log("Ludo Winner Payment: Battle $battleId, Winner $winnerMobile, Amount $winAmount, Update Result: " . ($updateResult ? 'Success' : 'Failed - ' . $conn->error));
                     
                     $isWinner = ($submitter === 'creator' && $winnerId === $battle_data['creator_id']) || 
                                 ($submitter === 'opponent' && $winnerId === $battle_data['opponent_id']);
@@ -491,7 +491,8 @@ if ($method === 'POST') {
                         'success' => true,
                         'message' => $isWinner ? "Congratulations! You won ₹$winAmount!" : "You lost this match.",
                         'winner' => $isWinner,
-                        'winAmount' => $winAmount
+                        'winAmount' => $winAmount,
+                        'winnerMobile' => $winnerMobile
                     ]);
                     break;
                 }
