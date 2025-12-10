@@ -493,8 +493,41 @@ const Profile = () => {
                 <div className="flex justify-center">
                   <Button 
                     className="px-8 py-4 text-base font-bold bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => {
-                      toast({ title: "KYC Submitted", description: `${selectedDocType} details submitted for verification!` });
+                    onClick={async () => {
+                      if (!frontImage || !backImage) {
+                        toast({ title: "Error", description: "Please upload both front and back images", variant: "destructive" });
+                        return;
+                      }
+                      
+                      const mobile = localStorage.getItem('userMobile');
+                      if (!mobile) return;
+                      
+                      const formData = new FormData();
+                      formData.append('mobile', mobile);
+                      formData.append('doc_type', selectedDocType || '');
+                      formData.append('name', kycForm.name);
+                      formData.append('email', kycForm.email);
+                      formData.append('doc_number', kycForm.docNumber);
+                      formData.append('front_image', frontImage);
+                      formData.append('back_image', backImage);
+                      
+                      try {
+                        const response = await fetch(`${API_BASE_URL}/upload-kyc.php`, {
+                          method: 'POST',
+                          body: formData
+                        });
+                        const data = await response.json();
+                        
+                        if (data.status) {
+                          toast({ title: "KYC Submitted", description: "Documents submitted for verification!" });
+                          setKycStatus('pending');
+                        } else {
+                          toast({ title: "Error", description: data.message, variant: "destructive" });
+                        }
+                      } catch (error) {
+                        toast({ title: "Error", description: "Failed to submit KYC", variant: "destructive" });
+                      }
+                      
                       setIsKycOpen(false);
                       setSelectedDocType(null);
                       setKycForm({ name: '', email: '', docNumber: '' });
