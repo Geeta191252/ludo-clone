@@ -15,18 +15,27 @@ export const useViewportControl = () => {
     const container = document.querySelector('.mobile-container') as HTMLElement;
     if (!container) return;
     
-    // If mobile device but viewport is wide (desktop mode enabled)
-    if (isMobileDevice() && window.innerWidth > 600) {
+    // If viewport is wider than mobile (desktop mode or actual desktop)
+    if (window.innerWidth > 520) {
       const scale = window.innerWidth / 520;
       container.style.transform = `scale(${scale})`;
-      container.style.transformOrigin = 'top center';
+      container.style.transformOrigin = 'top left';
       container.style.width = '520px';
       container.style.minHeight = `${100 / scale}vh`;
+      container.style.marginLeft = '0';
+      container.style.marginRight = 'auto';
+      
+      // For mobile devices in desktop mode - fill entire screen
+      if (isMobileDevice()) {
+        container.style.transformOrigin = 'top left';
+      }
     } else {
       container.style.transform = '';
       container.style.transformOrigin = '';
       container.style.width = '';
       container.style.minHeight = '';
+      container.style.marginLeft = '';
+      container.style.marginRight = '';
     }
   }, [location.pathname, isMobileDevice]);
   
@@ -42,15 +51,19 @@ export const useViewportControl = () => {
       }
     }
     
-    // Apply scale for mobile devices in desktop mode
+    // Apply scale for desktop mode
     applyMobileScale();
     
     window.addEventListener('resize', applyMobileScale);
     window.addEventListener('orientationchange', applyMobileScale);
     
+    // Check periodically for desktop mode changes
+    const interval = setInterval(applyMobileScale, 1000);
+    
     return () => {
       window.removeEventListener('resize', applyMobileScale);
       window.removeEventListener('orientationchange', applyMobileScale);
+      clearInterval(interval);
     };
   }, [location.pathname, applyMobileScale]);
 };
