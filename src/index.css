@@ -4,6 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force mobile layout on all devices */
+html, body {
+  background-color: hsl(var(--background));
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
 @layer base {
   :root {
     --background: 280 30% 15%;
