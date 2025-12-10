@@ -28,11 +28,17 @@ export const useViewportControl = () => {
   const applyMobileScale = useCallback(() => {
     const isAdminRoute = location.pathname.startsWith('/admin');
     
-    // Admin routes - always reset and never scale
+    // Admin routes - always force desktop view by setting wide viewport
     if (isAdminRoute) {
       resetStyles();
+      // Force admin to always show in desktop/responsive mode
+      document.body.style.minWidth = '100%';
+      document.body.style.overflow = 'auto';
       return;
     }
+    
+    // Reset admin-specific styles when on non-admin routes
+    document.body.style.minWidth = '';
     
     const container = document.querySelector('.mobile-container') as HTMLElement;
     if (!container) return;
