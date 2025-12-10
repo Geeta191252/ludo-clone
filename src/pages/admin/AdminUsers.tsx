@@ -7,6 +7,8 @@ import { toast } from "@/hooks/use-toast";
 import { Search, Edit, Trash2, Plus, Minus, CheckCircle, Clock, Eye, FileText } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://rajasthanludo.com/api';
+
 interface User {
   id: number;
   mobile: string;
@@ -49,7 +51,7 @@ const AdminUsers = () => {
       const token = localStorage.getItem("admin_token");
       console.log("Fetching users with token:", token ? "Present" : "Missing");
       
-      const response = await fetch("/api/admin-users.php", {
+      const response = await fetch(`${API_BASE_URL}/admin-users.php`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -82,7 +84,7 @@ const AdminUsers = () => {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const response = await fetch("/api/admin-update-balance.php", {
+      const response = await fetch(`${API_BASE_URL}/admin-update-balance.php`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -114,7 +116,7 @@ const AdminUsers = () => {
 
     try {
       const token = localStorage.getItem("admin_token");
-      const response = await fetch("/api/admin-delete-user.php", {
+      const response = await fetch(`${API_BASE_URL}/admin-delete-user.php`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -138,7 +140,7 @@ const AdminUsers = () => {
   const handleAcceptKyc = async (userId: number) => {
     try {
       const token = localStorage.getItem("admin_token");
-      const response = await fetch("/api/admin-update-kyc.php", {
+      const response = await fetch(`${API_BASE_URL}/admin-update-kyc.php`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -164,7 +166,7 @@ const AdminUsers = () => {
     setKycLoading(true);
     try {
       const token = localStorage.getItem("admin_token");
-      const response = await fetch(`/api/admin-get-kyc-docs.php?user_id=${user.id}`, {
+      const response = await fetch(`${API_BASE_URL}/admin-get-kyc-docs.php?user_id=${user.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
