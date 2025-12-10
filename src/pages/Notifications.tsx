@@ -41,17 +41,18 @@ const Notifications = () => {
     try {
       const depositRes = await fetch(`/api/get-transaction-history.php?mobile=${mobile}&type=deposit`);
       const depositData = await depositRes.json();
-      if (depositData.status === 'success' && depositData.transactions) {
+      if (depositData.status === true && depositData.transactions && depositData.transactions.length > 0) {
         depositData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
+          const txStatus = tx.status?.toUpperCase() || 'PENDING';
           generatedNotifications.push({
             id: `deposit_${tx.id || index}`,
             type: 'deposit',
-            title: tx.status === 'SUCCESS' ? 'Deposit Successful ✓' : tx.status === 'PENDING' ? 'Deposit Pending' : 'Deposit Failed',
-            message: `₹${tx.amount} ${tx.status === 'SUCCESS' ? 'जमा हो गया' : tx.status === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
+            title: txStatus === 'SUCCESS' ? 'Deposit Successful ✓' : txStatus === 'PENDING' ? 'Deposit Pending' : 'Deposit Failed',
+            message: `₹${tx.amount} ${txStatus === 'SUCCESS' ? 'जमा हो गया' : txStatus === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
             timestamp: tx.date || new Date().toISOString(),
             read: true,
             amount: tx.amount,
-            status: tx.status
+            status: txStatus
           });
         });
       }
@@ -63,17 +64,19 @@ const Notifications = () => {
     try {
       const withdrawRes = await fetch(`/api/get-transaction-history.php?mobile=${mobile}&type=withdrawal`);
       const withdrawData = await withdrawRes.json();
-      if (withdrawData.status === 'success' && withdrawData.transactions) {
+      if (withdrawData.status === true && withdrawData.transactions && withdrawData.transactions.length > 0) {
         withdrawData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
+          const txStatus = tx.status?.toUpperCase() || 'PENDING';
+          const isApproved = txStatus === 'APPROVED' || txStatus === 'SUCCESS';
           generatedNotifications.push({
             id: `withdraw_${tx.id || index}`,
             type: 'withdrawal',
-            title: tx.status === 'SUCCESS' ? 'Withdrawal Successful ✓' : tx.status === 'PENDING' ? 'Withdrawal Pending' : 'Withdrawal Failed',
-            message: `₹${tx.amount} ${tx.status === 'SUCCESS' ? 'निकासी सफल' : tx.status === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
+            title: isApproved ? 'Withdrawal Successful ✓' : txStatus === 'PENDING' ? 'Withdrawal Pending' : 'Withdrawal Failed',
+            message: `₹${tx.amount} ${isApproved ? 'निकासी सफल' : txStatus === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
             timestamp: tx.date || new Date().toISOString(),
             read: true,
             amount: tx.amount,
-            status: tx.status
+            status: isApproved ? 'SUCCESS' : txStatus
           });
         });
       }
