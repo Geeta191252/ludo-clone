@@ -4,48 +4,53 @@ import { useLocation } from 'react-router-dom';
 export const useViewportControl = () => {
   const location = useLocation();
   
-  const setViewport = useCallback((isAdmin: boolean) => {
-    const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-      if (isAdmin) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
-      } else {
-        // Force mobile viewport - completely disable desktop mode
-        viewport.setAttribute('content', 'width=520, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-      }
-    }
+  const isMobileDevice = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }, []);
+  
+  const applyMobileScale = useCallback(() => {
+    const isAdminRoute = location.pathname.startsWith('/admin');
+    if (isAdminRoute) return;
+    
+    const container = document.querySelector('.mobile-container') as HTMLElement;
+    if (!container) return;
+    
+    // If mobile device but viewport is wide (desktop mode enabled)
+    if (isMobileDevice() && window.innerWidth > 600) {
+      const scale = window.innerWidth / 520;
+      container.style.transform = `scale(${scale})`;
+      container.style.transformOrigin = 'top center';
+      container.style.width = '520px';
+      container.style.minHeight = `${100 / scale}vh`;
+    } else {
+      container.style.transform = '';
+      container.style.transformOrigin = '';
+      container.style.width = '';
+      container.style.minHeight = '';
+    }
+  }, [location.pathname, isMobileDevice]);
   
   useEffect(() => {
     const isAdminRoute = location.pathname.startsWith('/admin');
+    const viewport = document.querySelector('meta[name="viewport"]');
     
-    // Set immediately
-    setViewport(isAdminRoute);
-    
-    // Also set on visibility change (when user switches tabs/apps)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setViewport(isAdminRoute);
+    if (viewport) {
+      if (isAdminRoute) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+      } else {
+        viewport.setAttribute('content', 'width=520, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
       }
-    };
+    }
     
-    // Re-apply on focus (when browser tab becomes active)
-    const handleFocus = () => {
-      setViewport(isAdminRoute);
-    };
+    // Apply scale for mobile devices in desktop mode
+    applyMobileScale();
     
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    
-    // Run every 500ms to counter any browser desktop mode override
-    const interval = setInterval(() => {
-      setViewport(isAdminRoute);
-    }, 500);
+    window.addEventListener('resize', applyMobileScale);
+    window.addEventListener('orientationchange', applyMobileScale);
     
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      clearInterval(interval);
+      window.removeEventListener('resize', applyMobileScale);
+      window.removeEventListener('orientationchange', applyMobileScale);
     };
-  }, [location.pathname, setViewport]);
+  }, [location.pathname, applyMobileScale]);
 };
