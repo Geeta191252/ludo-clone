@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, Edit, Trash2, Plus, Minus, CheckCircle, Clock, Eye, FileText } from "lucide-react";
+import { Search, Edit, Trash2, Plus, Minus, CheckCircle, Clock, Eye, FileText, XCircle } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://rajasthanludo.com/api';
@@ -137,7 +137,7 @@ const AdminUsers = () => {
     }
   };
 
-  const handleAcceptKyc = async (userId: number) => {
+  const handleUpdateKycStatus = async (userId: number, status: 'accepted' | 'rejected') => {
     try {
       const token = localStorage.getItem("admin_token");
       const response = await fetch(`${API_BASE_URL}/admin-update-kyc.php`, {
@@ -146,12 +146,12 @@ const AdminUsers = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify({ user_id: userId, kyc_status: 'accepted' }),
+        body: JSON.stringify({ user_id: userId, kyc_status: status }),
       });
       const data = await response.json();
       
       if (data.status) {
-        toast({ title: "Success", description: "KYC accepted successfully" });
+        toast({ title: "Success", description: `KYC ${status === 'accepted' ? 'accepted' : 'cancelled'} successfully` });
         fetchUsers();
         setKycDialog(null);
       } else {
@@ -236,6 +236,10 @@ const AdminUsers = () => {
                           {user.kyc_status === 'accepted' ? (
                             <span className="flex items-center gap-1 text-green-400">
                               <CheckCircle className="w-4 h-4" /> Accepted
+                            </span>
+                          ) : user.kyc_status === 'rejected' ? (
+                            <span className="flex items-center gap-1 text-red-400">
+                              <XCircle className="w-4 h-4" /> Rejected
                             </span>
                           ) : (
                             <span className="flex items-center gap-1 text-yellow-400">
@@ -388,15 +392,26 @@ const AdminUsers = () => {
                   )}
                 </div>
 
-                {kycDialog.user.kyc_status !== 'accepted' && (
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleAcceptKyc(kycDialog.user.id)}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Accept KYC
-                  </Button>
-                )}
+                <div className="flex gap-3">
+                  {kycDialog.user.kyc_status !== 'accepted' && (
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => handleUpdateKycStatus(kycDialog.user.id, 'accepted')}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Accept KYC
+                    </Button>
+                  )}
+                  {kycDialog.user.kyc_status !== 'rejected' && (
+                    <Button
+                      className="flex-1 bg-red-600 hover:bg-red-700"
+                      onClick={() => handleUpdateKycStatus(kycDialog.user.id, 'rejected')}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Cancel KYC
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
               <p className="text-slate-400 text-center py-8">No KYC documents found</p>
