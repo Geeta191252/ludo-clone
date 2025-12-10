@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, History, ChevronDown, Users, Coins, DollarSign } from 'lucide-react';
 import { useGameSync } from '@/hooks/useGameSync';
 import Plane3D from './Plane3D';
+import AviatorBackground3D from './AviatorBackground3D';
 interface AviatorGameProps {
   onClose: () => void;
   balance?: number;
@@ -560,36 +561,9 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       )}
 
       {/* Game Area */}
-      <div className="relative mx-3 rounded-xl overflow-hidden" style={{ height: '140px' }}>
-        {/* Sunburst Background */}
-        <div className="absolute inset-0 bg-[#1a1a1a]">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-              <radialGradient id="sunburst-center" cx="100%" cy="100%" r="150%">
-                <stop offset="0%" stopColor="#2a2a2a" />
-                <stop offset="100%" stopColor="#0a0a0a" />
-              </radialGradient>
-            </defs>
-            <rect width="100" height="100" fill="url(#sunburst-center)" />
-            {/* Sunburst rays */}
-            {Array.from({ length: 24 }).map((_, i) => {
-              const angle = (i * 15) - 90;
-              const x2 = 100 + Math.cos((angle * Math.PI) / 180) * 150;
-              const y2 = 100 + Math.sin((angle * Math.PI) / 180) * 150;
-              return (
-                <line
-                  key={i}
-                  x1="100"
-                  y1="100"
-                  x2={x2}
-                  y2={y2}
-                  stroke={i % 2 === 0 ? '#252525' : '#1a1a1a'}
-                  strokeWidth="8"
-                />
-              );
-            })}
-          </svg>
-        </div>
+      <div className="relative mx-3 rounded-xl overflow-hidden" style={{ height: '220px' }}>
+        {/* 3D Animated Background with trees, clouds, road */}
+        <AviatorBackground3D isFlying={gamePhase === 'flying'} multiplier={multiplier} />
         
         {/* Y-axis dots */}
         <div className="absolute left-3 top-4 bottom-16 flex flex-col justify-between">
