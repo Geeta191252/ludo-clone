@@ -55,32 +55,49 @@ $stmt = $conn->prepare("INSERT INTO otp_requests (mobile, otp, expires_at) VALUE
 $stmt->bind_param("sss", $mobile, $otp, $expires_at);
 
 if ($stmt->execute()) {
-    // TODO: Integrate with SMS gateway to send actual OTP
-    // For now, we'll return success and log the OTP (remove in production)
+    // Renflair SMS Gateway Integration
+    $apiKey = '29c4a0e4ef7d1969a94a5f4aadd20690';
+    $message = "Your Rajasthan Ludo OTP is: $otp. Valid for 10 minutes. Do not share with anyone.";
     
-    // Example SMS API integration (uncomment and configure):
-    // $smsApiUrl = "https://your-sms-api.com/send";
-    // $smsData = [
-    //     'mobile' => $mobile,
-    //     'message' => "Your Rajasthan Ludo OTP is: $otp. Valid for 10 minutes."
-    // ];
-    // $ch = curl_init($smsApiUrl);
-    // curl_setopt($ch, CURLOPT_POST, true);
-    // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($smsData));
-    // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    // curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    // $smsResponse = curl_exec($ch);
-    // curl_close($ch);
+    // Renflair SMS API URL
+    $smsApiUrl = "https://renflair.in/API/sms-api.php";
     
-    // Log OTP for development (REMOVE IN PRODUCTION)
-    error_log("OTP for $mobile: $otp");
+    $postData = [
+        'apikey' => $apiKey,
+        'mobile' => $mobile,
+        'msg' => $message
+    ];
     
-    echo json_encode([
-        'status' => true,
-        'message' => 'OTP sent successfully',
-        // Remove 'otp' in production - only for testing
-        'otp' => $otp
-    ]);
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $smsApiUrl);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    
+    $smsResponse = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    // Log for debugging
+    error_log("SMS API Response: $smsResponse, HTTP Code: $httpCode, Error: $curlError");
+    
+    if ($smsResponse && strpos(strtolower($smsResponse), 'success') !== false) {
+        echo json_encode([
+            'status' => true,
+            'message' => 'OTP sent successfully to your mobile'
+        ]);
+    } else {
+        // SMS failed but OTP is saved, return success with OTP for testing
+        echo json_encode([
+            'status' => true,
+            'message' => 'OTP generated',
+            'otp' => $otp, // Remove in production after SMS works
+            'debug' => $smsResponse // Remove in production
+        ]);
+    }
 } else {
     echo json_encode(['status' => false, 'message' => 'Failed to generate OTP']);
 }
