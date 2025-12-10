@@ -27,6 +27,15 @@ const Notifications = () => {
     
     const userData = localStorage.getItem('user');
     if (!userData) {
+      // Still show welcome notification for non-logged in users
+      setNotifications([{
+        id: 'welcome',
+        type: 'general',
+        title: 'Welcome to RockyPlayers!',
+        message: 'RockyPlayers में आपका स्वागत है। Login करें और games खेलें!',
+        timestamp: new Date().toISOString(),
+        read: true
+      }]);
       setLoading(false);
       return;
     }
@@ -35,57 +44,73 @@ const Notifications = () => {
     const mobile = user.mobile;
     const kycStatus = user.kyc_status || localStorage.getItem('kycStatus');
     
+    console.log('Fetching notifications for mobile:', mobile, 'KYC Status:', kycStatus);
+    
     const generatedNotifications: Notification[] = [];
     
     // Fetch deposits
     try {
       const depositRes = await fetch(`/api/get-transaction-history.php?mobile=${mobile}&type=deposit`);
-      const depositData = await depositRes.json();
-      if (depositData.status === true && depositData.transactions && depositData.transactions.length > 0) {
-        depositData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
-          const txStatus = tx.status?.toUpperCase() || 'PENDING';
-          generatedNotifications.push({
-            id: `deposit_${tx.id || index}`,
-            type: 'deposit',
-            title: txStatus === 'SUCCESS' ? 'Deposit Successful ✓' : txStatus === 'PENDING' ? 'Deposit Pending' : 'Deposit Failed',
-            message: `₹${tx.amount} ${txStatus === 'SUCCESS' ? 'जमा हो गया' : txStatus === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
-            timestamp: tx.date || new Date().toISOString(),
-            read: true,
-            amount: tx.amount,
-            status: txStatus
+      const depositText = await depositRes.text();
+      console.log('Deposit API response:', depositText);
+      
+      try {
+        const depositData = JSON.parse(depositText);
+        if (depositData.status === true && depositData.transactions && depositData.transactions.length > 0) {
+          depositData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
+            const txStatus = tx.status?.toUpperCase() || 'PENDING';
+            generatedNotifications.push({
+              id: `deposit_${tx.id || index}`,
+              type: 'deposit',
+              title: txStatus === 'SUCCESS' ? 'Deposit Successful ✓' : txStatus === 'PENDING' ? 'Deposit Pending' : 'Deposit Failed',
+              message: `₹${tx.amount} ${txStatus === 'SUCCESS' ? 'जमा हो गया' : txStatus === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
+              timestamp: tx.date || tx.created_at || new Date().toISOString(),
+              read: true,
+              amount: tx.amount,
+              status: txStatus
+            });
           });
-        });
+        }
+      } catch (parseError) {
+        console.error('Error parsing deposit data:', parseError);
       }
     } catch (e) {
-      console.log('Error fetching deposits:', e);
+      console.error('Error fetching deposits:', e);
     }
 
     // Fetch withdrawals
     try {
       const withdrawRes = await fetch(`/api/get-transaction-history.php?mobile=${mobile}&type=withdrawal`);
-      const withdrawData = await withdrawRes.json();
-      if (withdrawData.status === true && withdrawData.transactions && withdrawData.transactions.length > 0) {
-        withdrawData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
-          const txStatus = tx.status?.toUpperCase() || 'PENDING';
-          const isApproved = txStatus === 'APPROVED' || txStatus === 'SUCCESS';
-          generatedNotifications.push({
-            id: `withdraw_${tx.id || index}`,
-            type: 'withdrawal',
-            title: isApproved ? 'Withdrawal Successful ✓' : txStatus === 'PENDING' ? 'Withdrawal Pending' : 'Withdrawal Failed',
-            message: `₹${tx.amount} ${isApproved ? 'निकासी सफल' : txStatus === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
-            timestamp: tx.date || new Date().toISOString(),
-            read: true,
-            amount: tx.amount,
-            status: isApproved ? 'SUCCESS' : txStatus
+      const withdrawText = await withdrawRes.text();
+      console.log('Withdrawal API response:', withdrawText);
+      
+      try {
+        const withdrawData = JSON.parse(withdrawText);
+        if (withdrawData.status === true && withdrawData.transactions && withdrawData.transactions.length > 0) {
+          withdrawData.transactions.slice(0, 10).forEach((tx: any, index: number) => {
+            const txStatus = tx.status?.toUpperCase() || 'PENDING';
+            const isApproved = txStatus === 'APPROVED' || txStatus === 'SUCCESS';
+            generatedNotifications.push({
+              id: `withdraw_${tx.id || index}`,
+              type: 'withdrawal',
+              title: isApproved ? 'Withdrawal Successful ✓' : txStatus === 'PENDING' ? 'Withdrawal Pending' : 'Withdrawal Failed',
+              message: `₹${tx.amount} ${isApproved ? 'निकासी सफल' : txStatus === 'PENDING' ? 'प्रोसेसिंग में है' : 'विफल हो गया'}`,
+              timestamp: tx.date || tx.created_at || new Date().toISOString(),
+              read: true,
+              amount: tx.amount,
+              status: isApproved ? 'SUCCESS' : txStatus
+            });
           });
-        });
+        }
+      } catch (parseError) {
+        console.error('Error parsing withdrawal data:', parseError);
       }
     } catch (e) {
-      console.log('Error fetching withdrawals:', e);
+      console.error('Error fetching withdrawals:', e);
     }
 
     // KYC notifications
-    if (kycStatus === 'accepted') {
+    if (kycStatus === 'accepted' || kycStatus === 'verified') {
       generatedNotifications.unshift({
         id: 'kyc_accepted',
         type: 'kyc_accepted',
@@ -94,7 +119,7 @@ const Notifications = () => {
         timestamp: new Date().toISOString(),
         read: false
       });
-    } else if (kycStatus === 'rejected') {
+    } else if (kycStatus === 'rejected' || kycStatus === 'cancelled') {
       generatedNotifications.unshift({
         id: 'kyc_rejected',
         type: 'kyc_rejected',
@@ -124,6 +149,7 @@ const Notifications = () => {
       read: true
     });
     
+    console.log('Total notifications:', generatedNotifications.length);
     setNotifications(generatedNotifications);
     setLoading(false);
   };
