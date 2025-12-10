@@ -21,9 +21,16 @@ export const useViewportControl = () => {
       container.style.transform = `scale(${scale})`;
       container.style.transformOrigin = 'top left';
       container.style.width = '520px';
-      container.style.minHeight = `${100 / scale}vh`;
+      container.style.height = 'auto';
+      container.style.minHeight = '100vh';
       container.style.marginLeft = '0';
       container.style.marginRight = 'auto';
+      
+      // Prevent body from scrolling beyond content
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100vh';
+      container.style.overflowY = 'auto';
+      container.style.maxHeight = `${100 / scale}vh`;
       
       // For mobile devices in desktop mode - fill entire screen
       if (isMobileDevice()) {
@@ -33,9 +40,14 @@ export const useViewportControl = () => {
       container.style.transform = '';
       container.style.transformOrigin = '';
       container.style.width = '';
+      container.style.height = '';
       container.style.minHeight = '';
       container.style.marginLeft = '';
       container.style.marginRight = '';
+      container.style.overflowY = '';
+      container.style.maxHeight = '';
+      document.body.style.overflow = '';
+      document.body.style.height = '';
     }
   }, [location.pathname, isMobileDevice]);
   
