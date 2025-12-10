@@ -15,20 +15,14 @@ html, body {
   position: relative;
 }
 
-/* Mobile container - full width on mobile, centered on desktop */
+/* Mobile container - ALWAYS mobile layout, never affected by desktop mode */
 .mobile-container {
   min-height: 100vh;
   background-color: hsl(var(--background));
   width: 100%;
-}
-
-/* Desktop: Center mobile layout with max-width - keeps mobile app look */
-@media (min-width: 768px) {
-  .mobile-container {
-    max-width: 520px;
-    margin: 0 auto;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-  }
+  max-width: 520px;
+  margin: 0 auto;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Admin layout - full width on all devices */
