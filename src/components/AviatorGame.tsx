@@ -561,9 +561,7 @@ const AviatorGame: React.FC<AviatorGameProps> = ({ onClose, balance: externalBal
       )}
 
       {/* Game Area */}
-      <div className="relative mx-3 rounded-xl overflow-hidden" style={{ height: '220px' }}>
-        {/* 3D Animated Background with trees, clouds, road */}
-        <AviatorBackground3D isFlying={gamePhase === 'flying'} multiplier={multiplier} />
+      <div className="relative mx-3 rounded-xl overflow-hidden bg-gradient-to-b from-[#1a1a2e] to-[#0f0f1a]" style={{ height: '220px' }}>
         
         {/* Y-axis dots */}
         <div className="absolute left-3 top-4 bottom-16 flex flex-col justify-between">
