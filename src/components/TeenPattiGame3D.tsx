@@ -597,78 +597,79 @@ const TeenPattiGame3D: React.FC<TeenPattiGame3DProps> = ({ walletBalance, onWall
     );
   }
 
-  // Game View - 3D Casino Style
+  // Game View - 3D Casino Style - Fullscreen Landscape
   if (gamePhase === 'playing') {
-    const playerAngles = [180, 252, 324, 36, 108]; // 5 players around table
+    // Player positions around the oval table (percentages from center)
+    const playerPositions = isLandscape ? [
+      { x: 0, y: 48, label: 'bottom' },      // Player (You) - bottom center
+      { x: -42, y: 20, label: 'left-top' },  // Bot 1 - left top
+      { x: -25, y: -35, label: 'top-left' }, // Bot 2 - top left
+      { x: 25, y: -35, label: 'top-right' }, // Bot 3 - top right
+      { x: 42, y: 20, label: 'right-top' },  // Bot 4 - right top
+    ] : [
+      { x: 0, y: 42, label: 'bottom' },
+      { x: -38, y: 15, label: 'left-top' },
+      { x: -20, y: -30, label: 'top-left' },
+      { x: 20, y: -30, label: 'top-right' },
+      { x: 38, y: 15, label: 'right-top' },
+    ];
     
     return (
       <div 
-        className={`min-h-screen relative overflow-hidden ${isLandscape ? 'landscape-mode' : ''}`}
+        className="fixed inset-0 overflow-hidden"
         style={{
-          background: 'linear-gradient(180deg, #1a0a0a 0%, #2d0a0a 30%, #1a0808 100%)'
+          background: 'linear-gradient(180deg, #0a0a12 0%, #12121f 30%, #0a0a0f 100%)'
         }}
       >
-        {/* Stars Background */}
-        <div className="absolute inset-0 opacity-30">
-          {[...Array(50)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`
-              }}
-            />
-          ))}
+        {/* Ambient light effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-1/2 h-1/3 bg-yellow-500/5 blur-3xl rounded-full" />
+          <div className="absolute bottom-0 left-1/3 w-1/3 h-1/4 bg-green-500/5 blur-3xl rounded-full" />
         </div>
 
-        {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-30 flex justify-between items-center p-2">
-          <button onClick={onBack} className="w-10 h-10 rounded-full bg-red-600/80 flex items-center justify-center">
+        {/* Header - Minimal for fullscreen */}
+        <div className="absolute top-2 left-2 right-2 z-30 flex justify-between items-center">
+          <button onClick={onBack} className="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center border border-white/20">
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <div className="flex gap-2">
+          
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsMuted(!isMuted)}
-              className="w-10 h-10 rounded-full bg-gray-800/80 flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-black/60 backdrop-blur flex items-center justify-center border border-white/20"
             >
               {isMuted ? <VolumeX className="w-5 h-5 text-white" /> : <Volume2 className="w-5 h-5 text-white" />}
             </button>
-          </div>
-          <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-full px-4 py-2 flex items-center gap-2">
-            <img src={rupeeIcon} alt="₹" className="w-5 h-5" />
-            <span className="text-white font-bold">{walletBalance.toFixed(0)}</span>
+            <div className="bg-black/60 backdrop-blur rounded-full px-4 py-2 flex items-center gap-2 border border-yellow-500/30">
+              <img src={rupeeIcon} alt="₹" className="w-5 h-5" />
+              <span className="text-yellow-400 font-bold">{walletBalance.toFixed(0)}</span>
+            </div>
           </div>
         </div>
 
         {/* Action Animation Overlay */}
         {actionAnimation && (
           <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div className="text-4xl font-black text-yellow-400 animate-bounce" style={{
-              textShadow: '0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.5)'
+            <div className="text-5xl font-black text-yellow-400 animate-bounce" style={{
+              textShadow: '0 0 30px rgba(255,215,0,0.9), 0 0 60px rgba(255,215,0,0.6), 0 0 90px rgba(255,215,0,0.3)'
             }}>
               {actionAnimation}
             </div>
           </div>
         )}
 
-        {/* 3D Table Container */}
+        {/* 3D Table - Fullscreen */}
         <div 
-          className="absolute left-1/2 -translate-x-1/2 z-10"
-          style={{
-            top: isLandscape ? '15%' : '12%',
-            width: isLandscape ? '90%' : '95%',
-            maxWidth: isLandscape ? '600px' : '400px',
-            height: isLandscape ? '55vh' : '50vh',
-            perspective: '1200px'
-          }}
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ perspective: '1500px' }}
         >
-          {/* Table with 3D effect */}
           <div 
-            className="relative w-full h-full"
+            className="relative"
             style={{
-              transform: 'rotateX(25deg)',
+              width: isLandscape ? '85vw' : '95vw',
+              maxWidth: isLandscape ? '800px' : '450px',
+              height: isLandscape ? '65vh' : '55vh',
+              transform: isLandscape ? 'rotateX(35deg) translateY(-5%)' : 'rotateX(30deg) translateY(5%)',
               transformStyle: 'preserve-3d'
             }}
           >
@@ -676,111 +677,178 @@ const TeenPattiGame3D: React.FC<TeenPattiGame3DProps> = ({ walletBalance, onWall
             <div 
               className="absolute rounded-[50%]"
               style={{
-                inset: '-5%',
-                background: 'rgba(0,0,0,0.5)',
-                filter: 'blur(20px)',
-                transform: 'translateZ(-20px)'
+                inset: '-8%',
+                background: 'rgba(0,0,0,0.7)',
+                filter: 'blur(40px)',
+                transform: 'translateZ(-30px) translateY(20px)'
               }}
             />
             
-            {/* Table Border (Wood) */}
+            {/* Table Outer Rim (Golden) */}
             <div 
               className="absolute inset-0 rounded-[50%]"
               style={{
-                background: 'linear-gradient(180deg, #8B4513 0%, #654321 30%, #3d2512 60%, #2a1a0d 100%)',
-                boxShadow: 'inset 0 -10px 30px rgba(0,0,0,0.5), 0 10px 40px rgba(0,0,0,0.8)'
+                background: 'linear-gradient(135deg, #d4af37 0%, #aa8c2c 20%, #8b7226 40%, #6b5a1e 60%, #4a3d15 80%, #2a2310 100%)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.3)'
               }}
             />
             
-            {/* Table Felt */}
+            {/* Table Inner Rim (Wood) */}
             <div 
               className="absolute rounded-[50%]"
               style={{
-                inset: '4%',
-                background: 'radial-gradient(ellipse at 50% 40%, #1a8b1a 0%, #0d6b0d 40%, #054d05 70%, #033503 100%)',
-                boxShadow: 'inset 0 0 100px rgba(0,0,0,0.6), inset 0 20px 60px rgba(255,255,255,0.1)'
+                inset: '2%',
+                background: 'linear-gradient(180deg, #5d3a1a 0%, #4a2d14 30%, #3d2410 60%, #2d1a0a 100%)',
+                boxShadow: 'inset 0 5px 20px rgba(0,0,0,0.6)'
+              }}
+            />
+            
+            {/* Table Felt (Green) */}
+            <div 
+              className="absolute rounded-[50%]"
+              style={{
+                inset: '5%',
+                background: 'radial-gradient(ellipse at 50% 35%, #1a7a1a 0%, #147014 25%, #0d5a0d 50%, #084808 75%, #033803 100%)',
+                boxShadow: 'inset 0 0 80px rgba(0,0,0,0.5), inset 0 -20px 60px rgba(0,0,0,0.3), inset 0 15px 40px rgba(255,255,255,0.08)'
               }}
             >
               {/* Felt Texture */}
-              <div className="absolute inset-0 rounded-[50%] opacity-20" style={{
-                backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")'
+              <div className="absolute inset-0 rounded-[50%] opacity-10" style={{
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")'
               }} />
               
-              {/* Center Logo */}
+              {/* Table Logo & Pot */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <span className="text-yellow-400/40 text-lg font-bold tracking-widest">TEEN PATTI</span>
-                  {/* Pot Amount */}
-                  <div className="mt-2 bg-black/60 rounded-full px-6 py-2 flex items-center gap-2 border-2 border-yellow-500/50">
-                    <span className="text-2xl">🏆</span>
-                    <span className="text-yellow-400 font-black text-xl">₹{potAmount}</span>
+                <div className="text-center transform" style={{ transform: 'rotateX(-35deg)' }}>
+                  <div className="text-yellow-500/30 text-sm font-bold tracking-[0.3em] mb-2">TEEN PATTI</div>
+                  <div className="bg-black/70 backdrop-blur-sm rounded-2xl px-6 py-3 border-2 border-yellow-500/40 shadow-2xl">
+                    <div className="flex items-center gap-2 justify-center">
+                      <span className="text-3xl">🏆</span>
+                      <span className="text-yellow-400 font-black text-2xl">₹{potAmount}</span>
+                    </div>
+                    <div className="text-white/50 text-xs mt-1">POT</div>
                   </div>
                 </div>
               </div>
+              
+              {/* Decorative Lines on felt */}
+              <div className="absolute inset-[15%] rounded-[50%] border border-yellow-500/10" />
+              <div className="absolute inset-[30%] rounded-[50%] border border-yellow-500/5" />
             </div>
 
-            {/* Players around table */}
-            {players.map((player, index) => (
-              <PlayerPosition key={player.id} player={player} angle={playerAngles[index]} />
-            ))}
+            {/* Players Around Table */}
+            {players.map((player, index) => {
+              const pos = playerPositions[index];
+              const isMe = player.id === 'player';
+              const showMyCards = isMe && isSeen;
+              const showAllCards = showCards;
+              
+              return (
+                <div 
+                  key={player.id}
+                  className="absolute flex flex-col items-center transition-all duration-500"
+                  style={{
+                    left: `${50 + pos.x}%`,
+                    top: `${50 + pos.y}%`,
+                    transform: `translate(-50%, -50%) rotateX(-35deg)`,
+                    zIndex: isMe ? 20 : 10
+                  }}
+                >
+                  {/* Cards */}
+                  <div className={`flex ${isMe ? '-space-x-3' : '-space-x-4'} mb-2`}>
+                    {player.cards.map((card, i) => (
+                      <Card3D 
+                        key={i} 
+                        card={card} 
+                        isBack={!showAllCards && !(isMe && showMyCards)}
+                        isLarge={isMe}
+                        rotation={(i - 1) * (isMe ? 8 : 5)}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Player Info */}
+                  <div className={`flex flex-col items-center ${player.isFolded ? 'opacity-40' : ''}`}>
+                    <div className={`relative ${isMe ? 'w-14 h-14' : 'w-11 h-11'} rounded-full flex items-center justify-center text-xl border-3 ${
+                      player.isCurrentTurn ? 'border-yellow-400 animate-pulse shadow-[0_0_20px_rgba(255,215,0,0.6)]' : 'border-gray-600'
+                    } ${isMe ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-gray-500 to-gray-700'}`}
+                    style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
+                      <span className={`${isMe ? 'text-2xl' : 'text-lg'}`}>{player.avatar}</span>
+                      {player.lastAction && (
+                        <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${
+                          player.lastAction === 'PACK' ? 'bg-red-500' :
+                          player.lastAction.includes('BLIND') ? 'bg-blue-500' :
+                          'bg-green-500'
+                        }`}>
+                          {player.lastAction === 'PACK' ? '✕' : '✓'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-black/80 backdrop-blur-sm px-3 py-1 rounded-lg mt-1 border border-white/10">
+                      <span className="text-white text-xs font-bold">{player.name}</span>
+                    </div>
+                    <div className="bg-yellow-500/20 px-2 py-0.5 rounded mt-0.5">
+                      <span className="text-yellow-400 text-xs font-bold">₹{player.totalBet}</span>
+                    </div>
+                    {player.lastAction && !player.isFolded && (
+                      <div className={`text-[10px] font-bold px-2 py-0.5 rounded mt-0.5 ${
+                        player.lastAction === 'PACK' ? 'bg-red-600/80 text-white' :
+                        player.lastAction.includes('BLIND') ? 'bg-blue-600/80 text-white' :
+                        player.lastAction.includes('CHAAL') || player.lastAction.includes('CHAL') ? 'bg-green-600/80 text-white' :
+                        'bg-purple-600/80 text-white'
+                      }`}>
+                        {player.lastAction}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Dealing Animation */}
         {dealingAnimation && (
-          <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/60">
-            <div className="text-white text-3xl font-bold animate-pulse">
-              🎴 Dealing Cards...
+          <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/70 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="text-5xl mb-4 animate-bounce">🎴</div>
+              <div className="text-white text-2xl font-bold animate-pulse">Dealing Cards...</div>
             </div>
           </div>
         )}
 
-        {/* My Cards Section - Fixed at bottom */}
-        <div className={`fixed left-0 right-0 z-20 ${isLandscape ? 'bottom-16' : 'bottom-24'}`}>
-          <div className="flex flex-col items-center">
-            {/* Hand Rank */}
-            {handRankName && (
-              <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white px-4 py-1 rounded-full font-bold text-sm mb-2 border border-purple-400">
-                {handRankName}
-              </div>
-            )}
-            
-            {/* My Cards with SEE button */}
-            <div className="relative flex justify-center -space-x-4">
-              {myCards.map((card, index) => (
-                <div 
-                  key={index}
-                  className="transform transition-all duration-300 hover:scale-110 hover:-translate-y-2"
-                  style={{ transform: `rotate(${(index - 1) * 10}deg)` }}
-                >
-                  <Card3D card={card} isBack={!isSeen} isLarge rotation={0} />
-                </div>
-              ))}
-              
-              {!isSeen && (
-                <button 
-                  onClick={seeCards}
-                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold px-6 py-2 rounded-lg text-lg shadow-lg hover:scale-105 transition-transform border-2 border-green-400 z-10"
-                >
-                  👁 SEE
-                </button>
-              )}
+        {/* My Cards - See Button (shown when not seen) */}
+        {!isSeen && myCards.length > 0 && (
+          <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-20">
+            <button 
+              onClick={seeCards}
+              className="bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-500 text-white font-black px-8 py-3 rounded-xl text-lg shadow-2xl hover:scale-105 transition-all border-2 border-green-300 animate-pulse"
+              style={{ boxShadow: '0 0 30px rgba(34,197,94,0.5)' }}
+            >
+              👁 SEE CARDS
+            </button>
+          </div>
+        )}
+
+        {/* Hand Rank Display */}
+        {handRankName && (
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-20">
+            <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white px-5 py-2 rounded-full font-bold text-sm border border-purple-400 shadow-lg">
+              ✨ {handRankName}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Action Buttons - Fixed at very bottom */}
-        <div className={`fixed bottom-0 left-0 right-0 p-2 z-30 bg-gradient-to-t from-black/90 to-transparent`}>
+        {/* Action Buttons - Bottom */}
+        <div className="fixed bottom-0 left-0 right-0 p-3 z-30 bg-gradient-to-t from-black via-black/90 to-transparent">
           {isMyTurn ? (
-            <div className={`flex gap-2 max-w-lg mx-auto ${isLandscape ? 'flex-row' : 'flex-wrap'}`}>
+            <div className={`flex gap-2 max-w-2xl mx-auto ${isLandscape ? 'gap-3' : 'flex-wrap gap-2'}`}>
               {/* PACK */}
               <button 
                 onClick={fold}
-                className="flex-1 min-w-[60px] bg-gradient-to-b from-red-500 to-red-700 text-white font-bold py-3 rounded-xl border-2 border-red-400"
+                className="flex-1 min-w-[70px] bg-gradient-to-b from-red-500 to-red-700 text-white font-bold py-3 rounded-xl border-2 border-red-400 shadow-lg active:scale-95 transition-transform"
               >
-                <div className="text-center">
-                  <div className="text-sm">PACK</div>
-                </div>
+                <div className="text-sm">PACK</div>
               </button>
               
               {/* Blind/Chal buttons based on seen status */}
@@ -788,75 +856,66 @@ const TeenPattiGame3D: React.FC<TeenPattiGame3DProps> = ({ walletBalance, onWall
                 <>
                   <button 
                     onClick={() => placeBet(false)}
-                    className="flex-1 min-w-[80px] bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold py-3 rounded-xl border-2 border-blue-400"
+                    className="flex-1 min-w-[80px] bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold py-3 rounded-xl border-2 border-blue-400 shadow-lg active:scale-95 transition-transform"
                   >
-                    <div className="text-center">
-                      <div className="text-lg">₹{getCurrentBetAmount()}</div>
-                      <div className="text-xs">BLIND</div>
-                    </div>
+                    <div className="text-lg font-black">₹{getCurrentBetAmount()}</div>
+                    <div className="text-xs opacity-80">BLIND</div>
                   </button>
                   <button 
                     onClick={() => placeBet(true)}
-                    className="flex-1 min-w-[80px] bg-gradient-to-b from-purple-500 to-purple-700 text-white font-bold py-3 rounded-xl border-2 border-purple-400"
+                    className="flex-1 min-w-[80px] bg-gradient-to-b from-purple-500 to-purple-700 text-white font-bold py-3 rounded-xl border-2 border-purple-400 shadow-lg active:scale-95 transition-transform"
                   >
-                    <div className="text-center">
-                      <div className="text-lg">₹{getCurrentBetAmount() * 2}</div>
-                      <div className="text-xs">2X BLIND</div>
-                    </div>
+                    <div className="text-lg font-black">₹{getCurrentBetAmount() * 2}</div>
+                    <div className="text-xs opacity-80">2X BLIND</div>
                   </button>
                 </>
               ) : (
                 <>
                   <button 
                     onClick={() => placeBet(false)}
-                    className="flex-1 min-w-[80px] bg-gradient-to-b from-green-500 to-green-700 text-white font-bold py-3 rounded-xl border-2 border-green-400"
+                    className="flex-1 min-w-[80px] bg-gradient-to-b from-green-500 to-green-700 text-white font-bold py-3 rounded-xl border-2 border-green-400 shadow-lg active:scale-95 transition-transform"
                   >
-                    <div className="text-center">
-                      <div className="text-lg">₹{getCurrentBetAmount() * 2}</div>
-                      <div className="text-xs">CHAAL</div>
-                    </div>
+                    <div className="text-lg font-black">₹{getCurrentBetAmount() * 2}</div>
+                    <div className="text-xs opacity-80">CHAAL</div>
                   </button>
                   <button 
                     onClick={() => placeBet(true)}
-                    className="flex-1 min-w-[80px] bg-gradient-to-b from-orange-500 to-orange-700 text-white font-bold py-3 rounded-xl border-2 border-orange-400"
+                    className="flex-1 min-w-[80px] bg-gradient-to-b from-orange-500 to-orange-700 text-white font-bold py-3 rounded-xl border-2 border-orange-400 shadow-lg active:scale-95 transition-transform"
                   >
-                    <div className="text-center">
-                      <div className="text-lg">₹{getCurrentBetAmount() * 4}</div>
-                      <div className="text-xs">2X CHAAL</div>
-                    </div>
+                    <div className="text-lg font-black">₹{getCurrentBetAmount() * 4}</div>
+                    <div className="text-xs opacity-80">2X CHAAL</div>
                   </button>
                   
-                  {/* Side Show - Only if seen and more than 2 players */}
+                  {/* Side Show */}
                   {getActivePlayers().length > 2 && (
                     <button 
                       onClick={sideShow}
-                      className="flex-1 min-w-[80px] bg-gradient-to-b from-pink-500 to-pink-700 text-white font-bold py-3 rounded-xl border-2 border-pink-400"
+                      className="flex-1 min-w-[80px] bg-gradient-to-b from-pink-500 to-pink-700 text-white font-bold py-3 rounded-xl border-2 border-pink-400 shadow-lg active:scale-95 transition-transform"
                     >
-                      <div className="text-center">
-                        <div className="text-lg">₹{getCurrentBetAmount() * 2}</div>
-                        <div className="text-xs">SIDE SHOW</div>
-                      </div>
+                      <div className="text-lg font-black">₹{getCurrentBetAmount() * 2}</div>
+                      <div className="text-xs opacity-80">SIDE SHOW</div>
                     </button>
                   )}
                 </>
               )}
               
-              {/* Show - Only when 2 players remain */}
+              {/* Show */}
               {getActivePlayers().length === 2 && (
                 <button 
                   onClick={requestShow}
-                  className="flex-1 min-w-[80px] bg-gradient-to-b from-yellow-500 to-yellow-700 text-white font-bold py-3 rounded-xl border-2 border-yellow-400"
+                  className="flex-1 min-w-[80px] bg-gradient-to-b from-yellow-500 to-yellow-600 text-black font-bold py-3 rounded-xl border-2 border-yellow-300 shadow-lg active:scale-95 transition-transform"
                 >
-                  <div className="text-center">
-                    <div className="text-lg">₹{isSeen ? getCurrentBetAmount() * 2 : getCurrentBetAmount()}</div>
-                    <div className="text-xs">SHOW</div>
-                  </div>
+                  <div className="text-lg font-black">₹{isSeen ? getCurrentBetAmount() * 2 : getCurrentBetAmount()}</div>
+                  <div className="text-xs opacity-80">SHOW</div>
                 </button>
               )}
             </div>
           ) : (
-            <div className="text-center text-white py-4 bg-black/60 rounded-xl max-w-lg mx-auto">
-              <div className="animate-pulse text-lg">⏳ Waiting for other players...</div>
+            <div className="text-center py-4">
+              <div className="inline-flex items-center gap-2 bg-black/70 text-white/80 px-6 py-3 rounded-xl border border-white/10">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                <span className="text-lg">Waiting for other players...</span>
+              </div>
             </div>
           )}
         </div>
