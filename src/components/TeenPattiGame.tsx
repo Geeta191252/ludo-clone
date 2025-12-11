@@ -162,16 +162,26 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
 
   const seeCards = () => {
     setIsSeen(true);
-    setShowCards(true);
+    // Only show my cards, not everyone's
     setHandRankName(getHandRankName(myCards));
     setPlayers(prev => prev.map(p => 
       p.id === 'player' ? { ...p, isSeen: true } : p
     ));
   };
 
+  // Get current bet amount based on blind/seen status
+  const getCurrentBetAmount = () => {
+    const base = roundBet || currentBet;
+    return base;
+  };
+
   const placeBet = (isDouble: boolean = false) => {
-    const baseBet = isDouble ? roundBet * 2 : roundBet;
-    const betAmount = isSeen ? baseBet * 2 : baseBet;
+    const base = getCurrentBetAmount();
+    // Blind: base or 2x base (double blind)
+    // Seen: 2x base or 4x base (double chal)
+    const betAmount = isSeen 
+      ? (isDouble ? base * 4 : base * 2)  // Seen: 2x or 4x
+      : (isDouble ? base * 2 : base);      // Blind: 1x or 2x
     
     if (walletBalance < betAmount) {
       toast.error('Insufficient balance!');
@@ -184,13 +194,16 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
       p.id === 'player' ? { ...p, bet: p.bet + betAmount } : p
     ));
     
-    // If double chal, increase round bet for next round
+    // If double, increase round bet for next round
     if (isDouble) {
-      setRoundBet(roundBet * 2);
+      setRoundBet(prev => (prev || currentBet) * 2);
     }
     
     // Show bet amount toast
-    toast.success(`₹${betAmount} की ${isDouble ? 'Double ' : ''}चाल!`, { duration: 1500 });
+    const betTypeName = isSeen 
+      ? (isDouble ? 'Double Chal' : 'Chal')
+      : (isDouble ? 'Double Blind' : 'Blind');
+    toast.success(`₹${betAmount} की ${betTypeName}!`, { duration: 1500 });
     
     simulateBotTurns(betAmount, isDouble);
   };
@@ -216,8 +229,9 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
       return;
     }
     
-    // Cost for show (if seen, pay double)
-    const showCost = isSeen ? roundBet * 2 : roundBet;
+    // Cost for show (if seen, pay 2x base)
+    const base = getCurrentBetAmount();
+    const showCost = isSeen ? base * 2 : base;
     if (walletBalance < showCost) {
       toast.error('Insufficient balance for Show!');
       return;
@@ -238,18 +252,21 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
         p.id === opponent?.id ? { ...p, isFolded: true } : p
       ));
       toast.success(`Show jeet gaye! ${opponent?.name} packed.`);
+      setShowCards(true);
       setTimeout(() => endGame(players.find(p => p.id === 'player')!), 1500);
     } else {
       setPlayers(prev => prev.map(p => 
         p.id === 'player' ? { ...p, isFolded: true } : p
       ));
       toast.error(`Show haar gaye! ${opponent?.name} ke cards better hai.`);
+      setShowCards(true);
       setTimeout(() => endGame(opponent!), 1500);
     }
   };
 
   const simulateBotTurns = (playerBet: number, wasDouble: boolean = false) => {
     setIsMyTurn(false);
+    const base = getCurrentBetAmount();
     
     let delay = 500;
     players.forEach((player) => {
@@ -265,13 +282,19 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
             ));
             toast.info(`${player.name} packed!`);
           } else {
-            const baseBet = shouldDouble ? roundBet * 2 : roundBet;
-            const botBet = shouldSee ? baseBet * 2 : baseBet;
+            // Bot bet: if seen = 2x, if double = another 2x
+            const baseBotBet = shouldDouble ? base * 2 : base;
+            const botBet = shouldSee ? baseBotBet * 2 : baseBotBet;
+            
+            const betType = shouldSee 
+              ? (shouldDouble ? 'Double Chal' : 'Chal')
+              : (shouldDouble ? 'Double Blind' : 'Blind');
             
             if (shouldDouble) {
-              setRoundBet(prev => prev * 2);
-              toast.info(`${player.name}: ₹${botBet} की Double चाल!`);
+              setRoundBet(prev => (prev || currentBet) * 2);
             }
+            
+            toast.info(`${player.name}: ₹${botBet} की ${betType}!`);
             
             setPotAmount(prev => prev + botBet);
             setPlayers(prev => prev.map(p => 
@@ -591,8 +614,8 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
                 }}
               >
                 <TeenPattiCard3D 
-                  card={showCards || isSeen ? card : 'back'} 
-                  isFlipped={showCards || isSeen}
+                  card={isSeen ? card : 'back'} 
+                  isFlipped={isSeen}
                   delay={index * 0.2}
                   large
                 />
@@ -600,7 +623,7 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
             ))}
             
             {/* SEE Button on Cards */}
-            {!isSeen && !showCards && (
+            {!isSeen && (
               <button 
                 onClick={seeCards}
                 className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-500 text-white font-bold px-4 py-1 rounded text-sm shadow-lg hover:bg-green-600 transition-colors z-10"
@@ -639,7 +662,7 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
           
           {isMyTurn ? (
             <div className="flex flex-col gap-2 max-w-md mx-auto">
-              {/* Row 1: PACK, CHAAL, and DOUBLE CHAAL */}
+              {/* Row 1: PACK + Bet Buttons (changes based on Blind/Seen status) */}
               <div className="flex gap-2">
                 <Button 
                   onClick={fold}
@@ -647,24 +670,52 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
                 >
                   PACK
                 </Button>
-                <Button 
-                  onClick={() => placeBet(false)}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 text-base rounded-xl"
-                >
-                  <div className="text-center">
-                    <div>₹{isSeen ? roundBet * 2 : roundBet}</div>
-                    <div className="text-xs">CHAAL</div>
-                  </div>
-                </Button>
-                <Button 
-                  onClick={() => placeBet(true)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base rounded-xl"
-                >
-                  <div className="text-center">
-                    <div>₹{isSeen ? roundBet * 4 : roundBet * 2}</div>
-                    <div className="text-xs">Double Chal</div>
-                  </div>
-                </Button>
+                
+                {/* Blind Buttons - when user hasn't seen cards */}
+                {!isSeen ? (
+                  <>
+                    <Button 
+                      onClick={() => placeBet(false)}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 text-base rounded-xl"
+                    >
+                      <div className="text-center">
+                        <div>₹{getCurrentBetAmount()}</div>
+                        <div className="text-xs">Blind</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      onClick={() => placeBet(true)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base rounded-xl"
+                    >
+                      <div className="text-center">
+                        <div>₹{getCurrentBetAmount() * 2}</div>
+                        <div className="text-xs">Double Blind</div>
+                      </div>
+                    </Button>
+                  </>
+                ) : (
+                  /* Chal Buttons - when user has seen cards (2x amounts) */
+                  <>
+                    <Button 
+                      onClick={() => placeBet(false)}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 text-base rounded-xl"
+                    >
+                      <div className="text-center">
+                        <div>₹{getCurrentBetAmount() * 2}</div>
+                        <div className="text-xs">CHAAL</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      onClick={() => placeBet(true)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base rounded-xl"
+                    >
+                      <div className="text-center">
+                        <div>₹{getCurrentBetAmount() * 4}</div>
+                        <div className="text-xs">Double Chal</div>
+                      </div>
+                    </Button>
+                  </>
+                )}
               </div>
               
               {/* Row 2: Show Button - Only visible when 2 players remain */}
@@ -675,7 +726,7 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
                 >
                   <div className="text-center">
                     <div>SHOW</div>
-                    <div className="text-xs">₹{isSeen ? roundBet * 2 : roundBet}</div>
+                    <div className="text-xs">₹{isSeen ? getCurrentBetAmount() * 2 : getCurrentBetAmount()}</div>
                   </div>
                 </Button>
               )}
