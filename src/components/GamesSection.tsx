@@ -3,7 +3,7 @@ import GameCard, { gameNames } from "./GameCard";
 import BattleArena from "./BattleArena";
 import DragonTigerGame from "./DragonTigerGame";
 import AviatorGame from "./AviatorGame";
-import TeenPattiGame from "./TeenPattiGame";
+import TeenPattiGame3D from "./TeenPattiGame3D";
 
 type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator' | 'teen-patti';
 
@@ -54,10 +54,10 @@ const GamesSection = ({
     );
   }
 
-  // Show Teen Patti game
+  // Show Teen Patti 3D game
   if (selectedGame === 'teen-patti') {
     return (
-      <TeenPattiGame 
+      <TeenPattiGame3D 
         walletBalance={walletBalance}
         onWalletChange={onWalletChange || (() => {})}
         onBack={() => setSelectedGame(null)}
