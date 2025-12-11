@@ -4,8 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { ArrowLeft, Users, Coins, Eye, Trophy, RefreshCw, Gift } from 'lucide-react';
+import { ArrowLeft, Users, Coins, Eye, Trophy, RefreshCw, Gift, HelpCircle, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import TeenPattiCard3D from './TeenPattiCard3D';
+import rupeeIcon from '@/assets/rupee-icon.png';
 
 interface TeenPattiGameProps {
   walletBalance: number;
@@ -35,6 +37,21 @@ interface GameRoom {
   status: 'waiting' | 'playing';
 }
 
+interface TableOption {
+  id: string;
+  pointValue: number;
+  minEntry: number;
+  maxPlayers: number;
+  online: number;
+}
+
+const TABLE_OPTIONS: TableOption[] = [
+  { id: 'table-05', pointValue: 0.5, minEntry: 1, maxPlayers: 5, online: Math.floor(Math.random() * 500) + 200 },
+  { id: 'table-1', pointValue: 1, minEntry: 20, maxPlayers: 5, online: Math.floor(Math.random() * 800) + 400 },
+  { id: 'table-2', pointValue: 2, minEntry: 40, maxPlayers: 5, online: Math.floor(Math.random() * 600) + 300 },
+  { id: 'table-5', pointValue: 5, minEntry: 100, maxPlayers: 5, online: Math.floor(Math.random() * 400) + 200 },
+];
+
 const FIXED_TABLES: GameRoom[] = [
   { id: 'table-10', name: 'Beginner Table', minBet: 10, maxBet: 100, players: 0, maxPlayers: 6, status: 'waiting' },
   { id: 'table-50', name: 'Classic Table', minBet: 50, maxBet: 500, players: 0, maxPlayers: 6, status: 'waiting' },
@@ -48,8 +65,10 @@ const BOT_AVATARS = ['👨‍💼', '👩‍💼', '🧔', '👳', '👲'];
 const BOT_NAMES = ['Raju', 'Priya', 'Amit', 'Vikram', 'Neha'];
 
 const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletChange, onBack }) => {
-  const [gamePhase, setGamePhase] = useState<'lobby' | 'waiting' | 'playing' | 'result'>('lobby');
+  const navigate = useNavigate();
+  const [gamePhase, setGamePhase] = useState<'lobby' | 'tableSelect' | 'waiting' | 'playing' | 'result'>('lobby');
   const [selectedTable, setSelectedTable] = useState<GameRoom | null>(null);
+  const [selectedTableOption, setSelectedTableOption] = useState<TableOption | null>(null);
   const [customBetAmount, setCustomBetAmount] = useState<number>(10);
   const [currentBet, setCurrentBet] = useState<number>(0);
   const [roundBet, setRoundBet] = useState<number>(0); // Current round's minimum bet
@@ -402,66 +421,107 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
     return { value, symbol: suitSymbols[suit], color: suitColors[suit] };
   };
 
-  // Lobby View
+  // Handle table selection - check balance and show Play Now or Add Cash
+  const handleTableAction = (table: TableOption) => {
+    if (walletBalance >= table.minEntry) {
+      // Has enough balance - start game
+      setSelectedTableOption(table);
+      const gameRoom: GameRoom = {
+        id: table.id,
+        name: `₹${table.pointValue} Table`,
+        minBet: table.pointValue,
+        maxBet: table.pointValue * 100,
+        players: 0,
+        maxPlayers: table.maxPlayers,
+        status: 'waiting'
+      };
+      joinTable(gameRoom);
+    } else {
+      // Not enough balance - go to wallet
+      navigate('/wallet');
+    }
+  };
+
+  // Lobby View - Table Selection Screen
   if (gamePhase === 'lobby') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 p-4">
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center gap-4 mb-6">
-            <Button variant="ghost" size="icon" onClick={onBack} className="text-white">
-              <ArrowLeft className="w-6 h-6" />
-            </Button>
-            <h1 className="text-2xl font-bold text-white">Teen Patti</h1>
-            <Badge className="ml-auto bg-yellow-500 text-black">
-              ₹{walletBalance.toFixed(0)}
-            </Badge>
+      <div className="min-h-screen relative" style={{
+        background: 'linear-gradient(180deg, #8B0000 0%, #5c0000 50%, #3d0000 100%)'
+      }}>
+        {/* Decorative circles */}
+        <div className="absolute top-0 left-0 w-20 h-20 rounded-full bg-red-900/50 -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-red-900/50 translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full bg-red-900/50 -translate-x-1/2 translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-20 h-20 rounded-full bg-red-900/50 translate-x-1/2 translate-y-1/2" />
+        
+        {/* Header */}
+        <div className="relative z-10 flex items-center justify-between p-3 border-b border-red-700/50">
+          {/* Wallet Balance */}
+          <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-full px-3 py-1.5 border border-yellow-400">
+            <img src={rupeeIcon} alt="₹" className="w-5 h-5" />
+            <span className="text-white font-bold text-sm">{walletBalance.toFixed(2)}</span>
           </div>
-
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-              <Users className="w-5 h-5" /> Join Table
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {FIXED_TABLES.map(table => (
-                <Card 
-                  key={table.id} 
-                  className="bg-gradient-to-br from-purple-600/50 to-indigo-600/50 border-purple-400/30 cursor-pointer hover:scale-105 transition-transform"
-                  onClick={() => joinTable(table)}
-                >
-                  <CardContent className="p-4">
-                    <h3 className="text-white font-semibold text-sm">{table.name}</h3>
-                    <div className="flex items-center gap-1 text-yellow-400 text-lg font-bold mt-1">
-                      <Coins className="w-4 h-4" />
-                      ₹{table.minBet}
-                    </div>
-                    <p className="text-purple-200 text-xs mt-1">Max: ₹{table.maxBet}</p>
-                  </CardContent>
-                </Card>
-              ))}
+          
+          {/* Title */}
+          <h1 className="text-xl font-bold text-white">Teen Patti</h1>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center border-2 border-yellow-400">
+              <HelpCircle className="w-5 h-5 text-white" />
+            </button>
+            <button 
+              onClick={onBack}
+              className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center border-2 border-red-400"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Table Header */}
+        <div className="relative z-10 mx-3 mt-4">
+          <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-t-lg overflow-hidden border border-red-800/50">
+            <div className="grid grid-cols-5 text-center py-3 text-white text-xs font-semibold bg-gray-800/80">
+              <span>Point value</span>
+              <span>Min Entry</span>
+              <span>Max Players</span>
+              <span>Online</span>
+              <span>Join</span>
             </div>
           </div>
-
-          <Card className="bg-gradient-to-br from-yellow-600/30 to-orange-600/30 border-yellow-400/30">
-            <CardContent className="p-4">
-              <h3 className="text-white font-semibold mb-3">Create Custom Table</h3>
-              <div className="flex gap-3">
-                <Input
-                  type="number"
-                  value={customBetAmount}
-                  onChange={(e) => setCustomBetAmount(Number(e.target.value))}
-                  className="bg-white/10 border-white/20 text-white"
-                  placeholder="Enter bet amount"
-                  min={10}
-                />
-                <Button 
-                  onClick={createCustomTable}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
-                >
-                  Create
-                </Button>
+        </div>
+        
+        {/* Table Rows */}
+        <div className="relative z-10 mx-3 space-y-2">
+          {TABLE_OPTIONS.map((table) => {
+            const hasBalance = walletBalance >= table.minEntry;
+            return (
+              <div 
+                key={table.id}
+                className="bg-gradient-to-b from-red-900/80 to-red-950/80 rounded-lg border border-red-700/50 overflow-hidden"
+              >
+                <div className="grid grid-cols-5 items-center text-center py-4 px-2">
+                  <span className="text-yellow-400 font-bold text-sm">₹{table.pointValue}</span>
+                  <span className="text-white font-medium text-sm">₹{table.minEntry}</span>
+                  <span className="text-white font-medium text-sm">{table.maxPlayers}</span>
+                  <span className="text-white font-medium text-sm">{table.online}</span>
+                  <div>
+                    <button
+                      onClick={() => handleTableAction(table)}
+                      className={`px-3 py-2 rounded font-bold text-xs transition-all ${
+                        hasBalance 
+                          ? 'bg-gradient-to-b from-green-400 to-green-600 text-white border border-green-300 hover:from-green-500 hover:to-green-700'
+                          : 'bg-gradient-to-b from-orange-400 to-orange-600 text-white border border-orange-300 hover:from-orange-500 hover:to-orange-700'
+                      }`}
+                    >
+                      {hasBalance ? 'Play Now' : 'Add Cash'}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            );
+          })}
         </div>
       </div>
     );
