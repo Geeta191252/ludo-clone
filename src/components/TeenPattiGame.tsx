@@ -167,18 +167,21 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
     ));
   };
 
-  const placeBet = (amount: number) => {
-    if (walletBalance < amount) {
+  const placeBet = (amount: number, multiplier: number = 1) => {
+    const betAmount = isSeen ? amount * 2 * multiplier : amount * multiplier;
+    if (walletBalance < betAmount) {
       toast.error('Insufficient balance!');
       return;
     }
     
-    const betAmount = isSeen ? amount * 2 : amount;
     onWalletChange(walletBalance - betAmount);
     setPotAmount(prev => prev + betAmount);
     setPlayers(prev => prev.map(p => 
       p.id === 'player' ? { ...p, bet: p.bet + betAmount } : p
     ));
+    
+    // Show bet amount toast
+    toast.success(`₹${betAmount} की चाल!`, { duration: 1500 });
     
     simulateBotTurns(betAmount);
   };
@@ -196,24 +199,25 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
 
   // Get count of active (non-folded) players
   const getActivePlayers = () => players.filter(p => !p.isFolded);
-  
-  // Side show - only available when exactly 2 players remain
-  const requestSideShow = () => {
+
+  // Request Show (previously Side Show)
+  const requestShow = () => {
     const activePlayers = getActivePlayers();
     if (activePlayers.length !== 2) {
-      toast.error(`Side Show sirf 2 players bachne pe available hai! Abhi ${activePlayers.length} players hai.`);
       return;
     }
     
-    // Cost for side show (if seen, pay double)
-    const sideShowCost = isSeen ? currentBet * 2 : currentBet;
-    if (walletBalance < sideShowCost) {
-      toast.error('Insufficient balance for side show!');
+    // Cost for show (if seen, pay double)
+    const showCost = isSeen ? currentBet * 2 : currentBet;
+    if (walletBalance < showCost) {
+      toast.error('Insufficient balance for Show!');
       return;
     }
     
-    onWalletChange(walletBalance - sideShowCost);
-    setPotAmount(prev => prev + sideShowCost);
+    onWalletChange(walletBalance - showCost);
+    setPotAmount(prev => prev + showCost);
+    
+    toast.success(`₹${showCost} की चाल - Show!`, { duration: 1500 });
     
     // Compare cards and determine winner
     const opponent = activePlayers.find(p => p.id !== 'player');
@@ -221,37 +225,18 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
     const opponentRank = opponent ? getHandRank(opponent.cards) : 0;
     
     if (myRank >= opponentRank) {
-      // I win the side show - opponent folds
       setPlayers(prev => prev.map(p => 
         p.id === opponent?.id ? { ...p, isFolded: true } : p
       ));
-      toast.success(`Side Show jeet gaye! ${opponent?.name} packed.`);
+      toast.success(`Show jeet gaye! ${opponent?.name} packed.`);
       setTimeout(() => endGame(players.find(p => p.id === 'player')!), 1500);
     } else {
-      // I lose the side show - I fold
       setPlayers(prev => prev.map(p => 
         p.id === 'player' ? { ...p, isFolded: true } : p
       ));
-      toast.error(`Side Show haar gaye! ${opponent?.name} ke cards better hai.`);
+      toast.error(`Show haar gaye! ${opponent?.name} ke cards better hai.`);
       setTimeout(() => endGame(opponent!), 1500);
     }
-  };
-
-  // 2x Chaal - double the bet
-  const placeBet2x = () => {
-    const betAmount = isSeen ? currentBet * 4 : currentBet * 2;
-    if (walletBalance < betAmount) {
-      toast.error('Insufficient balance for 2x Chaal!');
-      return;
-    }
-    
-    onWalletChange(walletBalance - betAmount);
-    setPotAmount(prev => prev + betAmount);
-    setPlayers(prev => prev.map(p => 
-      p.id === 'player' ? { ...p, bet: p.bet + betAmount } : p
-    ));
-    
-    simulateBotTurns(betAmount);
   };
 
   const simulateBotTurns = (playerBet: number) => {
@@ -628,7 +613,7 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
               </div>
               {getActivePlayers().length === 2 && (
                 <div className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm animate-pulse">
-                  Side Show Available!
+                  Show Available!
                 </div>
               )}
             </div>
@@ -645,7 +630,7 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
                   PACK
                 </Button>
                 <Button 
-                  onClick={() => placeBet(currentBet)}
+                  onClick={() => placeBet(currentBet, 1)}
                   className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 text-base rounded-xl"
                 >
                   <div className="text-center">
@@ -655,32 +640,34 @@ const TeenPattiGame: React.FC<TeenPattiGameProps> = ({ walletBalance, onWalletCh
                 </Button>
               </div>
               
-              {/* Row 2: 2X CHAAL and SIDE SHOW */}
-              <div className="flex gap-2">
-                <Button 
-                  onClick={placeBet2x}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base rounded-xl"
-                >
-                  <div className="text-center">
-                    <div>₹{isSeen ? currentBet * 4 : currentBet * 2}</div>
-                    <div className="text-xs">2X CHAAL</div>
-                  </div>
-                </Button>
-                <Button 
-                  onClick={requestSideShow}
-                  disabled={getActivePlayers().length !== 2}
-                  className={`flex-1 font-bold py-3 text-base rounded-xl ${
-                    getActivePlayers().length === 2 
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                      : 'bg-gray-500 text-gray-300 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div>SIDE SHOW</div>
-                    <div className="text-xs">{getActivePlayers().length !== 2 ? `${getActivePlayers().length} players` : 'Challenge!'}</div>
-                  </div>
-                </Button>
+              {/* Row 2: Multiple Bet Options (2x, 3x, 4x, 5x) */}
+              <div className="flex gap-1">
+                {[2, 3, 4, 5].map((multiplier) => (
+                  <Button 
+                    key={multiplier}
+                    onClick={() => placeBet(currentBet, multiplier)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 text-sm rounded-xl"
+                  >
+                    <div className="text-center">
+                      <div className="text-xs">₹{isSeen ? currentBet * 2 * multiplier : currentBet * multiplier}</div>
+                      <div className="text-xs font-bold">{multiplier}X</div>
+                    </div>
+                  </Button>
+                ))}
               </div>
+              
+              {/* Row 3: Show Button - Only visible when 2 players remain */}
+              {getActivePlayers().length === 2 && (
+                <Button 
+                  onClick={requestShow}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 text-base rounded-xl"
+                >
+                  <div className="text-center">
+                    <div>SHOW</div>
+                    <div className="text-xs">₹{isSeen ? currentBet * 2 : currentBet}</div>
+                  </div>
+                </Button>
+              )}
             </div>
           ) : (
             <div className="text-center text-white py-4 bg-black/40 rounded-xl max-w-md mx-auto">
