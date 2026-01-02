@@ -23,20 +23,22 @@ const Auth = () => {
 
   // Check if already logged in on mount
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    const userToken = localStorage.getItem('userToken');
-    
+    document.title = "Aceviro Login | Mobile OTP";
+
+    const user = localStorage.getItem("user");
+    const userToken = localStorage.getItem("userToken");
+
     if (user && userToken) {
       try {
         const userData = JSON.parse(user);
         if (userData.mobile) {
-          localStorage.setItem('userMobile', userData.mobile);
-          localStorage.setItem('playerName', userData.name || 'Player');
+          localStorage.setItem("userMobile", userData.mobile);
+          localStorage.setItem("playerName", userData.name || "Player");
         }
-        navigate('/');
+        navigate("/");
       } catch (e) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('userToken');
+        localStorage.removeItem("user");
+        localStorage.removeItem("userToken");
       }
     }
   }, [navigate]);
@@ -51,8 +53,10 @@ const Auth = () => {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (mobile.length !== 10) {
+
+    const mobileClean = mobile.replace(/\D/g, "").slice(0, 10);
+
+    if (mobileClean.length !== 10) {
       toast({
         title: "Invalid Mobile",
         description: "Please enter a valid 10-digit mobile number",
@@ -67,17 +71,17 @@ const Auth = () => {
       const response = await fetch(`${API_BASE}/api/send-otp.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile }),
+        body: JSON.stringify({ mobile: mobileClean }),
       });
 
       const text = await response.text();
-      console.log('Send OTP response:', text);
-      
+      console.log("Send OTP response:", text);
+
       let data;
       try {
         data = JSON.parse(text);
       } catch {
-        console.error('Invalid JSON response:', text);
+        console.error("Invalid JSON response:", text);
         toast({
           title: "Server Error",
           description: "Server error - please try again later",
@@ -91,8 +95,8 @@ const Auth = () => {
         setOtpSent(true);
         setCountdown(60); // 60 seconds countdown
         toast({
-          title: "OTP Sent! 📱",
-          description: `OTP has been sent to ${mobile}`,
+          title: "OTP Sent",
+          description: `OTP has been sent to ${mobileClean}`,
         });
       } else {
         toast({
@@ -102,7 +106,7 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      console.error('Send OTP error:', error);
+      console.error("Send OTP error:", error);
       toast({
         title: "Error",
         description: error?.message || "Network error - check internet connection",
@@ -115,8 +119,11 @@ const Auth = () => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (otp.length !== 6) {
+
+    const mobileClean = mobile.replace(/\D/g, "").slice(0, 10);
+    const otpClean = otp.replace(/\D/g, "").slice(0, 6);
+
+    if (otpClean.length !== 6) {
       toast({
         title: "Invalid OTP",
         description: "Please enter a valid 6-digit OTP",
@@ -131,17 +138,17 @@ const Auth = () => {
       const response = await fetch(`${API_BASE}/api/verify-otp.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile, otp }),
+        body: JSON.stringify({ mobile: mobileClean, otp: otpClean }),
       });
 
       const text = await response.text();
-      console.log('Verify OTP response:', text);
-      
+      console.log("Verify OTP response:", text);
+
       let data;
       try {
         data = JSON.parse(text);
       } catch {
-        console.error('Invalid JSON response:', text);
+        console.error("Invalid JSON response:", text);
         toast({
           title: "Server Error",
           description: "Server error - please try again later",
@@ -157,8 +164,8 @@ const Auth = () => {
         localStorage.setItem("userMobile", data.user.mobile);
         localStorage.setItem("playerName", data.user.name || "Player");
         toast({
-          title: "Login Successful! 🎮",
-          description: `Welcome, ${data.user.name || 'Player'}!`,
+          title: "Login Successful",
+          description: `Welcome, ${data.user.name || "Player"}!`,
         });
         navigate("/");
       } else {
@@ -169,7 +176,7 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      console.error('Verify OTP error:', error);
+      console.error("Verify OTP error:", error);
       toast({
         title: "Error",
         description: error?.message || "Network error - check internet connection",
@@ -188,14 +195,17 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0a2e] via-[#2d1b4e] to-[#1a0a2e] flex flex-col items-center justify-start p-4 pt-8">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-gradient-to-br from-[#1a0a2e] via-[#2d1b4e] to-[#1a0a2e] flex flex-col items-center justify-start p-4 pt-8">
+      <h1 className="sr-only">Aceviro Mobile OTP Login</h1>
+
+      <section className="w-full max-w-md" aria-label="Sign in or sign up">
         {/* Logo Section with Border */}
         <div className="border-2 border-primary/30 rounded-lg p-6 mb-6 flex items-center justify-center bg-gradient-to-b from-primary/5 to-transparent">
-          <img 
-            src={rajasthanLudoLogo} 
-            alt="Rajasthan Ludo" 
+          <img
+            src={rajasthanLudoLogo}
+            alt="Rajasthan Ludo logo"
             className="w-64 h-64 object-contain"
+            loading="lazy"
           />
         </div>
 
@@ -208,7 +218,9 @@ const Auth = () => {
             <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
               {/* Mobile Number Input */}
               <div className="space-y-2">
-                <Label htmlFor="mobile" className="text-gray-500 font-normal">Mobile Number</Label>
+                <Label htmlFor="mobile" className="text-gray-500 font-normal">
+                  Mobile Number
+                </Label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 bg-gray-200 rounded">
                     <Phone className="h-4 w-4 text-gray-600" />
@@ -223,6 +235,8 @@ const Auth = () => {
                     required
                     maxLength={10}
                     disabled={otpSent}
+                    inputMode="numeric"
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -230,13 +244,11 @@ const Auth = () => {
               {/* OTP Input - Show after OTP is sent */}
               {otpSent && (
                 <div className="space-y-2">
-                  <Label htmlFor="otp" className="text-gray-500 font-normal">OTP</Label>
+                  <Label htmlFor="otp" className="text-gray-500 font-normal">
+                    OTP
+                  </Label>
                   <div className="flex justify-center">
-                    <InputOTP 
-                      maxLength={6} 
-                      value={otp} 
-                      onChange={(value) => setOtp(value)}
-                    >
+                    <InputOTP maxLength={6} value={otp} onChange={(value) => setOtp(value)}>
                       <InputOTPGroup>
                         <InputOTPSlot index={0} className="w-10 h-12 text-lg border-gray-300 bg-white text-gray-900" />
                         <InputOTPSlot index={1} className="w-10 h-12 text-lg border-gray-300 bg-white text-gray-900" />
@@ -248,9 +260,7 @@ const Auth = () => {
                     </InputOTP>
                   </div>
                   {countdown > 0 ? (
-                    <p className="text-center text-sm text-gray-500">
-                      Resend OTP in {countdown}s
-                    </p>
+                    <p className="text-center text-sm text-gray-500">Resend OTP in {countdown}s</p>
                   ) : (
                     <button
                       type="button"
@@ -264,15 +274,12 @@ const Auth = () => {
               )}
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full h-12 bg-[#2d1b4e] hover:bg-[#3d2b5e] text-white font-medium rounded-lg"
                 disabled={isLoading}
               >
-                {isLoading 
-                  ? (otpSent ? "Verifying..." : "Sending OTP...") 
-                  : (otpSent ? "Verify OTP" : "Send OTP")
-                }
+                {isLoading ? (otpSent ? "Verifying..." : "Sending OTP...") : otpSent ? "Verify OTP" : "Send OTP"}
               </Button>
 
               {/* Change Number */}
@@ -295,14 +302,12 @@ const Auth = () => {
 
         {/* Terms and Conditions */}
         <p className="text-center text-xs text-gray-300 mt-6 px-4">
-          By proceeding, you agree to our{" "}
-          <span className="text-primary cursor-pointer hover:underline">Terms of Use</span>,{" "}
-          <span className="text-primary cursor-pointer hover:underline">Privacy Policy</span>
-          {" "}and that you are 18 years or older. You are not playing from 
-          Assam, Odisha, Nagaland, Sikkim, Meghalaya, Andhra Pradesh, or Telangana.
+          By proceeding, you agree to our <span className="text-primary cursor-pointer hover:underline">Terms of Use</span>,
+          <span className="text-primary cursor-pointer hover:underline"> Privacy Policy</span> and that you are 18 years or older.
+          You are not playing from Assam, Odisha, Nagaland, Sikkim, Meghalaya, Andhra Pradesh, or Telangana.
         </p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

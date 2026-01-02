@@ -15,7 +15,8 @@ require_once 'config.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-$mobile = $data['mobile'] ?? '';
+$mobileRaw = $data['mobile'] ?? '';
+$mobile = preg_replace('/\D/', '', trim($mobileRaw));
 
 // Validation
 if (empty($mobile) || strlen($mobile) !== 10) {
@@ -27,7 +28,6 @@ $conn = getDBConnection();
 
 // Generate 6-digit OTP
 $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-$expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
 // Check if otp_requests table exists, create if not
 $tableCheck = $conn->query("SHOW TABLES LIKE 'otp_requests'");
@@ -50,9 +50,9 @@ $stmt = $conn->prepare("DELETE FROM otp_requests WHERE mobile = ?");
 $stmt->bind_param("s", $mobile);
 $stmt->execute();
 
-// Insert new OTP
-$stmt = $conn->prepare("INSERT INTO otp_requests (mobile, otp, expires_at) VALUES (?, ?, ?)");
-$stmt->bind_param("sss", $mobile, $otp, $expires_at);
+// Insert new OTP (expires_at based on DB time to avoid timezone mismatch)
+$stmt = $conn->prepare("INSERT INTO otp_requests (mobile, otp, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))");
+$stmt->bind_param("ss", $mobile, $otp);
 
 if ($stmt->execute()) {
     // Renflair SMS Gateway Integration - Correct API
