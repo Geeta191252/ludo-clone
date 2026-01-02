@@ -34,18 +34,35 @@ if (empty($otp) || strlen($otp) !== 6) {
 
 $conn = getDBConnection();
 
-// Fetch latest OTP for this mobile (uses DB time for expiry check)
+// Fetch latest OTP for this mobile (mysqlnd-safe)
 $stmt = $conn->prepare("SELECT id, otp, verified, (expires_at > NOW()) AS is_valid_time FROM otp_requests WHERE mobile = ? ORDER BY id DESC LIMIT 1");
-$stmt->bind_param("s", $mobile);
-$stmt->execute();
-$result = $stmt->get_result();
 
-if ($result->num_rows === 0) {
-    echo json_encode(['status' => false, 'message' => 'OTP not found. Please resend OTP']);
+if (!$stmt) {
+    error_log("verify-otp.php: OTP SELECT prepare failed: " . $conn->error);
+    echo json_encode(['status' => false, 'message' => 'Server error - please try again later']);
+    $conn->close();
     exit;
 }
 
-$row = $result->fetch_assoc();
+$stmt->bind_param("s", $mobile);
+$stmt->execute();
+$stmt->store_result();
+
+if ($stmt->num_rows === 0) {
+    echo json_encode(['status' => false, 'message' => 'OTP not found. Please resend OTP']);
+    $conn->close();
+    exit;
+}
+
+$stmt->bind_result($otpRowId, $otpDb, $otpVerified, $otpIsValidTime);
+$stmt->fetch();
+
+$row = [
+    'id' => $otpRowId,
+    'otp' => $otpDb,
+    'verified' => $otpVerified,
+    'is_valid_time' => $otpIsValidTime,
+];
 
 if (intval($row['verified']) === 1) {
     echo json_encode(['status' => false, 'message' => 'OTP already used. Please resend OTP']);
@@ -68,55 +85,94 @@ $stmt = $conn->prepare("UPDATE otp_requests SET verified = 1 WHERE id = ?");
 $stmt->bind_param("i", $otpId);
 $stmt->execute();
 
-// Check if user exists
-$stmt = $conn->prepare("SELECT id, mobile, name, wallet_balance, winning_balance FROM users WHERE mobile = ?");
-$stmt->bind_param("s", $mobile);
-$stmt->execute();
-$userResult = $stmt->get_result();
+// Check if user exists (mysqlnd-safe + schema-safe)
+$hasWinningBalance = true;
+$userStmt = $conn->prepare("SELECT id, mobile, name, wallet_balance, winning_balance FROM users WHERE mobile = ? LIMIT 1");
 
-if ($userResult->num_rows > 0) {
+if (!$userStmt) {
+    // Fallback for DBs that don't have winning_balance column
+    $hasWinningBalance = false;
+    $userStmt = $conn->prepare("SELECT id, mobile, name, wallet_balance FROM users WHERE mobile = ? LIMIT 1");
+}
+
+if (!$userStmt) {
+    error_log("verify-otp.php: users SELECT prepare failed: " . $conn->error);
+    echo json_encode(['status' => false, 'message' => 'Server error - please try again later']);
+    $conn->close();
+    exit;
+}
+
+$userStmt->bind_param("s", $mobile);
+$userStmt->execute();
+$userStmt->store_result();
+
+if ($userStmt->num_rows > 0) {
+    if ($hasWinningBalance) {
+        $userStmt->bind_result($userId, $userMobile, $userName, $walletBalance, $winningBalance);
+    } else {
+        $userStmt->bind_result($userId, $userMobile, $userName, $walletBalance);
+        $winningBalance = 0;
+    }
+
+    $userStmt->fetch();
+
     // Existing user - login
-    $user = $userResult->fetch_assoc();
     $token = bin2hex(random_bytes(32));
-    
+
     echo json_encode([
         'status' => true,
         'message' => 'Login successful',
         'user' => [
-            'id' => $user['id'],
-            'mobile' => $user['mobile'],
-            'name' => $user['name'],
-            'wallet_balance' => floatval($user['wallet_balance']),
-            'winning_balance' => floatval($user['winning_balance'] ?? 0)
+            'id' => intval($userId),
+            'mobile' => (string)$userMobile,
+            'name' => (string)$userName,
+            'wallet_balance' => floatval($walletBalance ?? 0),
+            'winning_balance' => floatval($winningBalance ?? 0)
+        ],
+        'token' => $token
+    ]);
+
+    $conn->close();
+    exit;
+}
+
+// New user - register automatically (schema-safe)
+$defaultName = 'Player' . substr($mobile, -4);
+
+$insertStmt = $conn->prepare("INSERT INTO users (mobile, name, password, wallet_balance, winning_balance) VALUES (?, ?, '', 0, 0)");
+if (!$insertStmt) {
+    // Fallback for DBs that don't have winning_balance column
+    $insertStmt = $conn->prepare("INSERT INTO users (mobile, name, password, wallet_balance) VALUES (?, ?, '', 0)");
+}
+
+if (!$insertStmt) {
+    error_log("verify-otp.php: users INSERT prepare failed: " . $conn->error);
+    echo json_encode(['status' => false, 'message' => 'Server error - please try again later']);
+    $conn->close();
+    exit;
+}
+
+$insertStmt->bind_param("ss", $mobile, $defaultName);
+
+if ($insertStmt->execute()) {
+    $userId = $conn->insert_id;
+    $token = bin2hex(random_bytes(32));
+
+    echo json_encode([
+        'status' => true,
+        'message' => 'Registration successful',
+        'user' => [
+            'id' => $userId,
+            'mobile' => $mobile,
+            'name' => $defaultName,
+            'wallet_balance' => 0,
+            'winning_balance' => 0
         ],
         'token' => $token
     ]);
 } else {
-    // New user - register automatically
-    $defaultName = 'Player' . substr($mobile, -4);
-    
-    $stmt = $conn->prepare("INSERT INTO users (mobile, name, password, wallet_balance, winning_balance) VALUES (?, ?, '', 0, 0)");
-    $stmt->bind_param("ss", $mobile, $defaultName);
-    
-    if ($stmt->execute()) {
-        $userId = $conn->insert_id;
-        $token = bin2hex(random_bytes(32));
-        
-        echo json_encode([
-            'status' => true,
-            'message' => 'Registration successful',
-            'user' => [
-                'id' => $userId,
-                'mobile' => $mobile,
-                'name' => $defaultName,
-                'wallet_balance' => 0,
-                'winning_balance' => 0
-            ],
-            'token' => $token
-        ]);
-    } else {
-        echo json_encode(['status' => false, 'message' => 'Failed to create account']);
-    }
+    error_log("verify-otp.php: users INSERT execute failed: " . $conn->error);
+    echo json_encode(['status' => false, 'message' => 'Failed to create account']);
 }
 
 $conn->close();
