@@ -5,7 +5,7 @@ import DragonTigerGame from "./DragonTigerGame";
 import AviatorGame from "./AviatorGame";
 import TeenPattiGame3D from "./TeenPattiGame3D";
 
-type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator' | 'teen-patti';
+type GameType = 'ludo-classic' | 'ludo-popular' | 'snake' | 'dragon-tiger' | 'aviator' | 'teen-patti' | 'poker';
 
 interface GamesSectionProps {
   onGameSelect?: (game: GameType | null) => void;
@@ -112,6 +112,11 @@ const GamesSection = ({
             gameType="aviator" 
             isLive={true}
             onClick={() => setSelectedGame('aviator')}
+          />
+          <GameCard 
+            gameType="poker" 
+            isLive={true}
+            onClick={() => window.location.href = '/poker/'}
           />
         </div>
       </div>
