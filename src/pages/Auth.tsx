@@ -151,7 +151,7 @@ const Auth = () => {
         console.error("Invalid JSON response:", text);
         toast({
           title: "Server Error",
-          description: "Server error - please try again later",
+          description: text.substring(0, 100) || "Invalid response from server",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -171,7 +171,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Verification Failed",
-          description: data.message,
+          description: data.message + (data.debug ? ` (${data.debug})` : ''),
           variant: "destructive",
         });
       }
