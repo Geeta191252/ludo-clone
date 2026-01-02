@@ -43,18 +43,22 @@ if ($tableCheck->num_rows === 0) {
         INDEX idx_expires (expires_at)
     )";
     $conn->query($createTable);
+} else {
+    // Ensure verified column exists
+    $colCheck = $conn->query("SHOW COLUMNS FROM otp_requests LIKE 'verified'");
+    if (!$colCheck || $colCheck->num_rows === 0) {
+        $conn->query("ALTER TABLE otp_requests ADD COLUMN verified TINYINT(1) DEFAULT 0");
+    }
 }
 
-// Delete old OTPs for this mobile
-$stmt = $conn->prepare("DELETE FROM otp_requests WHERE mobile = ?");
-$stmt->bind_param("s", $mobile);
-$stmt->execute();
+// Delete old OTPs for this mobile (simple query, no prepared stmt needed)
+$conn->query("DELETE FROM otp_requests WHERE mobile = '" . $conn->real_escape_string($mobile) . "'");
 
 // Insert new OTP (expires_at based on DB time to avoid timezone mismatch)
-$stmt = $conn->prepare("INSERT INTO otp_requests (mobile, otp, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))");
-$stmt->bind_param("ss", $mobile, $otp);
+$insertSql = "INSERT INTO otp_requests (mobile, otp, expires_at, verified) VALUES ('" . $conn->real_escape_string($mobile) . "', '" . $conn->real_escape_string($otp) . "', DATE_ADD(NOW(), INTERVAL 10 MINUTE), 0)";
+$insertResult = $conn->query($insertSql);
 
-if ($stmt->execute()) {
+if ($insertResult) {
     // Renflair SMS Gateway Integration - Correct API
     $apiKey = '29c4a0e4ef7d1969a94a5f4aadd20690';
     

@@ -43,43 +43,24 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
     }
 }
 
-// Fetch latest OTP for this mobile
-$stmt = $conn->prepare("SELECT id, otp, IFNULL(verified, 0) as verified, (expires_at > NOW()) AS is_valid_time FROM otp_requests WHERE mobile = ? ORDER BY id DESC LIMIT 1");
+// Fetch latest OTP for this mobile (simple query for maximum compatibility)
+$escapedMobile = $conn->real_escape_string($mobile);
+$result = $conn->query("SELECT id, otp, IFNULL(verified, 0) as verified, (expires_at > NOW()) AS is_valid_time FROM otp_requests WHERE mobile = '$escapedMobile' ORDER BY id DESC LIMIT 1");
 
-if (!$stmt) {
-    error_log("verify-otp.php: OTP SELECT prepare failed: " . $conn->error);
-    echo json_encode(['status' => false, 'message' => 'Database error: ' . $conn->error]);
+if (!$result) {
+    error_log("verify-otp.php: OTP SELECT failed: " . $conn->error);
+    echo json_encode(['status' => false, 'message' => 'Database error']);
     $conn->close();
     exit;
 }
 
-$stmt->bind_param("s", $mobile);
-if (!$stmt->execute()) {
-    error_log("verify-otp.php: OTP SELECT execute failed: " . $stmt->error);
-    echo json_encode(['status' => false, 'message' => 'Query error: ' . $stmt->error]);
-    $conn->close();
-    exit;
-}
-
-$stmt->store_result();
-
-if ($stmt->num_rows === 0) {
+if ($result->num_rows === 0) {
     echo json_encode(['status' => false, 'message' => 'OTP not found. Please resend OTP']);
-    $stmt->close();
     $conn->close();
     exit;
 }
 
-$stmt->bind_result($otpRowId, $otpDb, $otpVerified, $otpIsValidTime);
-$stmt->fetch();
-$stmt->close();
-
-$row = [
-    'id' => $otpRowId,
-    'otp' => $otpDb,
-    'verified' => $otpVerified,
-    'is_valid_time' => $otpIsValidTime,
-];
+$row = $result->fetch_assoc();
 
 if (intval($row['verified']) === 1) {
     echo json_encode(['status' => false, 'message' => 'OTP already used. Please resend OTP']);
@@ -96,14 +77,9 @@ if (trim((string)$row['otp']) !== $otp) {
     exit;
 }
 
-// Mark OTP as verified
+// Mark OTP as verified (simple query)
 $otpId = intval($row['id']);
-$updateStmt = $conn->prepare("UPDATE otp_requests SET verified = 1 WHERE id = ?");
-if ($updateStmt) {
-    $updateStmt->bind_param("i", $otpId);
-    $updateStmt->execute();
-    $updateStmt->close();
-}
+$conn->query("UPDATE otp_requests SET verified = 1 WHERE id = $otpId");
 
 // Check if user exists (mysqlnd-safe + schema-safe)
 $hasWinningBalance = true;
