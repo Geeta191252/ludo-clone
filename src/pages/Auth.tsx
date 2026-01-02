@@ -9,8 +9,8 @@ import { Phone } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import rajasthanLudoLogo from "@/assets/rajasthan-ludo-logo.png";
 
-// API Base URL - your Hostinger domain
-const API_BASE = "https://rajasthanludo.com";
+// API base for PHP endpoints (same domain as the app)
+const API_BASE = window.location.origin;
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
