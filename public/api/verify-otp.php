@@ -1,4 +1,25 @@
 <?php
+// Error handling - catch all errors
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// Custom error handler to return JSON
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    error_log("PHP Error in verify-otp.php: $errstr in $errfile on line $errline");
+    http_response_code(200);
+    echo json_encode(['status' => false, 'message' => 'Server error', 'debug' => $errstr]);
+    exit;
+});
+
+// Exception handler
+set_exception_handler(function($e) {
+    error_log("PHP Exception in verify-otp.php: " . $e->getMessage());
+    http_response_code(200);
+    echo json_encode(['status' => false, 'message' => 'Server error', 'debug' => $e->getMessage()]);
+    exit;
+});
+
 // CORS Headers - MUST be first
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
@@ -81,36 +102,31 @@ if (trim((string)$row['otp']) !== $otp) {
 $otpId = intval($row['id']);
 $conn->query("UPDATE otp_requests SET verified = 1 WHERE id = $otpId");
 
-// Check if user exists (mysqlnd-safe + schema-safe)
-$hasWinningBalance = true;
-$userStmt = $conn->prepare("SELECT id, mobile, name, wallet_balance, winning_balance FROM users WHERE mobile = ? LIMIT 1");
+// Check if user exists using simple query (no prepared statements for max compatibility)
+$userResult = $conn->query("SELECT id, mobile, name, wallet_balance FROM users WHERE mobile = '$escapedMobile' LIMIT 1");
 
-if (!$userStmt) {
-    // Fallback for DBs that don't have winning_balance column
-    $hasWinningBalance = false;
-    $userStmt = $conn->prepare("SELECT id, mobile, name, wallet_balance FROM users WHERE mobile = ? LIMIT 1");
+// Try to add winning_balance if missing
+$hasWinningBalance = false;
+$colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'winning_balance'");
+if ($colCheck && $colCheck->num_rows > 0) {
+    $hasWinningBalance = true;
+    $userResult = $conn->query("SELECT id, mobile, name, wallet_balance, winning_balance FROM users WHERE mobile = '$escapedMobile' LIMIT 1");
+} else {
+    // Add the column if it doesn't exist
+    $conn->query("ALTER TABLE users ADD COLUMN winning_balance DECIMAL(10,2) DEFAULT 0");
+    $hasWinningBalance = true;
+    $userResult = $conn->query("SELECT id, mobile, name, wallet_balance, IFNULL(winning_balance, 0) as winning_balance FROM users WHERE mobile = '$escapedMobile' LIMIT 1");
 }
 
-if (!$userStmt) {
-    error_log("verify-otp.php: users SELECT prepare failed: " . $conn->error);
-    echo json_encode(['status' => false, 'message' => 'Server error - please try again later']);
+if (!$userResult) {
+    error_log("verify-otp.php: users SELECT failed: " . $conn->error);
+    echo json_encode(['status' => false, 'message' => 'Database error', 'debug' => $conn->error]);
     $conn->close();
     exit;
 }
 
-$userStmt->bind_param("s", $mobile);
-$userStmt->execute();
-$userStmt->store_result();
-
-if ($userStmt->num_rows > 0) {
-    if ($hasWinningBalance) {
-        $userStmt->bind_result($userId, $userMobile, $userName, $walletBalance, $winningBalance);
-    } else {
-        $userStmt->bind_result($userId, $userMobile, $userName, $walletBalance);
-        $winningBalance = 0;
-    }
-
-    $userStmt->fetch();
+if ($userResult && $userResult->num_rows > 0) {
+    $userRow = $userResult->fetch_assoc();
 
     // Existing user - login
     $token = bin2hex(random_bytes(32));
@@ -119,11 +135,11 @@ if ($userStmt->num_rows > 0) {
         'status' => true,
         'message' => 'Login successful',
         'user' => [
-            'id' => intval($userId),
-            'mobile' => (string)$userMobile,
-            'name' => (string)$userName,
-            'wallet_balance' => floatval($walletBalance ?? 0),
-            'winning_balance' => floatval($winningBalance ?? 0)
+            'id' => intval($userRow['id']),
+            'mobile' => (string)$userRow['mobile'],
+            'name' => (string)$userRow['name'],
+            'wallet_balance' => floatval($userRow['wallet_balance'] ?? 0),
+            'winning_balance' => floatval($userRow['winning_balance'] ?? 0)
         ],
         'token' => $token
     ]);
@@ -132,25 +148,18 @@ if ($userStmt->num_rows > 0) {
     exit;
 }
 
-// New user - register automatically (schema-safe)
+// New user - register automatically using simple query
 $defaultName = 'Player' . substr($mobile, -4);
+$escapedName = $conn->real_escape_string($defaultName);
 
-$insertStmt = $conn->prepare("INSERT INTO users (mobile, name, password, wallet_balance, winning_balance) VALUES (?, ?, '', 0, 0)");
-if (!$insertStmt) {
-    // Fallback for DBs that don't have winning_balance column
-    $insertStmt = $conn->prepare("INSERT INTO users (mobile, name, password, wallet_balance) VALUES (?, ?, '', 0)");
+$insertResult = $conn->query("INSERT INTO users (mobile, name, password, wallet_balance, winning_balance) VALUES ('$escapedMobile', '$escapedName', '', 0, 0)");
+
+if (!$insertResult) {
+    // Try without winning_balance column
+    $insertResult = $conn->query("INSERT INTO users (mobile, name, password, wallet_balance) VALUES ('$escapedMobile', '$escapedName', '', 0)");
 }
 
-if (!$insertStmt) {
-    error_log("verify-otp.php: users INSERT prepare failed: " . $conn->error);
-    echo json_encode(['status' => false, 'message' => 'Server error - please try again later']);
-    $conn->close();
-    exit;
-}
-
-$insertStmt->bind_param("ss", $mobile, $defaultName);
-
-if ($insertStmt->execute()) {
+if ($insertResult) {
     $userId = $conn->insert_id;
     $token = bin2hex(random_bytes(32));
 
@@ -167,8 +176,8 @@ if ($insertStmt->execute()) {
         'token' => $token
     ]);
 } else {
-    error_log("verify-otp.php: users INSERT execute failed: " . $conn->error);
-    echo json_encode(['status' => false, 'message' => 'Failed to create account']);
+    error_log("verify-otp.php: users INSERT failed: " . $conn->error);
+    echo json_encode(['status' => false, 'message' => 'Failed to create account', 'debug' => $conn->error]);
 }
 
 $conn->close();
