@@ -86,12 +86,12 @@ const GamesSection = ({
           <GameCard 
             gameType="ludo-classic" 
             isLive={true} 
-            onClick={() => window.location.href = '/game/'}
+            onClick={() => setSelectedGame('ludo-classic')}
           />
           <GameCard 
             gameType="ludo-popular" 
             isLive={true}
-            onClick={() => window.location.href = '/game/'}
+            onClick={() => setSelectedGame('ludo-popular')}
           />
           <GameCard 
             gameType="snake" 
