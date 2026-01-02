@@ -152,11 +152,37 @@ if ($userResult && $userResult->num_rows > 0) {
 $defaultName = 'Player' . substr($mobile, -4);
 $escapedName = $conn->real_escape_string($defaultName);
 
-$insertResult = $conn->query("INSERT INTO users (mobile, name, password, wallet_balance, winning_balance) VALUES ('$escapedMobile', '$escapedName', '', 0, 0)");
+// Ensure users table has password column (some older DBs don't)
+$hasPasswordCol = false;
+$pwColCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'password'");
+if ($pwColCheck && $pwColCheck->num_rows > 0) {
+    $hasPasswordCol = true;
+} else {
+    // Try to add the column if it doesn't exist
+    $conn->query("ALTER TABLE users ADD COLUMN password VARCHAR(255) DEFAULT ''");
+    $pwColCheck2 = $conn->query("SHOW COLUMNS FROM users LIKE 'password'");
+    if ($pwColCheck2 && $pwColCheck2->num_rows > 0) {
+        $hasPasswordCol = true;
+    }
+}
+
+// Insert new user (try multiple compatible variants)
+$insertResult = false;
+
+if ($hasPasswordCol && $hasWinningBalance) {
+    $insertResult = $conn->query("INSERT INTO users (mobile, name, password, wallet_balance, winning_balance) VALUES ('$escapedMobile', '$escapedName', '', 0, 0)");
+}
+
+if (!$insertResult && $hasPasswordCol) {
+    $insertResult = $conn->query("INSERT INTO users (mobile, name, password, wallet_balance) VALUES ('$escapedMobile', '$escapedName', '', 0)");
+}
+
+if (!$insertResult && $hasWinningBalance) {
+    $insertResult = $conn->query("INSERT INTO users (mobile, name, wallet_balance, winning_balance) VALUES ('$escapedMobile', '$escapedName', 0, 0)");
+}
 
 if (!$insertResult) {
-    // Try without winning_balance column
-    $insertResult = $conn->query("INSERT INTO users (mobile, name, password, wallet_balance) VALUES ('$escapedMobile', '$escapedName', '', 0)");
+    $insertResult = $conn->query("INSERT INTO users (mobile, name, wallet_balance) VALUES ('$escapedMobile', '$escapedName', 0)");
 }
 
 if ($insertResult) {
