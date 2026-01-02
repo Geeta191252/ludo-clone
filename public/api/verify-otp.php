@@ -15,8 +15,11 @@ require_once 'config.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-$mobile = $data['mobile'] ?? '';
-$otp = $data['otp'] ?? '';
+$mobileRaw = $data['mobile'] ?? '';
+$otpRaw = $data['otp'] ?? '';
+
+$mobile = preg_replace('/\D/', '', trim($mobileRaw));
+$otp = preg_replace('/\D/', '', trim($otpRaw));
 
 // Validation
 if (empty($mobile) || strlen($mobile) !== 10) {
@@ -31,20 +34,38 @@ if (empty($otp) || strlen($otp) !== 6) {
 
 $conn = getDBConnection();
 
-// Verify OTP
-$stmt = $conn->prepare("SELECT * FROM otp_requests WHERE mobile = ? AND otp = ? AND expires_at > NOW() AND verified = 0");
-$stmt->bind_param("ss", $mobile, $otp);
+// Fetch latest OTP for this mobile (uses DB time for expiry check)
+$stmt = $conn->prepare("SELECT id, otp, verified, (expires_at > NOW()) AS is_valid_time FROM otp_requests WHERE mobile = ? ORDER BY id DESC LIMIT 1");
+$stmt->bind_param("s", $mobile);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    echo json_encode(['status' => false, 'message' => 'Invalid or expired OTP']);
+    echo json_encode(['status' => false, 'message' => 'OTP not found. Please resend OTP']);
+    exit;
+}
+
+$row = $result->fetch_assoc();
+
+if (intval($row['verified']) === 1) {
+    echo json_encode(['status' => false, 'message' => 'OTP already used. Please resend OTP']);
+    exit;
+}
+
+if (intval($row['is_valid_time']) !== 1) {
+    echo json_encode(['status' => false, 'message' => 'OTP expired. Please resend OTP']);
+    exit;
+}
+
+if (trim((string)$row['otp']) !== $otp) {
+    echo json_encode(['status' => false, 'message' => 'Invalid OTP']);
     exit;
 }
 
 // Mark OTP as verified
-$stmt = $conn->prepare("UPDATE otp_requests SET verified = 1 WHERE mobile = ? AND otp = ?");
-$stmt->bind_param("ss", $mobile, $otp);
+$otpId = intval($row['id']);
+$stmt = $conn->prepare("UPDATE otp_requests SET verified = 1 WHERE id = ?");
+$stmt->bind_param("i", $otpId);
 $stmt->execute();
 
 // Check if user exists
