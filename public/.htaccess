@@ -12,6 +12,10 @@ DirectoryIndex index.html
   
   # Don't rewrite API calls
   RewriteRule ^api/ - [L]
+
+  # Don't rewrite Flutter web game files
+  RewriteRule ^game/ - [L]
+  RewriteRule ^game$ - [L]
   
   # Rewrite everything else to index.html
   RewriteRule ^ index.html [L]
